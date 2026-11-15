@@ -3913,9 +3913,6 @@ window.applyRoleRestrictionsToUI = function() {
       btnResetUsers.classList.add('hidden');
     }
   }
-      btnResetUsers.classList.add('hidden');
-    }
-  }
 };
 
 // Vào thẳng vai trò để thử nghiệm nhanh (1-Click Role Access)
