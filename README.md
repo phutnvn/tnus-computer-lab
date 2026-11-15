@@ -79,10 +79,7 @@ git commit -m "Khoi tao he thong mo phong phong may tinh TNUS"
 ```
 
 ### Bước 2: Tạo Repository trên GitHub và đẩy mã nguồn lên
-1. Truy cập [github.com/new](https://github.com/new) và tạo một Repository mới (ví dụ đặt tên: `tnus-computer-lab`).
-2. Chạy lệnh liên kết và đẩy code lên:
 ```bash
-git remote add origin https://github.com/<tai-khoan-cua-ban>/tnus-computer-lab.git
 git push -u origin main
 ```
 
@@ -90,10 +87,9 @@ git push -u origin main
 1. Vào mục **Settings** của Repository trên GitHub -> chọn **Pages** (ở cột bên trái).
 2. Tại mục **Build and deployment** -> **Source**:
    - Chọn **Deploy from a branch** -> Nhánh **`main`** -> Thư mục **`/ (root)`** -> Bấm **Save**.
-   *(Hoặc chọn **GitHub Actions**, quy trình `.github/workflows/deploy.yml` đã được tạo sẵn sẽ tự động triển khai).*
 3. Sau khoảng 1-2 phút, trang web sẽ hoạt động trực tuyến tại địa chỉ:
    ```text
-   https://<tai-khoan-cua-ban>.github.io/tnus-computer-lab/
+   https://phutnvn.github.io/tnus-computer-lab/
    ```
 
 ---
