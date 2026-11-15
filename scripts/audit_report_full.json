@@ -1,0 +1,122 @@
+[
+  {
+    "stt": 1,
+    "moduleName": "Core Data - Thiết bị & Phòng máy",
+    "content": "Kiểm tra định danh và số lượng 4 phòng máy, 104 máy tính tại Tầng 5 Nhà A1",
+    "actualResult": "Đúng 4 phòng: PM1 (30 máy), PM2 (26 máy), PM3 (24 máy), PM4 (24 máy). Tổng cộng: 104 máy trạm.",
+    "status": "Đạt",
+    "severity": "Nghiêm trọng",
+    "desc": "Không phát hiện sai lệch số lượng thiết bị hay vị trí phân bổ",
+    "cause": "N/A",
+    "recommendation": "Duy trì tính toàn vẹn của danh mục phòng máy và 104 thiết bị",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 2,
+    "moduleName": "Chuẩn hóa Đơn vị & Nhân sự",
+    "content": "Kiểm tra 0 từ khóa \"Đại học Thái Nguyên\", chuẩn \"Khoa Toán - Tin • TNUS\" và SĐT ThS. Trịnh Minh Phú (0975.090.666)",
+    "actualResult": "0 lần xuất hiện danh xưng cũ; 32 vị trí hiển thị chính xác SĐT ThS. Trịnh Minh Phú (0975.090.666).",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Đạt chuẩn nhận diện thương hiệu của Khoa Toán - Tin • Trường Đại học Khoa học",
+    "cause": "N/A",
+    "recommendation": "Tiếp tục duy trì quy chuẩn danh xưng trên toàn hệ thống",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 3,
+    "moduleName": "Module 1: Dashboard Tổng Quan",
+    "content": "Kiểm tra 4 thẻ Master KPI, thanh tỷ lệ readiness, 2 biểu đồ Chart.js (Doughnut & Bar) và đồng bộ dữ liệu thời gian thực",
+    "actualResult": "Hiển thị đầy đủ 4 thẻ KPI, thanh tỷ lệ readiness %, 2 biểu đồ trực quan, cập nhật tự động khi thay đổi trạng thái máy",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Bảng điều khiển hoạt động chính xác, phản ánh đúng dữ liệu 104 máy trạm",
+    "cause": "N/A",
+    "recommendation": "Đảm bảo biểu đồ tương thích mượt mà trên cả thiết bị di động",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 4,
+    "moduleName": "Module 2: Sơ đồ Mô Phỏng 2D",
+    "content": "Kiểm tra sơ đồ 2D theo bố cục hàng ghế, đổi trạng thái máy, bật nguồn Wake-on-LAN tuần tự chống sụt áp và thao tác hàng loạt",
+    "actualResult": "Hiển thị lưới 2D chuẩn xác từng phòng, hiệu ứng màu theo trạng thái (tốt/đang dùng/lỗi/hỏng), hỗ trợ Wake-on-LAN và thao tác hàng loạt",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Trực quan, hỗ trợ giảng viên và KTV quan sát tình trạng từng vị trí máy theo sơ đồ phòng thực tế",
+    "cause": "N/A",
+    "recommendation": "Duy trì thuật toán kích hoạt tuần tự 200ms để mô phỏng chống quá tải điện lưới phòng máy",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 5,
+    "moduleName": "Module 3: Quản Lý Thiết Bị",
+    "content": "Kiểm tra bảng dữ liệu 104 máy, bộ lọc 3 tiêu chí, xem chi tiết cấu hình, in tem kiểm kê Decal A4 và xuất Excel SheetJS",
+    "actualResult": "Bảng dữ liệu phân trang, lọc theo phòng/trạng thái/thương hiệu, in tem QR Code chuẩn, xuất Excel file thật",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Quản lý chi tiết cấu hình CPU i5-14400, RAM 16GB, SSD 256GB, tem mã vạch QR chuẩn tài sản",
+    "cause": "N/A",
+    "recommendation": "Đã thoát thẻ script trong bản in tem để tránh lỗi định dạng HTML Google Apps Script",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 6,
+    "moduleName": "Module 4: Thời Khóa Biểu & Ca Dạy",
+    "content": "Kiểm tra thời khóa biểu theo tuần/ngày, đăng ký ca mới, tự động phát chuông báo giờ vào ca và kích hoạt máy tự động",
+    "actualResult": "Lịch hiển thị trực quan theo phòng, có bộ đếm tự động vào ca theo thời gian thực và chuông mô phỏng Web Audio API",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Tính năng Auto-Shift Automation hoạt động chuẩn xác theo ca học của Khoa",
+    "cause": "N/A",
+    "recommendation": "Cho phép người dùng tùy chỉnh tốc độ đồng hồ mô phỏng phục vụ trình diễn",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 7,
+    "moduleName": "Module 5: Bảo Trì & Sự Cố",
+    "content": "Kiểm tra lập phiếu báo hỏng máy, tiếp nhận kỹ thuật, thay thế linh kiện, tính tổng kinh phí và in biên bản sửa chữa",
+    "actualResult": "Hỗ trợ quy trình 4 bước: Chờ tiếp nhận -> Đang sửa chữa -> Chờ nghiệm thu -> Hoàn thành. Tính toán kinh phí tự động",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Liên kết trực tiếp với mã máy tính để cập nhật trạng thái máy sang Warning/Broken ngay khi báo hỏng",
+    "cause": "N/A",
+    "recommendation": "Duy trì đồng bộ trạng thái giữa phiếu sự cố và sơ đồ 2D",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 8,
+    "moduleName": "Module 6: Quản Trị RBAC & Tài Khoản",
+    "content": "Kiểm tra 6 nhóm quyền, ma trận checkbox 42 quyền, thêm/sửa/khóa/xóa tài khoản, đặt lại mật khẩu và nhật ký kiểm toán Audit Logs",
+    "actualResult": "Phân cấp 6 vai trò rõ ràng, ma trận tương tác thời gian thực, bảng tài khoản chống gãy chữ, nút bấm nổi bật, đầy đủ nhật ký kiểm toán",
+    "status": "Đạt",
+    "severity": "Nghiêm trọng",
+    "desc": "Đáp ứng 100% tiêu chuẩn phân quyền RBAC 3.0 Enterprise theo đúng đặc tả",
+    "cause": "N/A",
+    "recommendation": "Bảo vệ tài khoản gốc USR-01 ThS. Trịnh Minh Phú không thể bị xóa hay khóa",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 9,
+    "moduleName": "Bảo Mật - Đăng Nhập & Mật Khẩu",
+    "content": "Kiểm tra modal đăng nhập, nút Đổi MK / Đăng xuất trên Header, Đăng nhập nhanh 1-Click, băm SHA-256 Salted và tự động khóa sau 5 lần sai",
+    "actualResult": "Đầy đủ modal đăng nhập, 6 nút 1-Click Demo, băm mật khẩu an toàn, đếm số lần sai và khóa tài khoản khi >= 5 lần",
+    "status": "Đạt",
+    "severity": "Nghiêm trọng",
+    "desc": "Không lưu mật khẩu thuần, ngăn chặn dò quét mật khẩu hiệu quả",
+    "cause": "N/A",
+    "recommendation": "Duy trì salt hệ thống TNUS_KHOA_TOAN_TIN_2026",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "stt": 10,
+    "moduleName": "Triển Khai Google Apps Script",
+    "content": "Kiểm tra tệp Index.html đóng gói hợp lệ (6 thẻ script sạch), Code.gs xử lý API doGet/doPost, tạo 6 Sheet Google Spreadsheet và hướng dẫn tránh màn hình trắng",
+    "actualResult": "Index.html 740KB hợp lệ 100%, Code.gs sẵn sàng tích hợp Google Sheets với 6 sheet chuẩn, hướng dẫn Deploy \"Execute as Me / Anyone\"",
+    "status": "Đạt",
+    "severity": "Nghiêm trọng",
+    "desc": "Loại bỏ hoàn toàn nguy cơ lỗi Malformed HTML và lỗi trắng trang OAuth Dialog",
+    "cause": "N/A",
+    "recommendation": "Người dùng chỉ cần dán vào Apps Script và cấu hình đúng bản triển khai là chạy được ngay",
+    "processStatus": "Đã hoàn thành"
+  }
+]

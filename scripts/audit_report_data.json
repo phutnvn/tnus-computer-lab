@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "moduleName": "UI Navigation & Handlers",
+    "testContent": "Kiểm tra tính tồn tại của tất cả các hàm gọi từ HTML",
+    "actualResult": "Thiếu định nghĩa: querySelector, getElementById",
+    "status": "Không đạt",
+    "severity": "Cao",
+    "desc": "Hàm gọi từ giao diện không tồn tại trong JS",
+    "cause": "Chưa khai báo hàm",
+    "recommendation": "Bổ sung định nghĩa các hàm thiếu",
+    "processStatus": "Cần xử lý"
+  },
+  {
+    "id": 5,
+    "moduleName": "Bảo Mật - XSS & Parser",
+    "testContent": "Kiểm tra xung đột thẻ đóng script và chống XSS",
+    "actualResult": "Không phát hiện thẻ script trần bên trong JS",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Parser HTML an toàn",
+    "cause": "N/A",
+    "recommendation": "Duy trì",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "id": 6,
+    "moduleName": "Entity Naming & Contact",
+    "testContent": "Kiểm tra 0 từ khóa danh xưng cũ và đồng bộ SĐT 0975.090.666",
+    "actualResult": "Tìm thấy 0 từ khóa cũ, 32 vị trí SĐT ThS. Trịnh Minh Phú",
+    "status": "Đạt",
+    "severity": "Cao",
+    "desc": "Chuẩn hóa danh xưng đơn vị",
+    "cause": "N/A",
+    "recommendation": "Duy trì",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "id": 7,
+    "moduleName": "Backend Google Apps Script",
+    "testContent": "Kiểm tra các hàm API doGet, doPost, setupGoogleSheets và kiểm soát quyền phía máy chủ",
+    "actualResult": "Đầy đủ 100% các API và hướng dẫn triển khai",
+    "status": "Đạt",
+    "severity": "Nghiêm trọng",
+    "desc": "Backend controller và cơ sở dữ liệu Google Sheets",
+    "cause": "N/A",
+    "recommendation": "Duy trì",
+    "processStatus": "Đã hoàn thành"
+  },
+  {
+    "id": 8,
+    "moduleName": "Tích Hợp Nghiệp Vụ",
+    "testContent": "Kiểm tra đầy đủ các modal chức năng CRUD, RBAC, Lịch và Bảo trì",
+    "actualResult": "Thiếu: showQuickCreateScheduleModal, showCreateTicketModal",
+    "status": "Không đạt",
+    "severity": "Cao",
+    "desc": "Thiếu modal chức năng",
+    "cause": "Chưa định nghĩa",
+    "recommendation": "Bổ sung hàm",
+    "processStatus": "Cần xử lý"
+  }
+]
