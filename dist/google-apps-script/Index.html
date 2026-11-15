@@ -1260,38 +1260,56 @@
 
           <!-- 2. KPI THỐNG KÊ TÀI KHOẢN TẬP TRUNG (5 VAI TRÒ CHUẨN) -->
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng Tài Khoản</div>
+            <div onclick="window.filterUsersByRole('all')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition cursor-pointer group" title="Bấm để xem tất cả tài khoản">
+              <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition flex items-center justify-between">
+                <span>Tổng Tài Khoản</span>
+                <i class="fa-solid fa-users text-slate-400 text-[10px] group-hover:text-blue-600"></i>
+              </div>
               <div class="text-xl font-black text-slate-800 mt-0.5"><span id="user-kpi-total">6</span> <span class="text-xs font-semibold text-slate-500">user</span></div>
               <div class="text-[10px] text-blue-600 font-medium mt-1">Đã cấp phát hệ thống</div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <div class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Quản Trị Viên</div>
-              <div class="text-xl font-black text-blue-700 mt-0.5"><span id="user-kpi-admin">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
-              <div class="text-[10px] text-slate-500 font-medium mt-1">Super Admin toàn quyền</div>
+            <div onclick="window.filterUsersByRole('admins')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc nhóm Quản trị viên (Super Admin & Admin)">
+              <div class="text-[10px] font-bold text-blue-600 uppercase tracking-wider flex items-center justify-between">
+                <span>Quản Trị Viên</span>
+                <i class="fa-solid fa-user-shield text-blue-400 text-[10px]"></i>
+              </div>
+              <div class="text-xl font-black text-blue-700 mt-0.5"><span id="user-kpi-admin">2</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
+              <div class="text-[10px] text-slate-500 font-medium mt-1">Super Admin & Admin</div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Quản Lý Phòng Máy</div>
+            <div onclick="window.filterUsersByRole('lab_manager')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Quản lý phòng máy">
+              <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider flex items-center justify-between">
+                <span>QL Phòng Máy</span>
+                <i class="fa-solid fa-desktop text-indigo-400 text-[10px]"></i>
+              </div>
               <div class="text-xl font-black text-indigo-700 mt-0.5"><span id="user-kpi-manager">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Điều phối máy & bảo trì</div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Giảng Viên</div>
-              <div class="text-xl font-black text-emerald-700 mt-0.5"><span id="user-kpi-teacher">2</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
+            <div onclick="window.filterUsersByRole('teacher')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-emerald-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Giảng viên">
+              <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider flex items-center justify-between">
+                <span>Giảng Viên</span>
+                <i class="fa-solid fa-chalkboard-user text-emerald-400 text-[10px]"></i>
+              </div>
+              <div class="text-xl font-black text-emerald-700 mt-0.5"><span id="user-kpi-teacher">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Dạy thực hành & báo hỏng</div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Kỹ Thuật Viên</div>
+            <div onclick="window.filterUsersByRole('lab_staff')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-amber-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Kỹ thuật viên">
+              <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wider flex items-center justify-between">
+                <span>Kỹ Thuật Viên</span>
+                <i class="fa-solid fa-wrench text-amber-400 text-[10px]"></i>
+              </div>
               <div class="text-xl font-black text-amber-700 mt-0.5"><span id="user-kpi-staff">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Wake-on-LAN & sửa chữa</div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <div class="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Sinh Viên / Khách</div>
+            <div onclick="window.filterUsersByRole('student')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-purple-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Sinh viên / Khách">
+              <div class="text-[10px] font-bold text-purple-600 uppercase tracking-wider flex items-center justify-between">
+                <span>Sinh Viên / Khách</span>
+                <i class="fa-solid fa-graduation-cap text-purple-400 text-[10px]"></i>
+              </div>
               <div class="text-xl font-black text-purple-700 mt-0.5"><span id="user-kpi-student">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Chế độ xem (Read-only)</div>
             </div>
@@ -1349,18 +1367,19 @@
                 </div>
 
                 <!-- Role Filter -->
-                <select id="user-role-filter" class="text-xs rounded-lg border border-slate-300 py-1.5 px-2.5 bg-white font-medium focus:outline-none focus:border-blue-500">
-                  <option value="all">Tất cả vai trò (6 nhóm)</option>
-                  <option value="super_admin">Super Admin</option>
+                <select id="user-role-filter" onchange="if(window.userPagination) window.userPagination.page = 1; window.renderUserAccountsTable();" class="text-xs rounded-lg border border-slate-300 py-1.5 px-2.5 bg-white font-medium focus:outline-none focus:border-blue-500">
+                  <option value="all">Tất cả vai trò</option>
+                  <option value="admins">Quản trị viên (Super Admin & Admin)</option>
+                  <option value="super_admin">Super Admin (ThS. Trịnh Minh Phú)</option>
                   <option value="admin">Admin (Quản trị viên)</option>
                   <option value="lab_manager">Quản lý phòng máy</option>
                   <option value="teacher">Giảng viên</option>
                   <option value="lab_staff">Kỹ thuật viên</option>
-                  <option value="student">Sinh viên</option>
+                  <option value="student">Sinh viên / Khách</option>
                 </select>
 
                 <!-- Status Filter -->
-                <select id="user-status-filter" class="text-xs rounded-lg border border-slate-300 py-1.5 px-2.5 bg-white font-medium focus:outline-none focus:border-blue-500">
+                <select id="user-status-filter" onchange="if(window.userPagination) window.userPagination.page = 1; window.renderUserAccountsTable();" class="text-xs rounded-lg border border-slate-300 py-1.5 px-2.5 bg-white font-medium focus:outline-none focus:border-blue-500">
                   <option value="all">Tất cả trạng thái</option>
                   <option value="active">Đang hoạt động</option>
                   <option value="locked">Đã khóa</option>
@@ -1394,17 +1413,17 @@
             </div>
 
             <!-- Table -->
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px] whitespace-nowrap">
+            <div class="overflow-x-auto relative shadow-inner">
+              <table class="w-full text-left text-xs min-w-[980px]">
+                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px] whitespace-nowrap sticky top-0 z-10">
                   <tr>
-                    <th class="py-3 px-3 text-center w-16">Mã</th>
-                    <th class="py-3 px-4 min-w-[200px]">Thông Tin Người Dùng</th>
-                    <th class="py-3 px-4 min-w-[130px]">Vai Trò Phân Quyền</th>
-                    <th class="py-3 px-4 min-w-[220px]">Đơn Vị & Liên Hệ</th>
-                    <th class="py-3 px-4 text-center min-w-[110px]">Trạng Thái</th>
-                    <th class="py-3 px-4 min-w-[130px]">Đăng Nhập Cuối</th>
-                    <th class="py-3 px-4 text-center min-w-[200px]">Thao Tác</th>
+                    <th class="py-3 px-3 text-center w-16 sticky left-0 bg-slate-100 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Mã</th>
+                    <th class="py-3 px-4 min-w-[210px] sticky left-16 bg-slate-100 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Thông Tin Người Dùng</th>
+                    <th class="py-3 px-3 min-w-[130px]">Vai Trò Phân Quyền</th>
+                    <th class="py-3 px-3 min-w-[210px]">Đơn Vị & Liên Hệ</th>
+                    <th class="py-3 px-3 text-center min-w-[100px]">Trạng Thái</th>
+                    <th class="py-3 px-3 min-w-[120px]">Đăng Nhập Cuối</th>
+                    <th class="py-3 px-3 text-center min-w-[190px]">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody id="user-accounts-table-body" class="divide-y divide-slate-100 text-slate-700">
@@ -1706,12 +1725,12 @@
                 </div>
               </div>
 
-              <!-- Ô nhập & hiển thị URL Web App -->
+              <!-- Ô nhập & hiển thị URL Web App / GitHub Pages -->
               <div class="mb-3.5 flex flex-col sm:flex-row sm:items-center gap-2 bg-white/90 p-2.5 rounded-xl border border-blue-200">
                 <span class="text-[11px] font-bold text-slate-700 whitespace-nowrap flex items-center">
-                  <i class="fa-solid fa-globe text-blue-600 mr-1.5"></i>URL Web App Google Apps Script của bạn:
+                  <i class="fa-solid fa-globe text-blue-600 mr-1.5"></i>URL Web App / GitHub Pages của bạn:
                 </span>
-                <input type="text" id="input-custom-web-app-url" placeholder="Dán link https://script.google.com/macros/s/.../exec vào đây..." class="flex-grow p-1.5 text-xs font-mono border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50" onchange="window.saveCustomWebAppUrl(this.value)">
+                <input type="text" id="input-custom-web-app-url" placeholder="https://phutnvn.github.io/tnus-computer-lab/ hoặc link Web App..." class="flex-grow p-1.5 text-xs font-mono border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50" onchange="window.saveCustomWebAppUrl(this.value)">
                 <button onclick="window.saveCustomWebAppUrl(document.getElementById('input-custom-web-app-url').value, true)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs whitespace-nowrap transition shadow-xs flex items-center justify-center space-x-1">
                   <i class="fa-solid fa-floppy-disk"></i>
                   <span>Lưu URL</span>
@@ -8812,6 +8831,37 @@ const STATUS_CONFIG = {
   }
 };
 
+// Đảm bảo gắn đầy đủ dữ liệu cấu hình vào window và module để truy cập mọi nơi
+if (typeof window !== 'undefined') {
+  window.INITIAL_LABS = typeof INITIAL_LABS !== 'undefined' ? INITIAL_LABS : [];
+  window.INITIAL_COMPUTERS = typeof INITIAL_COMPUTERS !== 'undefined' ? INITIAL_COMPUTERS : [];
+  window.INITIAL_SCHEDULES = typeof INITIAL_SCHEDULES !== 'undefined' ? INITIAL_SCHEDULES : [];
+  window.INITIAL_MAINTENANCE = typeof INITIAL_MAINTENANCE !== 'undefined' ? INITIAL_MAINTENANCE : [];
+  window.INITIAL_USERS = typeof INITIAL_USERS !== 'undefined' ? INITIAL_USERS : [];
+  window.INITIAL_ACTIVITY_LOGS = typeof INITIAL_ACTIVITY_LOGS !== 'undefined' ? INITIAL_ACTIVITY_LOGS : [];
+  window.SYSTEM_ROLES = typeof SYSTEM_ROLES !== 'undefined' ? SYSTEM_ROLES : [];
+  window.DEFAULT_ROLE_PERMISSIONS = typeof DEFAULT_ROLE_PERMISSIONS !== 'undefined' ? DEFAULT_ROLE_PERMISSIONS : {};
+  window.RBAC_MODULES = typeof RBAC_MODULES !== 'undefined' ? RBAC_MODULES : [];
+  window.RBAC_ACTIONS = typeof RBAC_ACTIONS !== 'undefined' ? RBAC_ACTIONS : [];
+  window.STATUS_CONFIG = typeof STATUS_CONFIG !== 'undefined' ? STATUS_CONFIG : {};
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    INITIAL_LABS,
+    INITIAL_COMPUTERS,
+    INITIAL_SCHEDULES,
+    INITIAL_MAINTENANCE,
+    INITIAL_USERS,
+    INITIAL_ACTIVITY_LOGS,
+    SYSTEM_ROLES,
+    DEFAULT_ROLE_PERMISSIONS,
+    RBAC_MODULES,
+    RBAC_ACTIONS,
+    STATUS_CONFIG
+  };
+}
+
 
 // ==================== SIMULATION MODULE ====================
 /**
@@ -13612,14 +13662,26 @@ function loadState() {
           rootAdmin.roleName = 'Super Admin';
           rootAdmin.name = 'ThS. Trịnh Minh Phú';
           rootAdmin.phone = '0975.090.666';
+          rootAdmin.email = 'phutm@tnus.edu.vn';
+          rootAdmin.department = 'Khoa Toán - Tin, TNUS';
           rootAdmin.status = 'active';
         }
-        // Đảm bảo có tài khoản Admin USR-02 (KS. Trần Văn Hải)
-        if (!window.appState.users.some(u => u.id === 'USR-02')) {
-          window.appState.users.splice(1, 0, { ...INITIAL_USERS[1] });
+        // Đảm bảo luôn đầy đủ các tài khoản mẫu chuẩn từ INITIAL_USERS (USR-02 đến USR-06)
+        const sampleUsers = (typeof INITIAL_USERS !== 'undefined') ? INITIAL_USERS : (window.INITIAL_USERS || []);
+        if (Array.isArray(sampleUsers)) {
+          let hasAdded = false;
+          sampleUsers.forEach(initUser => {
+            if (!window.appState.users.some(u => u.id === initUser.id)) {
+              window.appState.users.push({ ...initUser });
+              hasAdded = true;
+            }
+          });
+          if (hasAdded && typeof window.saveStateToLocalStorage === 'function') {
+            window.saveStateToLocalStorage();
+          }
         }
       } else {
-        window.appState.users = [...INITIAL_USERS];
+        window.appState.users = (typeof INITIAL_USERS !== 'undefined') ? [...INITIAL_USERS] : [];
       }
 
       // 4. Đồng bộ phiên đăng nhập hiện hành
@@ -14404,7 +14466,11 @@ window.renderUserAccountsTable = function() {
   let list = [...(window.appState.users || [])];
 
   if (roleVal !== 'all') {
-    list = list.filter(u => u.role === roleVal);
+    if (roleVal === 'admins') {
+      list = list.filter(u => u.role === 'admin' || u.role === 'super_admin');
+    } else {
+      list = list.filter(u => u.role === roleVal);
+    }
   }
 
   if (statusVal !== 'all') {
@@ -14476,21 +14542,21 @@ window.renderUserAccountsTable = function() {
 
     return `
       <tr class="hover:bg-slate-50/90 transition border-b border-slate-100 ${isCurrent ? 'bg-blue-50/40 font-medium' : ''}">
-        <!-- Cột Mã (Chống gãy dòng) -->
-        <td class="py-3 px-3 text-center whitespace-nowrap">
-          <span class="font-mono font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 text-xs shadow-2xs">${user.id}</span>
+        <!-- Cột Mã (Chống gãy dòng & Ghim cố định khi cuộn) -->
+        <td class="py-3 px-3 text-center whitespace-nowrap sticky left-0 ${isCurrent ? 'bg-blue-50/95' : 'bg-white'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+          <span class="font-mono font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs shadow-2xs">${user.id}</span>
         </td>
 
-        <!-- Cột Thông tin người dùng (min-width chống bó chữ dọc) -->
-        <td class="py-3 px-4 min-w-[200px] whitespace-nowrap">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shadow-xs shrink-0">
+        <!-- Cột Thông tin người dùng (Ghim cố định khi cuộn) -->
+        <td class="py-3 px-4 min-w-[210px] whitespace-nowrap sticky left-16 ${isCurrent ? 'bg-blue-50/95' : 'bg-white'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-lg shadow-xs shrink-0">
               ${user.avatar || '👤'}
             </div>
             <div>
               <div class="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                 <span>${user.name}</span>
-                ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-blue-600 text-white font-extrabold uppercase shadow-2xs">Hiện tại</span>' : ''}
+                ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-blue-600 text-white font-extrabold uppercase shadow-2xs">Bạn</span>' : ''}
               </div>
               <div class="text-[11px] text-slate-500 font-mono">@${user.username}</div>
             </div>
@@ -14591,7 +14657,8 @@ window.renderUserAccountsTable = function() {
 window.updateUserKPIs = function() {
   const users = window.appState.users || [];
   const total = users.length;
-  const adminCount = users.filter(u => u.role === 'admin').length;
+  // Quản trị viên gồm Super Admin và Admin
+  const adminCount = users.filter(u => u.role === 'admin' || u.role === 'super_admin').length;
   const managerCount = users.filter(u => u.role === 'lab_manager').length;
   const teacherCount = users.filter(u => u.role === 'teacher').length;
   const staffCount = users.filter(u => u.role === 'lab_staff').length;
@@ -17275,11 +17342,19 @@ function initUrlParamsHandler() {
     }
   } catch (e) {}
 
-  // Nạp lại URL đã lưu trước đó vào ô nhập
+  // Nạp lại URL đã lưu trước đó vào ô nhập, hoặc tự động phát hiện URL hiện hành (GitHub Pages / Web)
   const savedUrl = localStorage.getItem('tnus_gas_web_app_url');
   const inputUrl = document.getElementById('input-custom-web-app-url');
-  if (savedUrl && inputUrl && !inputUrl.value) {
-    inputUrl.value = savedUrl;
+  if (inputUrl) {
+    if (savedUrl) {
+      inputUrl.value = savedUrl;
+    } else if (typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+      const liveUrl = window.location.origin + window.location.pathname;
+      inputUrl.value = liveUrl;
+      localStorage.setItem('tnus_gas_web_app_url', liveUrl);
+    } else {
+      inputUrl.value = 'https://phutnvn.github.io/tnus-computer-lab/';
+    }
   }
 }
 
@@ -17807,14 +17882,19 @@ window.resetRolePermissionsToDefault = function() {
   });
 };
 
-// Lọc người dùng theo vai trò từ trang Kiến trúc vai trò
+// Lọc người dùng theo vai trò từ trang Kiến trúc vai trò hoặc KPI card
 window.filterUsersByRole = function(roleId) {
   window.switchRbacSubTab('users');
   const roleFilter = document.getElementById('user-role-filter');
   if (roleFilter) {
-    roleFilter.value = roleId;
-    window.renderUserAccountsTable();
+    if (roleId === 'admin') {
+      roleFilter.value = 'admins';
+    } else {
+      roleFilter.value = roleId;
+    }
   }
+  if (window.userPagination) window.userPagination.page = 1;
+  window.renderUserAccountsTable();
 };
 
 // Phân trang danh sách người dùng

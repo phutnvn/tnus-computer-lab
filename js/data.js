@@ -6910,3 +6910,34 @@ const STATUS_CONFIG = {
     icon: 'fa-ban'
   }
 };
+
+// Đảm bảo gắn đầy đủ dữ liệu cấu hình vào window và module để truy cập mọi nơi
+if (typeof window !== 'undefined') {
+  window.INITIAL_LABS = typeof INITIAL_LABS !== 'undefined' ? INITIAL_LABS : [];
+  window.INITIAL_COMPUTERS = typeof INITIAL_COMPUTERS !== 'undefined' ? INITIAL_COMPUTERS : [];
+  window.INITIAL_SCHEDULES = typeof INITIAL_SCHEDULES !== 'undefined' ? INITIAL_SCHEDULES : [];
+  window.INITIAL_MAINTENANCE = typeof INITIAL_MAINTENANCE !== 'undefined' ? INITIAL_MAINTENANCE : [];
+  window.INITIAL_USERS = typeof INITIAL_USERS !== 'undefined' ? INITIAL_USERS : [];
+  window.INITIAL_ACTIVITY_LOGS = typeof INITIAL_ACTIVITY_LOGS !== 'undefined' ? INITIAL_ACTIVITY_LOGS : [];
+  window.SYSTEM_ROLES = typeof SYSTEM_ROLES !== 'undefined' ? SYSTEM_ROLES : [];
+  window.DEFAULT_ROLE_PERMISSIONS = typeof DEFAULT_ROLE_PERMISSIONS !== 'undefined' ? DEFAULT_ROLE_PERMISSIONS : {};
+  window.RBAC_MODULES = typeof RBAC_MODULES !== 'undefined' ? RBAC_MODULES : [];
+  window.RBAC_ACTIONS = typeof RBAC_ACTIONS !== 'undefined' ? RBAC_ACTIONS : [];
+  window.STATUS_CONFIG = typeof STATUS_CONFIG !== 'undefined' ? STATUS_CONFIG : {};
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    INITIAL_LABS,
+    INITIAL_COMPUTERS,
+    INITIAL_SCHEDULES,
+    INITIAL_MAINTENANCE,
+    INITIAL_USERS,
+    INITIAL_ACTIVITY_LOGS,
+    SYSTEM_ROLES,
+    DEFAULT_ROLE_PERMISSIONS,
+    RBAC_MODULES,
+    RBAC_ACTIONS,
+    STATUS_CONFIG
+  };
+}

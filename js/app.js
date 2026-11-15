@@ -67,14 +67,26 @@ function loadState() {
           rootAdmin.roleName = 'Super Admin';
           rootAdmin.name = 'ThS. Trịnh Minh Phú';
           rootAdmin.phone = '0975.090.666';
+          rootAdmin.email = 'phutm@tnus.edu.vn';
+          rootAdmin.department = 'Khoa Toán - Tin, TNUS';
           rootAdmin.status = 'active';
         }
-        // Đảm bảo có tài khoản Admin USR-02 (KS. Trần Văn Hải)
-        if (!window.appState.users.some(u => u.id === 'USR-02')) {
-          window.appState.users.splice(1, 0, { ...INITIAL_USERS[1] });
+        // Đảm bảo luôn đầy đủ các tài khoản mẫu chuẩn từ INITIAL_USERS (USR-02 đến USR-06)
+        const sampleUsers = (typeof INITIAL_USERS !== 'undefined') ? INITIAL_USERS : (window.INITIAL_USERS || []);
+        if (Array.isArray(sampleUsers)) {
+          let hasAdded = false;
+          sampleUsers.forEach(initUser => {
+            if (!window.appState.users.some(u => u.id === initUser.id)) {
+              window.appState.users.push({ ...initUser });
+              hasAdded = true;
+            }
+          });
+          if (hasAdded && typeof window.saveStateToLocalStorage === 'function') {
+            window.saveStateToLocalStorage();
+          }
         }
       } else {
-        window.appState.users = [...INITIAL_USERS];
+        window.appState.users = (typeof INITIAL_USERS !== 'undefined') ? [...INITIAL_USERS] : [];
       }
 
       // 4. Đồng bộ phiên đăng nhập hiện hành
@@ -859,7 +871,11 @@ window.renderUserAccountsTable = function() {
   let list = [...(window.appState.users || [])];
 
   if (roleVal !== 'all') {
-    list = list.filter(u => u.role === roleVal);
+    if (roleVal === 'admins') {
+      list = list.filter(u => u.role === 'admin' || u.role === 'super_admin');
+    } else {
+      list = list.filter(u => u.role === roleVal);
+    }
   }
 
   if (statusVal !== 'all') {
@@ -931,21 +947,21 @@ window.renderUserAccountsTable = function() {
 
     return `
       <tr class="hover:bg-slate-50/90 transition border-b border-slate-100 ${isCurrent ? 'bg-blue-50/40 font-medium' : ''}">
-        <!-- Cột Mã (Chống gãy dòng) -->
-        <td class="py-3 px-3 text-center whitespace-nowrap">
-          <span class="font-mono font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 text-xs shadow-2xs">${user.id}</span>
+        <!-- Cột Mã (Chống gãy dòng & Ghim cố định khi cuộn) -->
+        <td class="py-3 px-3 text-center whitespace-nowrap sticky left-0 ${isCurrent ? 'bg-blue-50/95' : 'bg-white'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+          <span class="font-mono font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs shadow-2xs">${user.id}</span>
         </td>
 
-        <!-- Cột Thông tin người dùng (min-width chống bó chữ dọc) -->
-        <td class="py-3 px-4 min-w-[200px] whitespace-nowrap">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shadow-xs shrink-0">
+        <!-- Cột Thông tin người dùng (Ghim cố định khi cuộn) -->
+        <td class="py-3 px-4 min-w-[210px] whitespace-nowrap sticky left-16 ${isCurrent ? 'bg-blue-50/95' : 'bg-white'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-lg shadow-xs shrink-0">
               ${user.avatar || '👤'}
             </div>
             <div>
               <div class="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                 <span>${user.name}</span>
-                ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-blue-600 text-white font-extrabold uppercase shadow-2xs">Hiện tại</span>' : ''}
+                ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-blue-600 text-white font-extrabold uppercase shadow-2xs">Bạn</span>' : ''}
               </div>
               <div class="text-[11px] text-slate-500 font-mono">@${user.username}</div>
             </div>
@@ -1046,7 +1062,8 @@ window.renderUserAccountsTable = function() {
 window.updateUserKPIs = function() {
   const users = window.appState.users || [];
   const total = users.length;
-  const adminCount = users.filter(u => u.role === 'admin').length;
+  // Quản trị viên gồm Super Admin và Admin
+  const adminCount = users.filter(u => u.role === 'admin' || u.role === 'super_admin').length;
   const managerCount = users.filter(u => u.role === 'lab_manager').length;
   const teacherCount = users.filter(u => u.role === 'teacher').length;
   const staffCount = users.filter(u => u.role === 'lab_staff').length;
@@ -3730,11 +3747,19 @@ function initUrlParamsHandler() {
     }
   } catch (e) {}
 
-  // Nạp lại URL đã lưu trước đó vào ô nhập
+  // Nạp lại URL đã lưu trước đó vào ô nhập, hoặc tự động phát hiện URL hiện hành (GitHub Pages / Web)
   const savedUrl = localStorage.getItem('tnus_gas_web_app_url');
   const inputUrl = document.getElementById('input-custom-web-app-url');
-  if (savedUrl && inputUrl && !inputUrl.value) {
-    inputUrl.value = savedUrl;
+  if (inputUrl) {
+    if (savedUrl) {
+      inputUrl.value = savedUrl;
+    } else if (typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+      const liveUrl = window.location.origin + window.location.pathname;
+      inputUrl.value = liveUrl;
+      localStorage.setItem('tnus_gas_web_app_url', liveUrl);
+    } else {
+      inputUrl.value = 'https://phutnvn.github.io/tnus-computer-lab/';
+    }
   }
 }
 
@@ -4262,14 +4287,19 @@ window.resetRolePermissionsToDefault = function() {
   });
 };
 
-// Lọc người dùng theo vai trò từ trang Kiến trúc vai trò
+// Lọc người dùng theo vai trò từ trang Kiến trúc vai trò hoặc KPI card
 window.filterUsersByRole = function(roleId) {
   window.switchRbacSubTab('users');
   const roleFilter = document.getElementById('user-role-filter');
   if (roleFilter) {
-    roleFilter.value = roleId;
-    window.renderUserAccountsTable();
+    if (roleId === 'admin') {
+      roleFilter.value = 'admins';
+    } else {
+      roleFilter.value = roleId;
+    }
   }
+  if (window.userPagination) window.userPagination.page = 1;
+  window.renderUserAccountsTable();
 };
 
 // Phân trang danh sách người dùng
