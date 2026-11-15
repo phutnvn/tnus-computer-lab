@@ -335,6 +335,100 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
 }
 
+/* ==========================================================================
+   HOÀN THIỆN GIAO DIỆN HIỆN ĐẠI (UI/UX POLISH & RESPONSIVENESS)
+   ========================================================================== */
+
+/* Hiệu ứng chuyển động mượt mà cho các Tab */
+.tab-content-panel {
+  animation: fadeInTab 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInTab {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Thẻ chỉ số KPI tương tác cao cấp */
+.kpi-stat-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.kpi-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* Badge trạng thái phát sáng tinh tế */
+.badge-pulse-dot {
+  position: relative;
+  display: inline-flex;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+}
+.badge-pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: inherit;
+  opacity: 0.6;
+  animation: dotPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes dotPing {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Thanh điều hướng Tab Sidebar cao cấp */
+.nav-tab-link {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+.nav-tab-link.nav-tab-active {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
+  color: #60a5fa !important;
+  font-weight: 700;
+  border-left: 3px solid #3b82f6;
+  padding-left: 10px;
+}
+
+/* Lớp phủ mờ Backdrop cho điện thoại di động */
+#sidebar-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Tùy biến bảng dữ liệu responsive */
+.data-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+/* In ấn chuẩn tài liệu A4 */
+@media print {
+  aside, header, #dynamic-role-alert-banner, .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}
+
 </style>
 </head>
 <body class="h-full flex flex-col antialiased text-slate-800 bg-slate-100 font-sans">
@@ -342,17 +436,25 @@
   <!-- KHUNG CHÍNH GIAO DIỆN (SIDEBAR + MAIN CONTENT) -->
   <div class="flex h-screen overflow-hidden">
     
+    <!-- LỚP PHỦ MỜ KHI MỞ MENU TRÊN ĐIỆN THOẠI -->
+    <div id="sidebar-backdrop" onclick="window.toggleSidebar()" class="fixed inset-0 bg-slate-900/60 z-30 hidden lg:hidden transition-opacity"></div>
+
     <!-- ==================== SIDEBAR TRÁI ==================== -->
-    <aside class="w-64 bg-slate-900 text-white flex flex-col flex-shrink-0 z-30 transition-all duration-300">
+    <aside id="app-sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 text-white flex flex-col flex-shrink-0 z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-2xl lg:shadow-none">
       <!-- Logo & Tiêu đề thương hiệu trường -->
-      <div class="p-4 border-b border-slate-800 flex items-center space-x-3 bg-slate-950/40">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg font-black text-xl">
-          <i class="fa-solid fa-network-wired"></i>
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg font-black text-xl shrink-0">
+            <i class="fa-solid fa-network-wired"></i>
+          </div>
+          <div>
+            <h1 class="font-extrabold text-sm tracking-tight leading-tight text-white uppercase">QUẢN LÝ PHÒNG MÁY</h1>
+            <p class="text-[10px] text-blue-400 font-semibold tracking-wider">Khoa Toán - Tin, TNUS</p>
+          </div>
         </div>
-        <div>
-          <h1 class="font-extrabold text-sm tracking-tight leading-tight text-white uppercase">QUẢN LÝ PHÒNG MÁY</h1>
-          <p class="text-[10px] text-blue-400 font-semibold tracking-wider">Khoa Toán - Tin, TNUS</p>
-        </div>
+        <button onclick="window.toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition" title="Đóng menu">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
       </div>
 
       <!-- Navigation Links -->
@@ -415,12 +517,15 @@
     <div class="flex-grow flex flex-col h-full overflow-hidden">
       
       <!-- HEADER PHÍA TRÊN -->
-      <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0 z-20">
-        <!-- Tiêu đề Header -->
-        <div class="flex items-center space-x-3">
-          <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-800 uppercase flex items-center">
-            <span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2.5 inline-block shadow-sm"></span>
-            KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
+      <header class="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-20">
+        <!-- Tiêu đề Header & Nút mở menu di động -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <button onclick="window.toggleSidebar()" class="lg:hidden p-2 -ml-1 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition" title="Mở danh mục menu">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+          <h1 class="text-xs sm:text-base lg:text-lg font-black tracking-tight text-slate-800 uppercase flex items-center">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2 inline-block shadow-sm shrink-0"></span>
+            <span class="truncate">KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)</span>
           </h1>
         </div>
 
@@ -13793,9 +13898,29 @@ function startDashboardClock() {
   setInterval(update, 1000);
 }
 
+// Đóng / Mở menu Sidebar trên màn hình di động & máy tính bảng
+window.toggleSidebar = function() {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) {
+    sidebar.classList.toggle('-translate-x-full');
+  }
+  if (backdrop) {
+    backdrop.classList.toggle('hidden');
+  }
+};
+
 // Hàm chuyển tab tập trung & an toàn tuyệt đối (Hỗ trợ gọi từ nút bấm, mã sự kiện hoặc inline onclick)
 window.switchTab = function(targetTab) {
   if (!targetTab) return;
+
+  // Đóng sidebar tự động trên thiết bị di động sau khi chọn tab
+  if (window.innerWidth < 1024) {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
+  }
 
   const navButtons = document.querySelectorAll('.nav-tab-link');
   const tabContents = document.querySelectorAll('.tab-content-panel');

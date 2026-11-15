@@ -279,3 +279,97 @@
 .virtual-screen-frame {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
 }
+
+/* ==========================================================================
+   HOÀN THIỆN GIAO DIỆN HIỆN ĐẠI (UI/UX POLISH & RESPONSIVENESS)
+   ========================================================================== */
+
+/* Hiệu ứng chuyển động mượt mà cho các Tab */
+.tab-content-panel {
+  animation: fadeInTab 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInTab {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Thẻ chỉ số KPI tương tác cao cấp */
+.kpi-stat-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.kpi-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* Badge trạng thái phát sáng tinh tế */
+.badge-pulse-dot {
+  position: relative;
+  display: inline-flex;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+}
+.badge-pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: inherit;
+  opacity: 0.6;
+  animation: dotPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes dotPing {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Thanh điều hướng Tab Sidebar cao cấp */
+.nav-tab-link {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+.nav-tab-link.nav-tab-active {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
+  color: #60a5fa !important;
+  font-weight: 700;
+  border-left: 3px solid #3b82f6;
+  padding-left: 10px;
+}
+
+/* Lớp phủ mờ Backdrop cho điện thoại di động */
+#sidebar-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Tùy biến bảng dữ liệu responsive */
+.data-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+/* In ấn chuẩn tài liệu A4 */
+@media print {
+  aside, header, #dynamic-role-alert-banner, .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}

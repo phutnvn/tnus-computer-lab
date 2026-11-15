@@ -353,9 +353,29 @@ function startDashboardClock() {
   setInterval(update, 1000);
 }
 
+// Đóng / Mở menu Sidebar trên màn hình di động & máy tính bảng
+window.toggleSidebar = function() {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) {
+    sidebar.classList.toggle('-translate-x-full');
+  }
+  if (backdrop) {
+    backdrop.classList.toggle('hidden');
+  }
+};
+
 // Hàm chuyển tab tập trung & an toàn tuyệt đối (Hỗ trợ gọi từ nút bấm, mã sự kiện hoặc inline onclick)
 window.switchTab = function(targetTab) {
   if (!targetTab) return;
+
+  // Đóng sidebar tự động trên thiết bị di động sau khi chọn tab
+  if (window.innerWidth < 1024) {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
+  }
 
   const navButtons = document.querySelectorAll('.nav-tab-link');
   const tabContents = document.querySelectorAll('.tab-content-panel');
