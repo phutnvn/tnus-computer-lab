@@ -6642,10 +6642,9 @@ const DEFAULT_ROLE_PERMISSIONS = {
     'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.approve', 'maintenance.export'
   ],
   student: [
-    // Sinh viên: Chỉ được xem thông tin và lịch thực hành được công khai
+    // Sinh viên: Chế độ tra cứu tối giản (Sơ đồ 2D, Dashboard chỉ đọc, Thời khóa biểu)
     'dashboard.view',
     'simulation.view',
-    'computers.view',
     'schedule.view'
   ]
 };

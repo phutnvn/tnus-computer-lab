@@ -386,10 +386,50 @@ window.toggleSidebar = function() {
 window.switchTab = function(targetTab) {
   if (!targetTab) return;
 
+  const curUser = window.appState?.currentUser || (window.appState?.users && window.appState.users[0]);
+  const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+
+  // Kiểm tra thẩm quyền khi truy cập Tab Quản lý Thiết bị (Tab 3) - Khóa với Sinh viên / Khách
+  if (targetTab === 'computers' && role === 'student') {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'CHỨC NĂNG DÀNH CHO CÁN BỘ QUẢN LÝ',
+        html: `
+          <div class="text-left text-xs space-y-2">
+            <p>Phân hệ <strong>Quản lý Thiết bị (104 máy)</strong> dành riêng cho Cán bộ Quản lý và Kỹ thuật viên để theo dõi vòng đời tài sản, cấu hình IP/MAC và kiểm kê thiết bị.</p>
+            <p class="text-slate-600">Sinh viên vui lòng tra cứu trực quan sơ đồ phòng máy, máy tính trống khả dụng và thông số tại phân hệ <strong>Sơ đồ Mô phỏng 2D</strong>.</p>
+          </div>
+        `,
+        confirmButtonColor: '#2563eb',
+        confirmButtonText: 'Đến Sơ đồ Mô phỏng 2D'
+      }).then(() => {
+        window.switchTab('simulation');
+      });
+    }
+    return;
+  }
+
+  // Kiểm tra thẩm quyền khi truy cập Tab Bảo trì & Sự cố (Tab 5) - Khóa với Sinh viên / Khách
+  if (targetTab === 'maintenance' && role === 'student') {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'CHỨC NĂNG BẢO TRÌ & SỰ CỐ',
+        html: `
+          <div class="text-left text-xs space-y-2">
+            <p>Phân hệ <strong>Bảo trì & Sự cố</strong> dành riêng cho Cán bộ Quản lý, Giảng viên và Kỹ thuật viên xử lý kỹ thuật.</p>
+            <p class="text-slate-600">Sinh viên khi phát hiện sự cố máy tính vui lòng báo trực tiếp với Giảng viên phụ trách ca dạy hoặc Kỹ thuật viên phòng máy.</p>
+          </div>
+        `,
+        confirmButtonColor: '#2563eb'
+      });
+    }
+    return;
+  }
+
   // Kiểm tra thẩm quyền khi truy cập Tab Phân quyền & Người dùng (Tab 6)
   if (targetTab === 'users') {
-    const curUser = window.appState?.currentUser || (window.appState?.users && window.appState.users[0]);
-    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
     if (role !== 'admin' && role !== 'lab_manager') {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -3957,12 +3997,12 @@ window.applyRoleRestrictionsToUI = function() {
               <div>
                 <div class="text-xs font-black tracking-wide flex items-center gap-2 flex-wrap">
                   <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-black text-[11px] shadow-2xs">SINH VIÊN / KHÁCH</span>
-                  <span>Chế độ Tra Cứu Thông Tin • Chỉ đọc (Read-Only)</span>
+                  <span>Chế độ Tra Cứu Thông Tin • Tối giản chỉ đọc (Read-Only)</span>
                   <span class="text-purple-300 font-normal">(${u.name} • Khoa Toán - Tin)</span>
                 </div>
                 <div class="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  <span class="text-emerald-400 font-bold">✓ Được phép:</span> Tra cứu sơ đồ mô phỏng 2D, xem máy tính trống khả dụng, xem thông số kỹ thuật và thời khóa biểu học tập.
-                  <span class="text-rose-300 ml-2 font-semibold">🔒 Giới hạn: Khóa toàn bộ quyền thao tác, sửa đổi dữ liệu phòng máy, khóa Wake-on-LAN và đặt lịch</span>
+                  <span class="text-emerald-400 font-bold">✓ Được phép:</span> Tra cứu sơ đồ mô phỏng 2D, xem máy tính khả dụng và xem lịch thực hành các phòng máy.
+                  <span class="text-rose-300 ml-2 font-semibold">🔒 Giới hạn: Khóa chức năng Quản lý thiết bị, Bảo trì sự cố và Quản trị hệ thống</span>
                 </div>
               </div>
             </div>
@@ -4005,7 +4045,7 @@ window.applyRoleRestrictionsToUI = function() {
   } else if (role === 'teacher') {
     updateSidebarBadge('sidebar-badge-dashboard', 'Xem KPI', 'bg-slate-800 text-slate-400');
     updateSidebarBadge('sidebar-badge-simulation', 'Xem máy', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-computers', 'Xem cấu hình', 'bg-slate-800 text-slate-400');
+    updateSidebarBadge('sidebar-badge-computers', 'Xem máy', 'bg-slate-800 text-slate-400');
     updateSidebarBadge('sidebar-badge-schedule', 'Đăng ký dạy', 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30');
     updateSidebarBadge('sidebar-badge-maintenance', 'Báo hỏng', 'bg-amber-600/30 text-amber-300 border border-amber-500/30');
     updateSidebarBadge('sidebar-badge-users', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
@@ -4019,10 +4059,44 @@ window.applyRoleRestrictionsToUI = function() {
   } else if (role === 'student') {
     updateSidebarBadge('sidebar-badge-dashboard', 'Chỉ đọc', 'bg-slate-800 text-slate-400');
     updateSidebarBadge('sidebar-badge-simulation', 'Xem sơ đồ', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-computers', 'Xem cấu hình', 'bg-slate-800 text-slate-400');
+    updateSidebarBadge('sidebar-badge-computers', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
     updateSidebarBadge('sidebar-badge-schedule', 'Xem lịch học', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-maintenance', 'Chỉ đọc', 'bg-slate-800 text-slate-400');
+    updateSidebarBadge('sidebar-badge-maintenance', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
     updateSidebarBadge('sidebar-badge-users', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
+  }
+
+  // Khóa liên kết các Tab trên Sidebar nếu vai trò không được phép
+  const computersTabLink = document.querySelector('.nav-tab-link[data-tab="computers"]');
+  if (computersTabLink) {
+    if (role === 'student') {
+      computersTabLink.classList.add('opacity-40');
+      computersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản lý Thiết bị chỉ dành cho Cán bộ Quản lý và Kỹ thuật viên';
+    } else {
+      computersTabLink.classList.remove('opacity-40');
+      computersTabLink.title = 'Quản lý Thiết bị (104 máy)';
+    }
+  }
+
+  const maintenanceTabLink = document.querySelector('.nav-tab-link[data-tab="maintenance"]');
+  if (maintenanceTabLink) {
+    if (role === 'student') {
+      maintenanceTabLink.classList.add('opacity-40');
+      maintenanceTabLink.title = '[🔒 Bị khóa] Phân hệ Bảo trì & Sự cố dành cho Giảng viên và Kỹ thuật viên';
+    } else {
+      maintenanceTabLink.classList.remove('opacity-40');
+      maintenanceTabLink.title = 'Bảo trì & Sự cố';
+    }
+  }
+
+  const usersTabLink = document.querySelector('.nav-tab-link[data-tab="users"]');
+  if (usersTabLink) {
+    if (isAdmin || role === 'lab_manager') {
+      usersTabLink.classList.remove('opacity-40');
+      usersTabLink.title = 'Phân quyền & Tài khoản';
+    } else {
+      usersTabLink.classList.add('opacity-40');
+      usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành cho Quản trị viên';
+    }
   }
 
   // 3. ĐÁNH DẤU CỘT VAI TRÒ HIỆN HÀNH TRÊN BẢNG 11 NGHIỆP VỤ & 5 THẺ CHI TIẾT
@@ -4105,27 +4179,19 @@ window.applyRoleRestrictionsToUI = function() {
     }
   }
 
-  // Khóa liên kết Sidebar Tab Phân quyền & Người dùng (Tab 6) nếu vai trò không được phép
-  const usersTabLink = document.querySelector('.nav-tab-link[data-tab="users"]');
-  if (usersTabLink) {
-    if (isAdmin || role === 'lab_manager') {
-      usersTabLink.classList.remove('opacity-40');
-      usersTabLink.title = 'Phân quyền & Tài khoản';
-    } else {
-      usersTabLink.classList.add('opacity-40');
-      usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành cho Quản trị viên';
-    }
-  }
-
   // Khóa các nút Sao lưu & Khôi phục JSON trên Header
   const btnExportJson = document.getElementById('btn-export-json');
   const btnImportJson = document.getElementById('btn-import-json');
   if (btnExportJson) applyBtnState(btnExportJson, isAdmin || role === 'lab_manager', 'Xuất file JSON sao lưu', 'Chỉ Quản trị viên mới có quyền sao lưu hệ thống');
   if (btnImportJson) applyBtnState(btnImportJson, isAdmin, 'Khôi phục từ file JSON', 'Chỉ Quản trị viên mới có quyền khôi phục hệ thống');
 
-  // Tự động chuyển tab an toàn nếu người dùng đang ở Tab 6 mà vai trò không có quyền
+  // Tự động chuyển tab an toàn nếu người dùng đang ở Tab bị khóa
   const curTab = window.appState?.currentTab || 'dashboard';
-  if (curTab === 'users' && !isAdmin && role !== 'lab_manager') {
+  if (role === 'student' && ['computers', 'maintenance', 'users'].includes(curTab)) {
+    setTimeout(() => {
+      window.switchTab('simulation');
+    }, 50);
+  } else if (curTab === 'users' && !isAdmin && role !== 'lab_manager') {
     const homeTabs = { teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
     setTimeout(() => {
       window.switchTab(homeTabs[role] || 'dashboard');
