@@ -461,54 +461,36 @@
       <nav class="flex-grow p-3 space-y-1 overflow-y-auto text-sm">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1.5">Điều khiển chính</div>
 
-        <a href="#dashboard" data-tab="dashboard" onclick="window.switchTab('dashboard'); return false;" class="nav-tab-link nav-tab-active flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
-          <div class="flex items-center space-x-2.5">
-            <i class="fa-solid fa-chart-pie w-5 text-center text-blue-400 text-sm"></i>
-            <span class="font-medium text-xs">Dashboard Tổng quan</span>
-          </div>
-          <span id="sidebar-badge-dashboard" class="sidebar-perm-badge text-[9px] font-bold px-1.5 py-0.5 rounded leading-none transition"></span>
+        <a href="#dashboard" data-tab="dashboard" onclick="window.switchTab('dashboard'); return false;" class="nav-tab-link nav-tab-active flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
+          <i class="fa-solid fa-chart-pie w-5 text-center text-blue-400 text-sm"></i>
+          <span class="font-medium text-xs">Dashboard Tổng quan</span>
         </a>
 
-        <a href="#simulation" data-tab="simulation" onclick="window.switchTab('simulation'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
-          <div class="flex items-center space-x-2.5">
-            <i class="fa-solid fa-vr-cardboard w-5 text-center text-emerald-400 text-sm"></i>
-            <span class="font-medium text-xs">Sơ đồ Mô phỏng 2D</span>
-          </div>
-          <span id="sidebar-badge-simulation" class="sidebar-perm-badge text-[9px] font-bold px-1.5 py-0.5 rounded leading-none transition"></span>
+        <a href="#simulation" data-tab="simulation" onclick="window.switchTab('simulation'); return false;" class="nav-tab-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
+          <i class="fa-solid fa-vr-cardboard w-5 text-center text-emerald-400 text-sm"></i>
+          <span class="font-medium text-xs">Sơ đồ Mô phỏng 2D</span>
         </a>
 
-        <a href="#computers" data-tab="computers" onclick="window.switchTab('computers'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
-          <div class="flex items-center space-x-2.5">
-            <i class="fa-solid fa-computer w-5 text-center text-amber-400 text-sm"></i>
-            <span class="font-medium text-xs">Quản lý Thiết bị (104 máy)</span>
-          </div>
-          <span id="sidebar-badge-computers" class="sidebar-perm-badge text-[9px] font-bold px-1.5 py-0.5 rounded leading-none transition"></span>
+        <a href="#computers" data-tab="computers" onclick="window.switchTab('computers'); return false;" class="nav-tab-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
+          <i class="fa-solid fa-computer w-5 text-center text-amber-400 text-sm"></i>
+          <span class="font-medium text-xs">Quản lý Thiết bị (104 máy)</span>
         </a>
 
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 pt-3.5 pb-1.5">Vận hành phòng máy</div>
 
-        <a href="#schedule" data-tab="schedule" onclick="window.switchTab('schedule'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
-          <div class="flex items-center space-x-2.5">
-            <i class="fa-solid fa-calendar-days w-5 text-center text-indigo-400 text-sm"></i>
-            <span class="font-medium text-xs">Lịch thực hành</span>
-          </div>
-          <span id="sidebar-badge-schedule" class="sidebar-perm-badge text-[9px] font-bold px-1.5 py-0.5 rounded leading-none transition"></span>
+        <a href="#schedule" data-tab="schedule" onclick="window.switchTab('schedule'); return false;" class="nav-tab-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
+          <i class="fa-solid fa-calendar-days w-5 text-center text-indigo-400 text-sm"></i>
+          <span class="font-medium text-xs">Lịch thực hành</span>
         </a>
 
-        <a href="#maintenance" data-tab="maintenance" onclick="window.switchTab('maintenance'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
-          <div class="flex items-center space-x-2.5">
-            <i class="fa-solid fa-wrench w-5 text-center text-rose-400 text-sm"></i>
-            <span class="font-medium text-xs">Bảo trì & Sự cố</span>
-          </div>
-          <span id="sidebar-badge-maintenance" class="sidebar-perm-badge text-[9px] font-bold px-1.5 py-0.5 rounded leading-none transition"></span>
+        <a href="#maintenance" data-tab="maintenance" onclick="window.switchTab('maintenance'); return false;" class="nav-tab-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
+          <i class="fa-solid fa-wrench w-5 text-center text-rose-400 text-sm"></i>
+          <span class="font-medium text-xs">Bảo trì & Sự cố</span>
         </a>
 
-        <a href="#users" data-tab="users" onclick="window.switchTab('users'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
-          <div class="flex items-center space-x-2.5">
-            <i class="fa-solid fa-users-gear w-5 text-center text-cyan-400 text-sm"></i>
-            <span class="font-medium text-xs">Phân quyền & Tài khoản</span>
-          </div>
-          <span id="sidebar-badge-users" class="sidebar-perm-badge text-[9px] font-bold px-1.5 py-0.5 rounded leading-none transition"></span>
+        <a href="#users" data-tab="users" onclick="window.switchTab('users'); return false;" class="nav-tab-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white transition group whitespace-nowrap">
+          <i class="fa-solid fa-users-gear w-5 text-center text-cyan-400 text-sm"></i>
+          <span class="font-medium text-xs">Phân quyền & Tài khoản</span>
         </a>
       </nav>
 
@@ -17636,201 +17618,13 @@ window.applyRoleRestrictionsToUI = function() {
   const isAdmin = (role === 'admin');
   const bannerContainer = document.getElementById('dynamic-role-alert-banner');
 
-  // 1. HIỂN THỊ BANNER VAI TRÒ & THẨM QUYỀN ĐỘNG TRỰC QUAN (DYNAMIC ROLE BANNER)
+  // 1. BANNER ĐÃ ĐƯỢC ẨN HOÀN TOÀN ĐỂ GIAO DIỆN TỐI GIẢN, THOÁNG ĐÃNG
   if (bannerContainer) {
-    bannerContainer.classList.remove('hidden');
-    let bannerHtml = '';
-
-    if (role === 'admin') {
-      bannerHtml = `
-        <div class="mb-4 p-3.5 bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 text-white rounded-xl shadow-xs border border-blue-700/60">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-            <div class="flex items-start sm:items-center space-x-2.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse mt-1 sm:mt-0 shrink-0"></span>
-              <div>
-                <div class="text-xs font-black tracking-wide flex items-center gap-2 flex-wrap">
-                  <span class="px-2 py-0.5 rounded bg-blue-600 text-white font-black text-[11px] shadow-2xs">ADMIN</span>
-                  <span>Quản trị viên Hệ thống • Toàn quyền 42/42 chức năng</span>
-                  <span class="text-blue-300 font-normal">(${u.name} • 0975.090.666)</span>
-                </div>
-                <div class="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  <span class="text-emerald-400 font-bold">✓ Được phép:</span> Toàn quyền 42/42 chức năng trên cả 6 module: Quản trị 104 máy trạm, bật/tắt nguồn Wake-on-LAN, xếp lịch thực hành, xử lý sự cố, quản lý tài khoản và chỉnh sửa ma trận RBAC.
-                  <span class="text-blue-300 ml-2 font-semibold">• Giới hạn: Không giới hạn</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <span class="text-[10px] text-slate-400 hidden sm:inline">Kiểm thử:</span>
-              <button onclick="window.directTestRole('lab_manager')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-indigo-200 rounded text-[11px] font-bold transition">QL Phòng</button>
-              <button onclick="window.directTestRole('teacher')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-emerald-200 rounded text-[11px] font-bold transition">Giảng Viên</button>
-              <button onclick="window.directTestRole('lab_staff')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-amber-200 rounded text-[11px] font-bold transition">Kỹ Thuật</button>
-              <button onclick="window.directTestRole('student')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-purple-200 rounded text-[11px] font-bold transition">Sinh Viên</button>
-            </div>
-          </div>
-        </div>
-      `;
-    } else if (role === 'lab_manager') {
-      bannerHtml = `
-        <div class="mb-4 p-3.5 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-xl shadow-xs border border-indigo-700/60">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-            <div class="flex items-start sm:items-center space-x-2.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse mt-1 sm:mt-0 shrink-0"></span>
-              <div>
-                <div class="text-xs font-black tracking-wide flex items-center gap-2 flex-wrap">
-                  <span class="px-2 py-0.5 rounded bg-indigo-600 text-white font-black text-[11px] shadow-2xs">QL PHÒNG MÁY</span>
-                  <span>Quản lý phòng máy • Điều phối thiết bị & Duyệt lịch</span>
-                  <span class="text-indigo-300 font-normal">(${u.name} • Khoa Toán - Tin)</span>
-                </div>
-                <div class="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  <span class="text-emerald-400 font-bold">✓ Được phép:</span> Quản lý thiết bị 4 phòng, Bật/Tắt nguồn Wake-on-LAN, Phê duyệt ca thực hành, Tiếp nhận sửa chữa & Xuất báo cáo.
-                  <span class="text-amber-300 ml-2 font-semibold">🔒 Giới hạn: Khóa tạo/xóa tài khoản, khóa sửa Ma trận RBAC</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <span class="text-[10px] text-slate-400 hidden sm:inline">Kiểm thử:</span>
-              <button onclick="window.directTestRole('admin')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-blue-200 rounded text-[11px] font-bold transition">Admin</button>
-              <button onclick="window.directTestRole('teacher')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-emerald-200 rounded text-[11px] font-bold transition">Giảng Viên</button>
-              <button onclick="window.directTestRole('lab_staff')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-amber-200 rounded text-[11px] font-bold transition">Kỹ Thuật</button>
-              <button onclick="window.directTestRole('student')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-purple-200 rounded text-[11px] font-bold transition">Sinh Viên</button>
-            </div>
-          </div>
-        </div>
-      `;
-    } else if (role === 'teacher') {
-      bannerHtml = `
-        <div class="mb-4 p-3.5 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white rounded-xl shadow-xs border border-emerald-700/60">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-            <div class="flex items-start sm:items-center space-x-2.5">
-              <i class="fa-solid fa-chalkboard-user text-emerald-400 text-base mt-0.5 sm:mt-0 shrink-0"></i>
-              <div>
-                <div class="text-xs font-black tracking-wide flex items-center gap-2 flex-wrap">
-                  <span class="px-2 py-0.5 rounded bg-emerald-600 text-white font-black text-[11px] shadow-2xs">GIẢNG VIÊN</span>
-                  <span>Giảng viên thực hành • Đăng ký lịch dạy & Báo hỏng máy</span>
-                  <span class="text-emerald-300 font-normal">(${u.name} • Bộ môn KHMT)</span>
-                </div>
-                <div class="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  <span class="text-emerald-400 font-bold">✓ Được phép:</span> Đăng ký ca thực hành mới, mở ca giảng dạy, khóa màn hình lớp học, lập phiếu báo hỏng thiết bị trực tiếp.
-                  <span class="text-amber-300 ml-2 font-semibold">🔒 Giới hạn: Khóa Wake-on-LAN, khóa thêm/sửa thiết bị, không duyệt ca của GV khác</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <span class="text-[10px] text-slate-400 hidden sm:inline">Kiểm thử:</span>
-              <button onclick="window.directTestRole('admin')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-blue-200 rounded text-[11px] font-bold transition">Admin</button>
-              <button onclick="window.directTestRole('lab_manager')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-indigo-200 rounded text-[11px] font-bold transition">QL Phòng</button>
-              <button onclick="window.directTestRole('lab_staff')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-amber-200 rounded text-[11px] font-bold transition">Kỹ Thuật</button>
-              <button onclick="window.directTestRole('student')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-purple-200 rounded text-[11px] font-bold transition">Sinh Viên</button>
-            </div>
-          </div>
-        </div>
-      `;
-    } else if (role === 'lab_staff') {
-      bannerHtml = `
-        <div class="mb-4 p-3.5 bg-gradient-to-r from-amber-950 via-slate-900 to-amber-900 text-white rounded-xl shadow-xs border border-amber-700/60">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-            <div class="flex items-start sm:items-center space-x-2.5">
-              <i class="fa-solid fa-wrench text-amber-400 text-base mt-0.5 sm:mt-0 shrink-0"></i>
-              <div>
-                <div class="text-xs font-black tracking-wide flex items-center gap-2 flex-wrap">
-                  <span class="px-2 py-0.5 rounded bg-amber-600 text-white font-black text-[11px] shadow-2xs">KỸ THUẬT VIÊN</span>
-                  <span>Kỹ thuật viên phòng máy • Bảo trì phần cứng & Wake-on-LAN</span>
-                  <span class="text-amber-300 font-normal">(${u.name} • Tổ Kỹ thuật)</span>
-                </div>
-                <div class="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  <span class="text-emerald-400 font-bold">✓ Được phép:</span> Bật/tắt nguồn Wake-on-LAN từ xa, tiếp nhận xử lý sự cố, sửa chữa, thay linh kiện, in nhãn QR & nghiệm thu máy.
-                  <span class="text-amber-300 ml-2 font-semibold">🔒 Giới hạn: Khóa xếp lịch dạy, không phê duyệt ca thực hành, khóa tạo tài khoản</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <span class="text-[10px] text-slate-400 hidden sm:inline">Kiểm thử:</span>
-              <button onclick="window.directTestRole('admin')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-blue-200 rounded text-[11px] font-bold transition">Admin</button>
-              <button onclick="window.directTestRole('lab_manager')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-indigo-200 rounded text-[11px] font-bold transition">QL Phòng</button>
-              <button onclick="window.directTestRole('teacher')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-emerald-200 rounded text-[11px] font-bold transition">Giảng Viên</button>
-              <button onclick="window.directTestRole('student')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-purple-200 rounded text-[11px] font-bold transition">Sinh Viên</button>
-            </div>
-          </div>
-        </div>
-      `;
-    } else if (role === 'student') {
-      bannerHtml = `
-        <div class="mb-4 p-3.5 bg-gradient-to-r from-purple-950 via-slate-900 to-purple-900 text-white rounded-xl shadow-xs border border-purple-700/60">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-            <div class="flex items-start sm:items-center space-x-2.5">
-              <i class="fa-solid fa-graduation-cap text-purple-400 text-base mt-0.5 sm:mt-0 shrink-0"></i>
-              <div>
-                <div class="text-xs font-black tracking-wide flex items-center gap-2 flex-wrap">
-                  <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-black text-[11px] shadow-2xs">SINH VIÊN / KHÁCH</span>
-                  <span>Chế độ Tra Cứu Thông Tin • Tối giản chỉ đọc (Read-Only)</span>
-                  <span class="text-purple-300 font-normal">(${u.name} • Khoa Toán - Tin)</span>
-                </div>
-                <div class="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  <span class="text-emerald-400 font-bold">✓ Được phép:</span> Tra cứu sơ đồ mô phỏng 2D, xem máy tính khả dụng và xem lịch thực hành các phòng máy.
-                  <span class="text-rose-300 ml-2 font-semibold">🔒 Giới hạn: Khóa chức năng Quản lý thiết bị, Bảo trì sự cố và Quản trị hệ thống</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <span class="text-[10px] text-slate-400 hidden sm:inline">Kiểm thử:</span>
-              <button onclick="window.directTestRole('admin')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-blue-200 rounded text-[11px] font-bold transition">Admin</button>
-              <button onclick="window.directTestRole('lab_manager')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-indigo-200 rounded text-[11px] font-bold transition">QL Phòng</button>
-              <button onclick="window.directTestRole('teacher')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-emerald-200 rounded text-[11px] font-bold transition">Giảng Viên</button>
-              <button onclick="window.directTestRole('lab_staff')" class="px-2 py-1 bg-white/10 hover:bg-white/20 text-amber-200 rounded text-[11px] font-bold transition">Kỹ Thuật</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    bannerContainer.innerHTML = bannerHtml;
+    bannerContainer.innerHTML = '';
+    bannerContainer.classList.add('hidden');
   }
 
-  // 2. CẬP NHẬT BADGE PHÂN QUYỀN TRÊN THANH SIDEBAR CHO TỪNG TAB
-  const updateSidebarBadge = (badgeId, text, colorClasses) => {
-    const el = document.getElementById(badgeId);
-    if (!el) return;
-    el.textContent = text;
-    el.className = `sidebar-perm-badge text-[9px] font-bold px-1.5 py-0.5 rounded leading-none transition ${colorClasses}`;
-  };
-
-  if (role === 'admin') {
-    updateSidebarBadge('sidebar-badge-dashboard', 'Toàn quyền', 'bg-blue-600/30 text-blue-300 border border-blue-500/30');
-    updateSidebarBadge('sidebar-badge-simulation', 'Nguồn/WOL', 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30');
-    updateSidebarBadge('sidebar-badge-computers', 'Toàn quyền', 'bg-blue-600/30 text-blue-300 border border-blue-500/30');
-    updateSidebarBadge('sidebar-badge-schedule', 'Toàn quyền', 'bg-blue-600/30 text-blue-300 border border-blue-500/30');
-    updateSidebarBadge('sidebar-badge-maintenance', 'Toàn quyền', 'bg-blue-600/30 text-blue-300 border border-blue-500/30');
-    updateSidebarBadge('sidebar-badge-users', '👑 Quản trị', 'bg-cyan-600/30 text-cyan-300 border border-cyan-500/30');
-  } else if (role === 'lab_manager') {
-    updateSidebarBadge('sidebar-badge-dashboard', 'Quản lý', 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30');
-    updateSidebarBadge('sidebar-badge-simulation', 'Nguồn/WOL', 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30');
-    updateSidebarBadge('sidebar-badge-computers', 'Quản lý', 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30');
-    updateSidebarBadge('sidebar-badge-schedule', 'Duyệt lịch', 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30');
-    updateSidebarBadge('sidebar-badge-maintenance', 'Quản lý', 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30');
-    updateSidebarBadge('sidebar-badge-users', 'Xem DS', 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30');
-  } else if (role === 'teacher') {
-    updateSidebarBadge('sidebar-badge-dashboard', 'Xem KPI', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-simulation', 'Xem máy', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-computers', 'Xem máy', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-schedule', 'Đăng ký dạy', 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30');
-    updateSidebarBadge('sidebar-badge-maintenance', 'Báo hỏng', 'bg-amber-600/30 text-amber-300 border border-amber-500/30');
-    updateSidebarBadge('sidebar-badge-users', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
-  } else if (role === 'lab_staff') {
-    updateSidebarBadge('sidebar-badge-dashboard', 'Xem KPI', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-simulation', 'Nguồn/WOL', 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30');
-    updateSidebarBadge('sidebar-badge-computers', 'Sửa máy', 'bg-amber-600/30 text-amber-300 border border-amber-500/30');
-    updateSidebarBadge('sidebar-badge-schedule', 'Xem lịch', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-maintenance', 'Sửa chữa', 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30');
-    updateSidebarBadge('sidebar-badge-users', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
-  } else if (role === 'student') {
-    updateSidebarBadge('sidebar-badge-dashboard', 'Chỉ đọc', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-simulation', 'Xem sơ đồ', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-computers', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
-    updateSidebarBadge('sidebar-badge-schedule', 'Xem lịch học', 'bg-slate-800 text-slate-400');
-    updateSidebarBadge('sidebar-badge-maintenance', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
-    updateSidebarBadge('sidebar-badge-users', '🔒 Khóa', 'bg-rose-950/60 text-rose-400 border border-rose-900/40');
-  }
-
-  // Khóa liên kết các Tab trên Sidebar nếu vai trò không được phép
+  // 2. KHÓA LIÊN KẾT CÁC TAB TRÊN SIDEBAR NẾU VAI TRÒ KHÔNG ĐƯỢC PHÉP
   const computersTabLink = document.querySelector('.nav-tab-link[data-tab="computers"]');
   if (computersTabLink) {
     if (role === 'student') {
