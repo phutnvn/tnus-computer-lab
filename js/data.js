@@ -6689,7 +6689,7 @@ function verifyPassword(inputPassword, user) {
   return hash === user.passwordHash;
 }
 
-// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (ĐÃ ĐƯỢC BĂM MẬT KHẨU)
+// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (CHỈ DUY TRÌ SUPER ADMIN GỐC USR-01 THEO CHỈ ĐẠO)
 const INITIAL_USERS = [
   {
     id: 'USR-01',
@@ -6706,92 +6706,7 @@ const INITIAL_USERS = [
     salt: 'TNUS_KHOA_TOAN_TIN_2026',
     failedLogins: 0,
     createdAt: '2026-10-15',
-    lastLogin: '2026-11-14 08:30'
-  },
-  {
-    id: 'USR-02',
-    username: 'admin_cntt',
-    name: 'KS. Trần Văn Hải',
-    role: 'admin',
-    roleName: 'Admin',
-    email: 'haitv@tnus.edu.vn',
-    phone: '0983.123.456',
-    department: 'Khoa Toán - Tin, TNUS',
-    avatar: '👨‍💻',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Admin2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-16',
-    lastLogin: '2026-11-14 08:15'
-  },
-  {
-    id: 'USR-03',
-    username: 'qlphongmay',
-    name: 'ThS. Lê Hoàng Nam',
-    role: 'lab_manager',
-    roleName: 'Quản lý phòng máy',
-    email: 'namlh@tnus.edu.vn',
-    phone: '0978.889.991',
-    department: 'Tổ Quản trị Phòng máy - Khoa Toán - Tin',
-    avatar: '👨‍💼',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Manager2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-18',
-    lastLogin: '2026-11-14 07:45'
-  },
-  {
-    id: 'USR-04',
-    username: 'toannv',
-    name: 'ThS. Nguyễn Văn Toàn',
-    role: 'teacher',
-    roleName: 'Giảng viên',
-    email: 'toannv@tnus.edu.vn',
-    phone: '0912.345.678',
-    department: 'Bộ môn Khoa học Máy tính',
-    avatar: '👨‍🏫',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Teacher2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-20',
-    lastLogin: '2026-11-14 07:15'
-  },
-  {
-    id: 'USR-05',
-    username: 'ktvlab',
-    name: 'KTV. Chu Tuấn Hưng',
-    role: 'lab_staff',
-    roleName: 'Kỹ thuật viên',
-    email: 'hungct@tnus.edu.vn',
-    phone: '0988.776.655',
-    department: 'Tổ Kỹ thuật - Khoa Toán - Tin',
-    avatar: '🧑‍🔧',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Staff2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-25',
-    lastLogin: '2026-11-14 08:00'
-  },
-  {
-    id: 'USR-06',
-    username: 'student',
-    name: 'Sinh viên TNUS (Khách)',
-    role: 'student',
-    roleName: 'Sinh viên',
-    email: 'sinhvien@tnus.edu.vn',
-    phone: '0208.3855.564',
-    department: 'Khoa Toán - Tin, TNUS',
-    avatar: '👨‍🎓',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Student2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-11-01',
-    lastLogin: '2026-11-14 09:10'
+    lastLogin: '2026-11-16 08:30'
   }
 ];
 
@@ -6799,29 +6714,18 @@ const INITIAL_USERS = [
 const INITIAL_ACTIVITY_LOGS = [
   {
     id: 'LOG-001',
-    timestamp: '2026-11-14 07:30:15',
-    username: 'toannv',
-    userName: 'ThS. Nguyễn Văn Toàn',
-    role: 'teacher',
-    action: 'Vào ca thực hành',
-    module: 'schedule',
-    details: 'Bắt đầu ca học Lập trình C++ tại PM 1 (A1-503), tự động kích hoạt 30 máy trạm',
-    ip: '10.10.5.12'
+    timestamp: '2026-11-16 08:00:00',
+    username: 'admin',
+    userName: 'ThS. Trịnh Minh Phú',
+    role: 'super_admin',
+    action: 'Khởi tạo hệ thống',
+    module: 'system',
+    details: 'Khởi tạo hệ thống quản lý phòng máy TNUS với tài khoản Super Admin gốc',
+    ip: '10.10.5.1'
   },
   {
     id: 'LOG-002',
-    timestamp: '2026-11-14 08:15:20',
-    username: 'ktvlab',
-    userName: 'KTV. Chu Tuấn Hưng',
-    role: 'lab_staff',
-    action: 'Tiếp nhận bảo trì',
-    module: 'maintenance',
-    details: 'Chuyển trạng thái phiếu SC-002 (PM1-M15) sang Đang xử lý - Thay pin CMOS',
-    ip: '10.10.5.50'
-  },
-  {
-    id: 'LOG-003',
-    timestamp: '2026-11-14 08:45:00',
+    timestamp: '2026-11-16 08:15:00',
     username: 'admin',
     userName: 'ThS. Trịnh Minh Phú',
     role: 'super_admin',

@@ -71,19 +71,10 @@ function loadState() {
           rootAdmin.department = 'Khoa Toán - Tin, TNUS';
           rootAdmin.status = 'active';
         }
-        // Đảm bảo luôn đầy đủ các tài khoản mẫu chuẩn từ INITIAL_USERS (USR-02 đến USR-06)
-        const sampleUsers = (typeof INITIAL_USERS !== 'undefined') ? INITIAL_USERS : (window.INITIAL_USERS || []);
-        if (Array.isArray(sampleUsers)) {
-          let hasAdded = false;
-          sampleUsers.forEach(initUser => {
-            if (!window.appState.users.some(u => u.id === initUser.id)) {
-              window.appState.users.push({ ...initUser });
-              hasAdded = true;
-            }
-          });
-          if (hasAdded && typeof window.saveStateToLocalStorage === 'function') {
-            window.saveStateToLocalStorage();
-          }
+        // Loại bỏ các tài khoản mẫu cũ (USR-02 đến USR-06) theo chỉ đạo: chỉ duy trì Super Admin USR-01, các tài khoản khác sẽ do người dùng tự khởi tạo thêm vào sau
+        window.appState.users = window.appState.users.filter(u => !['USR-02', 'USR-03', 'USR-04', 'USR-05', 'USR-06'].includes(u.id));
+        if (typeof window.saveStateToLocalStorage === 'function') {
+          window.saveStateToLocalStorage();
         }
       } else {
         window.appState.users = (typeof INITIAL_USERS !== 'undefined') ? [...INITIAL_USERS] : [];

@@ -1271,7 +1271,7 @@
                 <span>Tổng Tài Khoản</span>
                 <i class="fa-solid fa-users text-slate-400 text-[10px] group-hover:text-blue-600"></i>
               </div>
-              <div class="text-xl font-black text-slate-800 mt-0.5"><span id="user-kpi-total">6</span> <span class="text-xs font-semibold text-slate-500">user</span></div>
+              <div class="text-xl font-black text-slate-800 mt-0.5"><span id="user-kpi-total">1</span> <span class="text-xs font-semibold text-slate-500">user</span></div>
               <div class="text-[10px] text-blue-600 font-medium mt-1">Đã cấp phát hệ thống</div>
             </div>
 
@@ -1280,8 +1280,8 @@
                 <span>Quản Trị Viên</span>
                 <i class="fa-solid fa-user-shield text-blue-400 text-[10px]"></i>
               </div>
-              <div class="text-xl font-black text-blue-700 mt-0.5"><span id="user-kpi-admin">2</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
-              <div class="text-[10px] text-slate-500 font-medium mt-1">Super Admin & Admin</div>
+              <div class="text-xl font-black text-blue-700 mt-0.5"><span id="user-kpi-admin">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
+              <div class="text-[10px] text-slate-500 font-medium mt-1">Super Admin toàn quyền</div>
             </div>
 
             <div onclick="window.filterUsersByRole('lab_manager')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Quản lý phòng máy">
@@ -1289,7 +1289,7 @@
                 <span>QL Phòng Máy</span>
                 <i class="fa-solid fa-desktop text-indigo-400 text-[10px]"></i>
               </div>
-              <div class="text-xl font-black text-indigo-700 mt-0.5"><span id="user-kpi-manager">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
+              <div class="text-xl font-black text-indigo-700 mt-0.5"><span id="user-kpi-manager">0</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Điều phối máy & bảo trì</div>
             </div>
 
@@ -1298,7 +1298,7 @@
                 <span>Giảng Viên</span>
                 <i class="fa-solid fa-chalkboard-user text-emerald-400 text-[10px]"></i>
               </div>
-              <div class="text-xl font-black text-emerald-700 mt-0.5"><span id="user-kpi-teacher">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
+              <div class="text-xl font-black text-emerald-700 mt-0.5"><span id="user-kpi-teacher">0</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Dạy thực hành & báo hỏng</div>
             </div>
 
@@ -1307,7 +1307,7 @@
                 <span>Kỹ Thuật Viên</span>
                 <i class="fa-solid fa-wrench text-amber-400 text-[10px]"></i>
               </div>
-              <div class="text-xl font-black text-amber-700 mt-0.5"><span id="user-kpi-staff">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
+              <div class="text-xl font-black text-amber-700 mt-0.5"><span id="user-kpi-staff">0</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Wake-on-LAN & sửa chữa</div>
             </div>
 
@@ -1316,7 +1316,7 @@
                 <span>Sinh Viên / Khách</span>
                 <i class="fa-solid fa-graduation-cap text-purple-400 text-[10px]"></i>
               </div>
-              <div class="text-xl font-black text-purple-700 mt-0.5"><span id="user-kpi-student">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
+              <div class="text-xl font-black text-purple-700 mt-0.5"><span id="user-kpi-student">0</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
               <div class="text-[10px] text-slate-500 font-medium mt-1">Chế độ xem (Read-only)</div>
             </div>
           </div>
@@ -8819,7 +8819,7 @@ function verifyPassword(inputPassword, user) {
   return hash === user.passwordHash;
 }
 
-// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (ĐÃ ĐƯỢC BĂM MẬT KHẨU)
+// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (CHỈ DUY TRÌ SUPER ADMIN GỐC USR-01 THEO CHỈ ĐẠO)
 const INITIAL_USERS = [
   {
     id: 'USR-01',
@@ -8836,92 +8836,7 @@ const INITIAL_USERS = [
     salt: 'TNUS_KHOA_TOAN_TIN_2026',
     failedLogins: 0,
     createdAt: '2026-10-15',
-    lastLogin: '2026-11-14 08:30'
-  },
-  {
-    id: 'USR-02',
-    username: 'admin_cntt',
-    name: 'KS. Trần Văn Hải',
-    role: 'admin',
-    roleName: 'Admin',
-    email: 'haitv@tnus.edu.vn',
-    phone: '0983.123.456',
-    department: 'Khoa Toán - Tin, TNUS',
-    avatar: '👨‍💻',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Admin2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-16',
-    lastLogin: '2026-11-14 08:15'
-  },
-  {
-    id: 'USR-03',
-    username: 'qlphongmay',
-    name: 'ThS. Lê Hoàng Nam',
-    role: 'lab_manager',
-    roleName: 'Quản lý phòng máy',
-    email: 'namlh@tnus.edu.vn',
-    phone: '0978.889.991',
-    department: 'Tổ Quản trị Phòng máy - Khoa Toán - Tin',
-    avatar: '👨‍💼',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Manager2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-18',
-    lastLogin: '2026-11-14 07:45'
-  },
-  {
-    id: 'USR-04',
-    username: 'toannv',
-    name: 'ThS. Nguyễn Văn Toàn',
-    role: 'teacher',
-    roleName: 'Giảng viên',
-    email: 'toannv@tnus.edu.vn',
-    phone: '0912.345.678',
-    department: 'Bộ môn Khoa học Máy tính',
-    avatar: '👨‍🏫',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Teacher2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-20',
-    lastLogin: '2026-11-14 07:15'
-  },
-  {
-    id: 'USR-05',
-    username: 'ktvlab',
-    name: 'KTV. Chu Tuấn Hưng',
-    role: 'lab_staff',
-    roleName: 'Kỹ thuật viên',
-    email: 'hungct@tnus.edu.vn',
-    phone: '0988.776.655',
-    department: 'Tổ Kỹ thuật - Khoa Toán - Tin',
-    avatar: '🧑‍🔧',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Staff2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-25',
-    lastLogin: '2026-11-14 08:00'
-  },
-  {
-    id: 'USR-06',
-    username: 'student',
-    name: 'Sinh viên TNUS (Khách)',
-    role: 'student',
-    roleName: 'Sinh viên',
-    email: 'sinhvien@tnus.edu.vn',
-    phone: '0208.3855.564',
-    department: 'Khoa Toán - Tin, TNUS',
-    avatar: '👨‍🎓',
-    status: 'active',
-    passwordHash: hashPassword('Tnus@Student2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-11-01',
-    lastLogin: '2026-11-14 09:10'
+    lastLogin: '2026-11-16 08:30'
   }
 ];
 
@@ -8929,29 +8844,18 @@ const INITIAL_USERS = [
 const INITIAL_ACTIVITY_LOGS = [
   {
     id: 'LOG-001',
-    timestamp: '2026-11-14 07:30:15',
-    username: 'toannv',
-    userName: 'ThS. Nguyễn Văn Toàn',
-    role: 'teacher',
-    action: 'Vào ca thực hành',
-    module: 'schedule',
-    details: 'Bắt đầu ca học Lập trình C++ tại PM 1 (A1-503), tự động kích hoạt 30 máy trạm',
-    ip: '10.10.5.12'
+    timestamp: '2026-11-16 08:00:00',
+    username: 'admin',
+    userName: 'ThS. Trịnh Minh Phú',
+    role: 'super_admin',
+    action: 'Khởi tạo hệ thống',
+    module: 'system',
+    details: 'Khởi tạo hệ thống quản lý phòng máy TNUS với tài khoản Super Admin gốc',
+    ip: '10.10.5.1'
   },
   {
     id: 'LOG-002',
-    timestamp: '2026-11-14 08:15:20',
-    username: 'ktvlab',
-    userName: 'KTV. Chu Tuấn Hưng',
-    role: 'lab_staff',
-    action: 'Tiếp nhận bảo trì',
-    module: 'maintenance',
-    details: 'Chuyển trạng thái phiếu SC-002 (PM1-M15) sang Đang xử lý - Thay pin CMOS',
-    ip: '10.10.5.50'
-  },
-  {
-    id: 'LOG-003',
-    timestamp: '2026-11-14 08:45:00',
+    timestamp: '2026-11-16 08:15:00',
     username: 'admin',
     userName: 'ThS. Trịnh Minh Phú',
     role: 'super_admin',
@@ -13876,19 +13780,10 @@ function loadState() {
           rootAdmin.department = 'Khoa Toán - Tin, TNUS';
           rootAdmin.status = 'active';
         }
-        // Đảm bảo luôn đầy đủ các tài khoản mẫu chuẩn từ INITIAL_USERS (USR-02 đến USR-06)
-        const sampleUsers = (typeof INITIAL_USERS !== 'undefined') ? INITIAL_USERS : (window.INITIAL_USERS || []);
-        if (Array.isArray(sampleUsers)) {
-          let hasAdded = false;
-          sampleUsers.forEach(initUser => {
-            if (!window.appState.users.some(u => u.id === initUser.id)) {
-              window.appState.users.push({ ...initUser });
-              hasAdded = true;
-            }
-          });
-          if (hasAdded && typeof window.saveStateToLocalStorage === 'function') {
-            window.saveStateToLocalStorage();
-          }
+        // Loại bỏ các tài khoản mẫu cũ (USR-02 đến USR-06) theo chỉ đạo: chỉ duy trì Super Admin USR-01, các tài khoản khác sẽ do người dùng tự khởi tạo thêm vào sau
+        window.appState.users = window.appState.users.filter(u => !['USR-02', 'USR-03', 'USR-04', 'USR-05', 'USR-06'].includes(u.id));
+        if (typeof window.saveStateToLocalStorage === 'function') {
+          window.saveStateToLocalStorage();
         }
       } else {
         window.appState.users = (typeof INITIAL_USERS !== 'undefined') ? [...INITIAL_USERS] : [];
