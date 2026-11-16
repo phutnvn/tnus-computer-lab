@@ -88,8 +88,15 @@ function loadState() {
       }
 
       // 4. Đồng bộ phiên đăng nhập hiện hành
-      if (parsed.currentUser && window.appState.users.some(u => u.id === parsed.currentUser.id)) {
-        window.appState.currentUser = window.appState.users.find(u => u.id === parsed.currentUser.id);
+      if (parsed.currentUser) {
+        if (window.appState.users.some(u => u.id === parsed.currentUser.id)) {
+          window.appState.currentUser = window.appState.users.find(u => u.id === parsed.currentUser.id);
+        } else if (parsed.currentUser.role && parsed.currentUser.role !== 'admin') {
+          // Duy trì phiên làm việc theo vai trò đã chọn (lab_manager, teacher, lab_staff, student)
+          window.appState.currentUser = parsed.currentUser;
+        } else {
+          window.appState.currentUser = window.appState.users[0];
+        }
       } else {
         window.appState.currentUser = window.appState.users[0];
       }
@@ -379,6 +386,28 @@ window.toggleSidebar = function() {
 window.switchTab = function(targetTab) {
   if (!targetTab) return;
 
+  // Kiểm tra thẩm quyền khi truy cập Tab Phân quyền & Người dùng (Tab 6)
+  if (targetTab === 'users') {
+    const curUser = window.appState?.currentUser || (window.appState?.users && window.appState.users[0]);
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    if (role !== 'admin' && role !== 'lab_manager') {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'TỪ CHỐI TRUY CẬP (ACCESS DENIED)',
+          html: `
+            <div class="text-left text-xs space-y-2">
+              <p>Phân hệ <strong>Quản trị Người dùng & Phân quyền</strong> chỉ dành cho Quản trị viên (Admin) và Cán bộ Quản lý phòng máy.</p>
+              <p class="text-slate-500">Vai trò hiện tại của bạn: <strong class="text-rose-600">${curUser?.roleName || role}</strong> không có thẩm quyền truy cập cấu hình hệ thống.</p>
+            </div>
+          `,
+          confirmButtonColor: '#2563eb'
+        });
+      }
+      return;
+    }
+  }
+
   // Đóng sidebar tự động trên thiết bị di động sau khi chọn tab
   if (window.innerWidth < 1024) {
     const sidebar = document.getElementById('app-sidebar');
@@ -538,34 +567,18 @@ function initApplication() {
   }
 
   // 7. Khởi tạo các phân hệ phụ trợ & Kiểm tra tham số URL
-  try {
-    initUserRoleSwitcher();
-    initUserModule();
-    initComputerListTable();
-    initQuickModals();
-    startDashboardClock();
-    window.updateDashboardKPIs();
-    initUrlParamsHandler();
-  } catch (e) {
-    console.warn('Lỗi khởi tạo module phụ trợ:', e);
-  }
-}
-
-// Khởi chạy an toàn: Hỗ trợ cả trường hợp DOM đang nạp lẫn trường hợp DOM đã nạp xong (trong iframe Google Apps Script)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApplication);
-} else {
-  initApplication();
+  // 7. Khởi tạo các phân hệ phụ trợ & Kiểm tra tham số URL
+  try { if (typeof initUserRoleSwitcher === 'function') initUserRoleSwitcher(); } catch (e) { console.warn('Lỗi initUserRoleSwitcher:', e); }
+  try { if (typeof initUserModule === 'function') initUserModule(); } catch (e) { console.warn('Lỗi initUserModule:', e); }
+  try { if (typeof initComputerListTable === 'function') initComputerListTable(); } catch (e) { console.warn('Lỗi initComputerListTable:', e); }
+  try { if (typeof initQuickModals === 'function') initQuickModals(); } catch (e) { console.warn('Lỗi initQuickModals:', e); }
+  try { if (typeof startDashboardClock === 'function') startDashboardClock(); } catch (e) { console.warn('Lỗi startDashboardClock:', e); }
+  try { if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs(); } catch (e) {}
+  try { if (typeof initUrlParamsHandler === 'function') initUrlParamsHandler(); } catch (e) { console.warn('Lỗi initUrlParamsHandler:', e); }
 }
 
 // ============================================================================
 // HỆ THỐNG PHÂN QUYỀN RBAC & QUẢN TRỊ TÀI KHOẢN NGƯỜI DÙNG
-// KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
-// ============================================================================
-
-// Kiểm tra quyền hạn của người dùng hiện tại đối với một hành động
-// ============================================================================
-// HỆ THỐNG KIỂM TRA PHÂN QUYỀN RBAC 3.0 (7 ACTIONS x 6 MODULES)
 // KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
 // ============================================================================
 
@@ -587,6 +600,35 @@ const RBAC_LEGACY_MAP = {
   system_backup: 'users.manage',
   print_asset_tag: 'computers.export',
   broadcast_screen: 'simulation.manage'
+};
+
+// Chuẩn hóa mã vai trò và xử lý các bí danh URL (manager -> lab_manager, staff -> lab_staff)
+window.normalizeRole = function(r) {
+  if (!r) return 'student';
+  const str = String(r).toLowerCase().trim();
+  if (str === 'manager' || str === 'qlpm' || str === 'qlphong' || str === 'lab_manager') return 'lab_manager';
+  if (str === 'staff' || str === 'ktv' || str === 'kythuat' || str === 'lab_staff') return 'lab_staff';
+  if (str === 'teacher' || str === 'giangvien' || str === 'gv') return 'teacher';
+  if (str === 'student' || str === 'sinhvien' || str === 'khach' || str === 'guest') return 'student';
+  if (str === 'admin' || str === 'administrator' || str === 'quantri') return 'admin';
+  return str;
+};
+
+// Tìm tài khoản người dùng theo vai trò, nếu chưa có trong danh sách thì dùng tài khoản chuẩn của vai trò đó
+window.getRoleUser = function(roleParam) {
+  const norm = window.normalizeRole(roleParam);
+  // 1. Tìm trong danh sách tài khoản đã cấp phát trong appState.users
+  const found = (window.appState?.users || []).find(u => 
+    u && u.role && window.normalizeRole(u.role) === norm && (u.status || 'active') === 'active'
+  );
+  if (found) return found;
+
+  // 2. Nếu chưa khởi tạo trong bảng danh sách, dùng tài khoản đại diện chuẩn của vai trò đó
+  const standard = (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS);
+  if (standard && standard[norm]) {
+    return { ...standard[norm] };
+  }
+  return standard?.student || { id: 'GUEST', username: 'student', name: 'Sinh viên TNUS (Khách)', role: 'student', roleName: 'Sinh viên', status: 'active' };
 };
 
 // Hàm kiểm tra quyền hạn của người dùng hiện hành đối với bất kỳ thao tác nào
@@ -748,28 +790,29 @@ function initUserRoleSwitcher() {
   if (select) {
     select.addEventListener('change', (e) => {
       const selectedRole = e.target.value;
-      const found = window.appState.users.find(u => u.role === selectedRole && (u.status || 'active') === 'active');
-      if (found) {
-        window.appState.currentUser = found;
+      const targetUser = window.getRoleUser(selectedRole);
+      if (targetUser) {
+        window.appState.currentUser = targetUser;
         window.saveStateToLocalStorage();
         window.updateUserUI();
-        window.logUserActivity('Đổi vai trò', `Chuyển sang vai trò: ${found.roleName} (${found.name})`);
+        if (window.applyRoleRestrictionsToUI) window.applyRoleRestrictionsToUI();
+        window.logUserActivity('Đổi vai trò', `Chuyển sang vai trò: ${targetUser.roleName} (${targetUser.name})`);
         
         if (window.renderUserAccountsTable) window.renderUserAccountsTable();
         if (window.updateUserKPIs) window.updateUserKPIs();
 
+        // Nếu đang ở tab users mà vai trò mới không có quyền thì tự động chuyển về dashboard
+        const currentTab = window.appState.currentTab || 'dashboard';
+        const normRole = window.normalizeRole(targetUser.role);
+        if (currentTab === 'users' && normRole !== 'admin' && normRole !== 'lab_manager') {
+          const homeTabs = { teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
+          window.switchTab(homeTabs[normRole] || 'dashboard');
+        }
+
         Swal.fire({
           icon: 'info',
-          title: `Đã chuyển vai trò: ${found.roleName}`,
-          text: `Đang thao tác với quyền: ${found.name}`,
-          timer: 1500,
-          showConfirmButton: false
-        });
-      } else {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Không tìm thấy tài khoản',
-          text: `Không có tài khoản nào thuộc vai trò này đang mở hoạt động.`,
+          title: `Đã chuyển vai trò: ${targetUser.roleName}`,
+          text: `Đang thao tác với quyền: ${targetUser.name} (${targetUser.roleName})`,
           timer: 1500,
           showConfirmButton: false
         });
@@ -3650,27 +3693,35 @@ function applyUrlParameters(params) {
 
   // 1. Tự động đăng nhập / chuyển quyền theo tham số ?user= hoặc ?role=
   if (userParam) {
-    const foundUser = window.appState.users.find(u => 
+    let foundUser = (window.appState.users || []).find(u => 
       (u.username && u.username.toLowerCase() === userParam.toLowerCase()) || 
       (u.id && u.id.toLowerCase() === userParam.toLowerCase())
     );
+    if (!foundUser && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
+      const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
+      foundUser = Object.values(standards).find(u => 
+        (u.username && u.username.toLowerCase() === userParam.toLowerCase()) || 
+        (u.id && u.id.toLowerCase() === userParam.toLowerCase())
+      );
+    }
     if (foundUser && foundUser.status !== 'locked') {
       window.appState.currentUser = foundUser;
       window.saveStateToLocalStorage();
       window.updateUserUI();
+      if (window.applyRoleRestrictionsToUI) window.applyRoleRestrictionsToUI();
       if (window.renderUserAccountsTable) window.renderUserAccountsTable();
       if (window.updateUserKPIs) window.updateUserKPIs();
     }
   } else if (roleParam) {
-    const foundUser = window.appState.users.find(u => 
-      u.role.toLowerCase() === roleParam.toLowerCase() && (u.status || 'active') === 'active'
-    );
-    if (foundUser) {
-      window.appState.currentUser = foundUser;
+    const targetUser = window.getRoleUser(roleParam);
+    if (targetUser) {
+      window.appState.currentUser = targetUser;
       window.saveStateToLocalStorage();
       window.updateUserUI();
+      if (window.applyRoleRestrictionsToUI) window.applyRoleRestrictionsToUI();
       if (window.renderUserAccountsTable) window.renderUserAccountsTable();
       if (window.updateUserKPIs) window.updateUserKPIs();
+      console.log(`[RBAC Router] Áp dụng đúng phân quyền cho vai trò ${targetUser.roleName} (${targetUser.name})`);
     }
   }
 
@@ -3774,7 +3825,7 @@ window.applyRoleRestrictionsToUI = function() {
   const u = window.appState.currentUser || (window.appState.users && window.appState.users[0]);
   if (!u) return;
 
-  const role = u.role || 'student';
+  const role = window.normalizeRole ? window.normalizeRole(u.role) : (u.role || 'student');
   const roleName = u.roleName || role;
   const bannerContainer = document.getElementById('dynamic-role-alert-banner');
 
@@ -3823,52 +3874,79 @@ window.applyRoleRestrictionsToUI = function() {
 
   // Nút trong Tab 6 (Users)
   applyBtnState(document.getElementById('btn-add-user'), isAdmin, 'Tạo tài khoản người dùng mới', 'Chỉ Quản trị viên (Admin) mới có quyền thêm tài khoản');
-  applyBtnState(document.getElementById('btn-export-users'), isAdmin, 'Xuất danh sách ra file Excel', 'Chỉ Quản trị viên mới có quyền xuất dữ liệu tài khoản');
+  applyBtnState(document.getElementById('btn-export-users'), isAdmin || role === 'lab_manager', 'Xuất danh sách ra file Excel', 'Chỉ Quản trị viên mới có quyền xuất dữ liệu tài khoản');
   applyBtnState(document.querySelector('button[title*="Nhập danh sách tài khoản"]'), isAdmin, 'Nhập danh sách tài khoản từ Excel', 'Chỉ Quản trị viên mới có quyền nhập tài khoản');
 
   const btnResetUsers = document.querySelector('button[title*="Khôi phục danh sách tài khoản gốc"]');
   if (btnResetUsers) {
-    if (role === 'admin') {
+    if (isAdmin) {
       btnResetUsers.classList.remove('hidden');
     } else {
       btnResetUsers.classList.add('hidden');
     }
   }
+
+  // Khóa liên kết Sidebar Tab Phân quyền & Người dùng (Tab 6) nếu vai trò không được phép
+  const usersTabLink = document.querySelector('.nav-tab-link[data-tab="users"]');
+  if (usersTabLink) {
+    if (isAdmin || role === 'lab_manager') {
+      usersTabLink.classList.remove('opacity-40');
+      usersTabLink.title = 'Phân quyền & Tài khoản';
+    } else {
+      usersTabLink.classList.add('opacity-40');
+      usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành cho Quản trị viên';
+    }
+  }
+
+  // Khóa các nút Sao lưu & Khôi phục JSON trên Header
+  const btnExportJson = document.getElementById('btn-export-json');
+  const btnImportJson = document.getElementById('btn-import-json');
+  if (btnExportJson) applyBtnState(btnExportJson, isAdmin || role === 'lab_manager', 'Xuất file JSON sao lưu', 'Chỉ Quản trị viên mới có quyền sao lưu hệ thống');
+  if (btnImportJson) applyBtnState(btnImportJson, isAdmin, 'Khôi phục từ file JSON', 'Chỉ Quản trị viên mới có quyền khôi phục hệ thống');
+
+  // Tự động chuyển tab an toàn nếu người dùng đang ở Tab 6 mà vai trò không có quyền
+  const curTab = window.appState?.currentTab || 'dashboard';
+  if (curTab === 'users' && !isAdmin && role !== 'lab_manager') {
+    const homeTabs = { teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
+    setTimeout(() => {
+      window.switchTab(homeTabs[role] || 'dashboard');
+    }, 50);
+  }
 };
 
 // Vào thẳng vai trò để thử nghiệm nhanh (1-Click Role Access)
 window.directTestRole = function(role, defaultTab = 'dashboard') {
-  const found = (window.appState.users || []).find(u => u.role === role && (u.status || 'active') === 'active');
-  if (found) {
-    window.appState.currentUser = found;
+  const targetUser = window.getRoleUser(role);
+  if (targetUser) {
+    window.appState.currentUser = targetUser;
     window.saveStateToLocalStorage();
     window.updateUserUI();
-    window.logUserActivity('Chuyển vai trò', `Trực tiếp kích hoạt vai trò ${found.roleName} (${found.name}) để kiểm tra thực tế`);
+    if (window.applyRoleRestrictionsToUI) window.applyRoleRestrictionsToUI();
+    window.logUserActivity('Chuyển vai trò', `Kích hoạt vai trò ${targetUser.roleName} (${targetUser.name}) để kiểm tra thực tế`);
 
     if (window.renderUserAccountsTable) window.renderUserAccountsTable();
     if (window.updateUserKPIs) window.updateUserKPIs();
 
     // Chuyển sang tab mục tiêu
-    const tabBtn = document.querySelector(`.nav-tab-link[data-tab="${defaultTab}"]`);
-    if (tabBtn) tabBtn.click();
+    if (defaultTab && typeof window.switchTab === 'function') {
+      window.switchTab(defaultTab);
+    }
 
     Swal.fire({
       icon: 'success',
-      title: `Đã vào vai trò: ${found.roleName}`,
+      title: `Đã vào vai trò: ${targetUser.roleName}`,
       html: `
         <div class="text-xs text-slate-600 text-left space-y-1.5">
-          <div>Tài khoản đại diện: <strong>${found.name}</strong> (@${found.username})</div>
-          <div>Mở thẳng tab: <strong class="text-blue-600">${defaultTab.toUpperCase()}</strong></div>
+          <div>Tài khoản đại diện: <strong>${targetUser.name}</strong> (@${targetUser.username})</div>
+          <div>Mở thẳng tab: <strong class="text-blue-600">${(defaultTab || 'DASHBOARD').toUpperCase()}</strong></div>
           <div class="p-2 bg-blue-50 border border-blue-200 rounded text-blue-700 text-[11px]">
-            Toàn bộ giao diện, thẩm quyền và giới hạn RBAC đã được áp dụng tức thì.
+            Toàn bộ giao diện, thẩm quyền và giới hạn RBAC của vai trò <strong>${targetUser.roleName}</strong> đã được áp dụng tức thì.
           </div>
         </div>
       `,
       timer: 1600,
       showConfirmButton: false
     });
-  } else {
-    Swal.fire('Thông báo', `Không tìm thấy tài khoản hoạt động nào cho vai trò '${role}'`, 'warning');
   }
 };
 
@@ -4269,11 +4347,7 @@ window.filterUsersByRole = function(roleId) {
   window.switchRbacSubTab('users');
   const roleFilter = document.getElementById('user-role-filter');
   if (roleFilter) {
-    if (roleId === 'admin') {
-      roleFilter.value = 'admins';
-    } else {
-      roleFilter.value = roleId;
-    }
+    roleFilter.value = roleId;
   }
   if (window.userPagination) window.userPagination.page = 1;
   window.renderUserAccountsTable();
@@ -4825,11 +4899,20 @@ window.quickFillLogin = function(username, password) {
  */
 window.handleLoginSubmit = function(username, password) {
   const term = username.toLowerCase().trim();
-  const user = (window.appState.users || []).find(u => 
+  let user = (window.appState.users || []).find(u => 
     (u.username && u.username.toLowerCase() === term) ||
     (u.id && u.id.toLowerCase() === term) ||
     (u.email && u.email.toLowerCase() === term)
   );
+
+  if (!user && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
+    const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
+    user = Object.values(standards).find(u => 
+      (u.username && u.username.toLowerCase() === term) ||
+      (u.id && u.id.toLowerCase() === term) ||
+      (u.email && u.email.toLowerCase() === term)
+    );
+  }
 
   if (!user) {
     Swal.fire({
@@ -5115,3 +5198,15 @@ window.resetUserPassword = function(userId) {
     }
   });
 };
+
+// ============================================================================
+// KHỞI CHẠY ỨNG DỤNG TOÀN DIỆN KHOA TOÁN - TIN • TNUS
+// Đảm bảo chạy an toàn sau khi mọi module, hàm phân quyền và dữ liệu đã nạp 100%
+// ============================================================================
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApplication);
+  } else {
+    initApplication();
+  }
+}

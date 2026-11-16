@@ -6672,6 +6672,80 @@ function verifyPassword(inputPassword, user) {
   return hash === user.passwordHash;
 }
 
+// 5.5. TÀI KHOẢN ĐẠI DIỆN 5 VAI TRÒ CHUẨN (DÙNG CHO TRUY CẬP TRỰC TIẾP QUA LINK & 1-CLICK TEST)
+const STANDARD_ROLE_ACCOUNTS = {
+  admin: {
+    id: 'USR-01',
+    username: 'admin',
+    name: 'ThS. Trịnh Minh Phú',
+    role: 'admin',
+    roleName: 'Quản trị viên',
+    email: 'phutm@tnus.edu.vn',
+    phone: '0975.090.666',
+    department: 'Khoa Toán - Tin, TNUS',
+    avatar: '👨‍💼',
+    status: 'active',
+    passwordHash: hashPassword('Tnus@Admin2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026'
+  },
+  lab_manager: {
+    id: 'USR-02',
+    username: 'qlphongmay',
+    name: 'Quản lý phòng máy',
+    role: 'lab_manager',
+    roleName: 'Quản lý phòng máy',
+    email: 'qlpm@tnus.edu.vn',
+    phone: '0978.889.991',
+    department: 'Tổ Quản trị Phòng máy - Khoa Toán - Tin',
+    avatar: '🏢',
+    status: 'active',
+    passwordHash: hashPassword('tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026'
+  },
+  teacher: {
+    id: 'USR-03',
+    username: 'toannv',
+    name: 'Giảng viên thực hành',
+    role: 'teacher',
+    roleName: 'Giảng viên',
+    email: 'toannv@tnus.edu.vn',
+    phone: '0912.345.678',
+    department: 'Bộ môn Khoa học Máy tính - TNUS',
+    avatar: '👨‍🏫',
+    status: 'active',
+    passwordHash: hashPassword('tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026'
+  },
+  lab_staff: {
+    id: 'USR-04',
+    username: 'ktvlab',
+    name: 'Kỹ thuật viên phòng máy',
+    role: 'lab_staff',
+    roleName: 'Kỹ thuật viên',
+    email: 'ktvlab@tnus.edu.vn',
+    phone: '0988.776.655',
+    department: 'Tổ Kỹ thuật - Khoa Toán - Tin',
+    avatar: '🧑‍🔧',
+    status: 'active',
+    passwordHash: hashPassword('tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026'
+  },
+  student: {
+    id: 'USR-05',
+    username: 'student',
+    name: 'Sinh viên / Khách tra cứu',
+    role: 'student',
+    roleName: 'Sinh viên',
+    email: 'sinhvien@tnus.edu.vn',
+    phone: '0208.3855.564',
+    department: 'Khoa Toán - Tin, TNUS',
+    avatar: '👨‍🎓',
+    status: 'active',
+    passwordHash: hashPassword('tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026'
+  }
+};
+
 // 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (CHỈ DUY TRÌ ADMIN GỐC USR-01 THEO CHỈ ĐẠO)
 const INITIAL_USERS = [
   {
@@ -6805,6 +6879,7 @@ if (typeof window !== 'undefined') {
   window.RBAC_MODULES = typeof RBAC_MODULES !== 'undefined' ? RBAC_MODULES : [];
   window.RBAC_ACTIONS = typeof RBAC_ACTIONS !== 'undefined' ? RBAC_ACTIONS : [];
   window.STATUS_CONFIG = typeof STATUS_CONFIG !== 'undefined' ? STATUS_CONFIG : {};
+  window.STANDARD_ROLE_ACCOUNTS = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : {};
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -6819,6 +6894,7 @@ if (typeof module !== 'undefined' && module.exports) {
     DEFAULT_ROLE_PERMISSIONS,
     RBAC_MODULES,
     RBAC_ACTIONS,
-    STATUS_CONFIG
+    STATUS_CONFIG,
+    STANDARD_ROLE_ACCOUNTS
   };
 }
