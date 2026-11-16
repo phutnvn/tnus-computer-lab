@@ -3783,129 +3783,227 @@ window.applyRoleRestrictionsToUI = function() {
   const u = window.appState.currentUser || (window.appState.users && window.appState.users[0]);
   if (!u) return;
 
-  const role = u.role;
+  const role = u.role || 'student';
+  const roleName = u.roleName || role;
   const bannerContainer = document.getElementById('dynamic-role-alert-banner');
 
+  // 1. CẬP NHẬT BANNER GIẢ LẬP VAI TRÒ TẬP TRUNG (INTERACTIVE ROLE SIMULATION BAR)
   if (bannerContainer) {
-    if (role === 'super_admin') {
-      bannerContainer.innerHTML = `
-        <div class="p-3 bg-gradient-to-r from-red-900 via-rose-900 to-slate-900 text-white rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-red-700/60">
-          <div class="flex items-center space-x-2 text-xs">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-400 animate-ping"></span>
-            <span><strong>🛡️ Super Admin Tối Cao:</strong> ${u.name} (SĐT: 0975.090.666) • <strong>Toàn quyền 42/42 chức năng</strong> trên cả 6 phân hệ và Ma trận RBAC Enterprise.</span>
+    const roleBadges = {
+      super_admin: {
+        bg: 'from-red-950 via-rose-900 to-slate-900 border-red-700/70',
+        badge: 'bg-red-600 text-white',
+        icon: 'fa-shield-halved',
+        title: '🛡️ SUPER ADMIN TỐI CAO',
+        activePowers: ['Toàn quyền 42/42 chức năng', 'Độc quyền sửa Ma trận RBAC', 'Quản trị toàn bộ tài khoản'],
+        limits: ['Không có giới hạn nào áp dụng']
+      },
+      admin: {
+        bg: 'from-blue-950 via-indigo-900 to-slate-900 border-blue-700/60',
+        badge: 'bg-blue-600 text-white',
+        icon: 'fa-user-gear',
+        title: '⚙️ QUẢN TRỊ VIÊN (ADMIN)',
+        activePowers: ['Quản lý 104 máy tính', 'Bật/Tắt nguồn Wake-on-LAN', 'Duyệt lịch & Quản lý cán bộ'],
+        limits: ['Không sửa Ma trận RBAC', 'Không xóa Super Admin gốc']
+      },
+      lab_manager: {
+        bg: 'from-indigo-950 via-slate-900 to-blue-950 border-indigo-700/60',
+        badge: 'bg-indigo-600 text-white',
+        icon: 'fa-desktop',
+        title: '🏢 QUẢN LÝ PHÒNG MÁY',
+        activePowers: ['Điều phối 4 phòng PM1-PM4', 'Phê duyệt đơn thực hành', 'Kiểm kê máy & Nghiệm thu sửa'],
+        limits: ['Không tạo/sửa tài khoản cán bộ', 'Không đổi cấu hình bảo mật']
+      },
+      teacher: {
+        bg: 'from-emerald-950 via-teal-900 to-slate-900 border-emerald-700/60',
+        badge: 'bg-emerald-600 text-white',
+        icon: 'fa-chalkboard-user',
+        title: '👨‍🏫 GIẢNG VIÊN THỰC HÀNH',
+        activePowers: ['Đăng ký ca thực hành mới', 'Mở ca giảng dạy trực tiếp', 'Gửi phiếu báo hỏng máy trạm'],
+        limits: ['Khóa điều khiển nguồn máy', 'Khóa sửa cấu hình phần cứng', 'Khóa phân quyền tài khoản']
+      },
+      lab_staff: {
+        bg: 'from-amber-950 via-orange-950 to-slate-900 border-amber-700/60',
+        badge: 'bg-amber-600 text-white',
+        icon: 'fa-wrench',
+        title: '🧑‍🔧 KỸ THUẬT VIÊN PHÒNG MÁY',
+        activePowers: ['Kích hoạt Wake-on-LAN tuần tự', 'Tiếp nhận xử lý sự cố thiết bị', 'Thay linh kiện & in tem QR'],
+        limits: ['Không xếp lịch dạy học', 'Không phê duyệt đơn phòng', 'Không quản trị tài khoản']
+      },
+      student: {
+        bg: 'from-purple-950 via-indigo-950 to-slate-900 border-purple-700/60',
+        badge: 'bg-purple-600 text-white',
+        icon: 'fa-graduation-cap',
+        title: '👨‍🎓 SINH VIÊN / KHÁCH (CHẾ ĐỘ CHỈ XEM)',
+        activePowers: ['Tra cứu sơ đồ 2D trực quan', 'Xem thông số cấu hình máy', 'Xem thời khóa biểu tuần'],
+        limits: ['TOÀN BỘ CHỨC NĂNG SỬA ĐỔI ĐÃ KHÓA AN TOÀN (READ-ONLY)', 'Không bật/tắt nguồn máy tính']
+      }
+    };
+
+    const cfg = roleBadges[role] || roleBadges.student;
+
+    bannerContainer.innerHTML = `
+      <div class="rounded-2xl bg-gradient-to-r ${cfg.bg} text-white p-4 shadow-md border space-y-3">
+        <!-- Hàng 1: Danh tính & Phân định quyền -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-xl shrink-0">
+              ${u.avatar || '👤'}
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-black tracking-wide">${cfg.title}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${cfg.badge}">${u.name}</span>
+                <span class="text-[11px] text-slate-300 font-mono">(@${u.username})</span>
+              </div>
+              <p class="text-[11px] text-slate-300 mt-0.5">${u.department || 'Khoa Toán - Tin, TNUS'}</p>
+            </div>
           </div>
-          <div class="flex items-center space-x-2 shrink-0 text-[11px]">
-            <button onclick="window.viewRoleDetailModal('super_admin')" class="px-2 py-0.5 rounded bg-red-500/30 text-red-200 border border-red-400/40 font-bold hover:bg-red-500/50 transition">
-              <i class="fa-solid fa-circle-info mr-1"></i>Chi tiết quyền
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="window.viewRoleDetailModal('${role}')" class="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+              <i class="fa-solid fa-list-check text-emerald-400"></i>
+              <span>Xem bảng quyền vai trò này</span>
             </button>
-            <button onclick="window.forceSyncSystem()" class="px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded font-semibold text-white transition flex items-center gap-1">
-              <i class="fa-solid fa-rotate"></i>
-              <span>Đồng bộ</span>
-            </button>
-          </div>
-        </div>
-      `;
-    } else if (role === 'admin') {
-      bannerContainer.innerHTML = `
-        <div class="p-3 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-blue-700/50">
-          <div class="flex items-center space-x-2 text-xs">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span><strong>⚙️ Quản Trị Viên (Admin):</strong> ${u.name} • Quản lý thiết bị 104 máy, người dùng cán bộ, thời khóa biểu và xử lý sự cố bảo trì.</span>
-          </div>
-          <div class="flex items-center space-x-2 shrink-0 text-[11px]">
-            <button onclick="window.viewRoleDetailModal('admin')" class="px-2 py-0.5 rounded bg-blue-500/30 text-blue-200 border border-blue-400/30 font-bold hover:bg-blue-500/50 transition">
-              <i class="fa-solid fa-circle-info mr-1"></i>Chi tiết quyền
-            </button>
-            <button onclick="window.forceSyncSystem()" class="px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded font-semibold text-white transition flex items-center gap-1">
-              <i class="fa-solid fa-rotate"></i>
-              <span>Đồng bộ</span>
-            </button>
-          </div>
-        </div>
-      `;
-    } else if (role === 'lab_manager') {
-      bannerContainer.innerHTML = `
-        <div class="p-3 bg-indigo-50 border-l-4 border-indigo-600 rounded-r-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-indigo-950">
-          <div class="flex items-center space-x-2 text-xs">
-            <i class="fa-solid fa-desktop text-indigo-600 text-sm"></i>
-            <span><strong>🏢 Quản Lý Phòng Máy:</strong> <strong>${u.name}</strong> • Điều phối sử dụng 4 phòng A1-503 đến A1-506, duyệt lịch dạy, kiểm kê tài sản & giám sát bảo trì.</span>
-          </div>
-          <div class="flex items-center space-x-2 shrink-0">
-            <button onclick="window.viewRoleDetailModal('lab_manager')" class="px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-800 font-extrabold text-[11px] hover:bg-indigo-300 transition">
-              <i class="fa-solid fa-circle-info mr-1"></i>Xem chức năng
-            </button>
-          </div>
-        </div>
-      `;
-    } else if (role === 'teacher') {
-      bannerContainer.innerHTML = `
-        <div class="p-3 bg-emerald-50 border-l-4 border-emerald-500 rounded-r-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-emerald-950">
-          <div class="flex items-center space-x-2 text-xs">
-            <i class="fa-solid fa-chalkboard-user text-emerald-600 text-sm"></i>
-            <span><strong>👨‍🏫 Giảng Viên Thực Hành:</strong> Thầy/Cô <strong>${u.name}</strong> • Có quyền tra cứu sơ đồ 2D, mở ca giảng dạy, đăng ký lịch thực hành và gửi phiếu báo hỏng. (Chức năng sửa cấu hình máy & tài khoản được bảo vệ).</span>
-          </div>
-          <div class="flex items-center space-x-2 shrink-0">
-            <button onclick="window.viewRoleDetailModal('teacher')" class="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800 font-extrabold text-[11px] hover:bg-emerald-300 transition">
-              <i class="fa-solid fa-circle-info mr-1"></i>Xem chức năng
-            </button>
-          </div>
-        </div>
-      `;
-    } else if (role === 'lab_staff') {
-      bannerContainer.innerHTML = `
-        <div class="p-3 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-amber-950">
-          <div class="flex items-center space-x-2 text-xs">
-            <i class="fa-solid fa-wrench text-amber-600 text-sm"></i>
-            <span><strong>🧑‍🔧 Kỹ Thuật Viên:</strong> <strong>${u.name}</strong> • Có quyền điều khiển nguồn Wake-on-LAN, cập nhật tình trạng phần cứng, tiếp nhận xử lý sự cố & in tem QR.</span>
-          </div>
-          <div class="flex items-center space-x-2 shrink-0">
-            <button onclick="window.viewRoleDetailModal('lab_staff')" class="px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-extrabold text-[11px] hover:bg-amber-300 transition">
-              <i class="fa-solid fa-circle-info mr-1"></i>Xem chức năng
-            </button>
-          </div>
-        </div>
-      `;
-    } else if (role === 'student') {
-      bannerContainer.innerHTML = `
-        <div class="p-3 bg-purple-50 border-l-4 border-purple-500 rounded-r-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-purple-950">
-          <div class="flex items-center space-x-2 text-xs">
-            <i class="fa-solid fa-eye text-purple-600 text-sm"></i>
-            <span><strong>👨‍🎓 Sinh Viên / Khách Tra Cứu (Chỉ đọc - Read-only):</strong> Bạn đang theo dõi trực quan sơ đồ 2D và thời khóa biểu phòng máy. Các thao tác bật/tắt nguồn và sửa đổi dữ liệu đã được khóa an toàn.</span>
-          </div>
-          <div class="flex items-center space-x-2 shrink-0">
-            <button onclick="window.viewRoleDetailModal('student')" class="px-2 py-0.5 rounded-full bg-purple-200 text-purple-800 font-extrabold text-[11px] hover:bg-purple-300 transition">
-              <i class="fa-solid fa-circle-info mr-1"></i>Xem giới hạn
+            <button onclick="window.showAllRolesCapabilityModal()" class="px-3 py-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white border border-blue-400/40 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+              <i class="fa-solid fa-scale-balanced text-cyan-300"></i>
+              <span>So sánh 6 vai trò</span>
             </button>
           </div>
         </div>
-      `;
-    }
+
+        <!-- Hàng 2: Huy hiệu Quyền Hạn vs Giới Hạn -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] font-bold uppercase text-emerald-400 shrink-0"><i class="fa-solid fa-circle-check mr-1"></i>Được phép:</span>
+            ${cfg.activePowers.map(p => `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-medium">${p}</span>`).join('')}
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] font-bold uppercase text-rose-400 shrink-0"><i class="fa-solid fa-ban mr-1"></i>Giới hạn:</span>
+            ${cfg.limits.map(l => `<span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-400/30 text-[10px] font-medium">${l}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- Hàng 3: Thanh chuyển vai trò 1-Click giả lập nhanh -->
+        <div class="pt-2 border-t border-white/10 flex items-center gap-1.5 flex-wrap text-xs">
+          <span class="text-[11px] font-bold text-slate-300 shrink-0 flex items-center gap-1">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+            Chuyển nhanh vai trò để trải nghiệm:
+          </span>
+          <button onclick="window.directTestRole('super_admin')" class="px-2 py-1 rounded-md text-[10px] font-bold transition border ${role === 'super_admin' ? 'bg-red-600 text-white border-white ring-2 ring-red-400 shadow-sm' : 'bg-white/10 text-slate-200 border-white/10 hover:bg-white/20'}">🛡️ Super Admin</button>
+          <button onclick="window.directTestRole('admin')" class="px-2 py-1 rounded-md text-[10px] font-bold transition border ${role === 'admin' ? 'bg-blue-600 text-white border-white ring-2 ring-blue-400 shadow-sm' : 'bg-white/10 text-slate-200 border-white/10 hover:bg-white/20'}">⚙️ Admin</button>
+          <button onclick="window.directTestRole('lab_manager')" class="px-2 py-1 rounded-md text-[10px] font-bold transition border ${role === 'lab_manager' ? 'bg-indigo-600 text-white border-white ring-2 ring-indigo-400 shadow-sm' : 'bg-white/10 text-slate-200 border-white/10 hover:bg-white/20'}">🏢 QL Phòng</button>
+          <button onclick="window.directTestRole('teacher')" class="px-2 py-1 rounded-md text-[10px] font-bold transition border ${role === 'teacher' ? 'bg-emerald-600 text-white border-white ring-2 ring-emerald-400 shadow-sm' : 'bg-white/10 text-slate-200 border-white/10 hover:bg-white/20'}">👨‍🏫 Giảng Viên</button>
+          <button onclick="window.directTestRole('lab_staff')" class="px-2 py-1 rounded-md text-[10px] font-bold transition border ${role === 'lab_staff' ? 'bg-amber-600 text-white border-white ring-2 ring-amber-400 shadow-sm' : 'bg-white/10 text-slate-200 border-white/10 hover:bg-white/20'}">🧑‍🔧 Kỹ Thuật Viên</button>
+          <button onclick="window.directTestRole('student')" class="px-2 py-1 rounded-md text-[10px] font-bold transition border ${role === 'student' ? 'bg-purple-600 text-white border-white ring-2 ring-purple-400 shadow-sm' : 'bg-white/10 text-slate-200 border-white/10 hover:bg-white/20'}">👨‍🎓 Sinh Viên</button>
+        </div>
+      </div>
+    `;
   }
 
-  // Khóa / Ẩn các nút quản trị tài khoản trong Tab 6 nếu không phải Super Admin hoặc Admin
+  // 2. CẬP NHẬT HUY HIỆU TRẠNG THÁI QUYỀN HẠN TRÊN MENU SIDEBAR (CỘT BÊN TRÁI)
+  const sidebarBadges = {
+    super_admin: {
+      dashboard: { text: 'Toàn quyền', cls: 'bg-red-900/60 text-red-300 border border-red-700/50' },
+      simulation: { text: 'Nguồn WOL', cls: 'bg-red-900/60 text-red-300 border border-red-700/50' },
+      computers: { text: 'Quản trị', cls: 'bg-red-900/60 text-red-300 border border-red-700/50' },
+      schedule: { text: 'Toàn quyền', cls: 'bg-red-900/60 text-red-300 border border-red-700/50' },
+      maintenance: { text: 'Toàn quyền', cls: 'bg-red-900/60 text-red-300 border border-red-700/50' },
+      users: { text: '👑 Quản trị', cls: 'bg-red-900/80 text-red-200 border border-red-600' }
+    },
+    admin: {
+      dashboard: { text: 'Toàn quyền', cls: 'bg-blue-900/60 text-blue-300 border border-blue-700/50' },
+      simulation: { text: 'Nguồn WOL', cls: 'bg-blue-900/60 text-blue-300 border border-blue-700/50' },
+      computers: { text: 'Quản trị', cls: 'bg-blue-900/60 text-blue-300 border border-blue-700/50' },
+      schedule: { text: 'Xếp lịch', cls: 'bg-blue-900/60 text-blue-300 border border-blue-700/50' },
+      maintenance: { text: 'Xử lý', cls: 'bg-blue-900/60 text-blue-300 border border-blue-700/50' },
+      users: { text: 'Quản trị', cls: 'bg-blue-900/60 text-blue-300 border border-blue-700/50' }
+    },
+    lab_manager: {
+      dashboard: { text: 'Giám sát', cls: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/50' },
+      simulation: { text: 'Nguồn WOL', cls: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/50' },
+      computers: { text: 'Kiểm kê', cls: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/50' },
+      schedule: { text: 'Duyệt lịch', cls: 'bg-indigo-900/80 text-indigo-200 border border-indigo-500' },
+      maintenance: { text: 'Nghiệm thu', cls: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/50' },
+      users: { text: 'Tra cứu', cls: 'bg-slate-800 text-slate-400 border border-slate-700' }
+    },
+    teacher: {
+      dashboard: { text: 'Xem', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      simulation: { text: 'Chỉ xem', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      computers: { text: 'Tra cứu', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      schedule: { text: '★ Đăng ký ca', cls: 'bg-emerald-900/80 text-emerald-200 border border-emerald-500' },
+      maintenance: { text: '★ Báo hỏng', cls: 'bg-amber-900/80 text-amber-200 border border-amber-500' },
+      users: { text: 'Tra cứu', cls: 'bg-slate-800 text-slate-400 border border-slate-700' }
+    },
+    lab_staff: {
+      dashboard: { text: 'Xem', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      simulation: { text: '★ Bật nguồn', cls: 'bg-amber-900/80 text-amber-200 border border-amber-500' },
+      computers: { text: 'Cập nhật', cls: 'bg-amber-900/80 text-amber-200 border border-amber-500' },
+      schedule: { text: 'Xem TKB', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      maintenance: { text: '★ Sửa chữa', cls: 'bg-rose-900/80 text-rose-200 border border-rose-500' },
+      users: { text: 'Tra cứu', cls: 'bg-slate-800 text-slate-400 border border-slate-700' }
+    },
+    student: {
+      dashboard: { text: 'Chỉ đọc', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      simulation: { text: 'Chỉ xem 2D', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      computers: { text: 'Tra cứu', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      schedule: { text: 'Xem TKB', cls: 'bg-slate-800 text-slate-400 border border-slate-700' },
+      maintenance: { text: '🔒 Khóa', cls: 'bg-slate-900 text-slate-500 border border-slate-800' },
+      users: { text: '🔒 Khóa', cls: 'bg-slate-900 text-slate-500 border border-slate-800' }
+    }
+  };
+
+  const tabs = ['dashboard', 'simulation', 'computers', 'schedule', 'maintenance', 'users'];
+  const curSidebar = sidebarBadges[role] || sidebarBadges.student;
+  tabs.forEach(tabId => {
+    const el = document.getElementById(`sidebar-pill-${tabId}`);
+    if (el && curSidebar[tabId]) {
+      el.textContent = curSidebar[tabId].text;
+      el.className = `text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition ${curSidebar[tabId].cls}`;
+    }
+  });
+
+  // 3. KHÓA / MỞ KHÓA VÀ GẮN CHỈ BÁO TRỰC QUAN TRÊN TẤT CẢ CÁC NÚT BẤM (RBAC ENFORCEMENT)
   const isSuperOrAdmin = (role === 'super_admin' || role === 'admin');
-  const btnAddUser = document.getElementById('btn-add-user');
-  const btnImportUsers = document.querySelector('button[title*="Nhập danh sách tài khoản"]');
+  const canControlPower = isSuperOrAdmin || role === 'lab_manager' || role === 'lab_staff';
+  const canManageComputers = isSuperOrAdmin || role === 'lab_manager' || role === 'lab_staff';
+  const canCreateSchedule = isSuperOrAdmin || role === 'lab_manager' || role === 'teacher';
+  const canCreateTicket = role !== 'student';
+  const canResolveTicket = isSuperOrAdmin || role === 'lab_manager' || role === 'lab_staff';
+
+  const applyBtnState = (btnEl, isAllowed, allowedMsg, deniedMsg) => {
+    if (!btnEl) return;
+    if (isAllowed) {
+      btnEl.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+      btnEl.title = allowedMsg;
+    } else {
+      btnEl.classList.add('opacity-40', 'cursor-not-allowed');
+      btnEl.title = `[🔒 Bị khóa] ${deniedMsg}`;
+    }
+  };
+
+  // Nút trong Tab 2 (Simulation)
+  applyBtnState(document.getElementById('btn-scenario-wol'), canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên và Kỹ thuật viên mới có quyền điều khiển nguồn Wake-on-LAN');
+  applyBtnState(document.getElementById('btn-scenario-lock'), isSuperOrAdmin || role === 'teacher', 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên và Giảng viên mở ca mới có quyền khóa màn hình');
+  applyBtnState(document.getElementById('btn-scenario-fault'), isSuperOrAdmin || role === 'lab_staff', 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
+  applyBtnState(document.getElementById('btn-scenario-reset'), canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên và Kỹ thuật viên mới có quyền khôi phục');
+
+  // Nút trong Tab 3 (Computers)
+  applyBtnState(document.getElementById('btn-add-computer'), canManageComputers, 'Thêm máy trạm mới', 'Chỉ Quản trị viên và Kỹ thuật viên mới có quyền thêm máy tính');
+  applyBtnState(document.getElementById('btn-batch-actions'), canManageComputers, 'Thao tác hàng loạt', 'Chức năng chỉ dành cho cán bộ quản lý thiết bị');
+
+  // Nút trong Tab 4 (Schedule)
+  applyBtnState(document.getElementById('btn-add-schedule'), canCreateSchedule, 'Đăng ký ca thực hành mới', 'Chỉ Giảng viên và Quản lý phòng máy mới có quyền xếp lịch dạy');
+
+  // Nút trong Tab 5 (Maintenance)
+  applyBtnState(document.getElementById('btn-create-ticket'), canCreateTicket, 'Gửi báo cáo sự cố', 'Chế độ sinh viên chỉ có quyền tra cứu thông tin');
+
+  // Nút trong Tab 6 (Users)
+  applyBtnState(document.getElementById('btn-add-user'), isSuperOrAdmin, 'Tạo tài khoản người dùng mới', 'Chỉ Super Admin và Admin mới có quyền thêm tài khoản');
+  applyBtnState(document.getElementById('btn-export-users'), isSuperOrAdmin, 'Xuất danh sách ra file Excel', 'Chỉ Quản trị viên mới có quyền xuất dữ liệu tài khoản');
+  applyBtnState(document.querySelector('button[title*="Nhập danh sách tài khoản"]'), isSuperOrAdmin, 'Nhập danh sách tài khoản từ Excel', 'Chỉ Quản trị viên mới có quyền nhập tài khoản');
+
   const btnResetUsers = document.querySelector('button[title*="Khôi phục danh sách tài khoản gốc"]');
-
-  if (btnAddUser) {
-    if (isSuperOrAdmin) {
-      btnAddUser.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
-      btnAddUser.title = 'Tạo tài khoản người dùng mới';
-    } else {
-      btnAddUser.classList.add('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
-      btnAddUser.title = 'Chỉ Quản trị viên mới có quyền thêm tài khoản';
-    }
-  }
-
-  if (btnImportUsers) {
-    if (isSuperOrAdmin) {
-      btnImportUsers.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
-    } else {
-      btnImportUsers.classList.add('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
-    }
-  }
-
   if (btnResetUsers) {
     if (role === 'super_admin') {
       btnResetUsers.classList.remove('hidden');
@@ -4586,6 +4684,186 @@ window.viewRoleDetailModal = function(roleId) {
         window.directTestRole(roleId, 'dashboard');
       }
     }
+  });
+};
+
+// Hiển thị Modal So sánh & Đối chiếu Năng lực 6 Loại Tài Khoản Toàn Hệ Thống
+window.showAllRolesCapabilityModal = function() {
+  Swal.fire({
+    title: `
+      <div class="text-left flex items-center justify-between pb-2 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg shadow-2xs">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-slate-900 leading-tight">Đối Chiếu Năng Lực & Chức Năng 6 Loại Tài Khoản</h3>
+            <p class="text-[11px] text-slate-500 font-normal">Khoa Toán - Tin • Trường Đại học Khoa học (TNUS) • Chuẩn RBAC Enterprise</p>
+          </div>
+        </div>
+      </div>
+    `,
+    html: `
+      <div class="text-left text-xs space-y-4 pt-2 max-h-[75vh] overflow-y-auto pr-1">
+        <div class="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-slate-700 leading-relaxed text-[11px]">
+          Mỗi vai trò được thiết kế chuyên biệt theo quy trình vận hành giảng dạy thực tế tại 4 phòng máy A1-503, A1-504, A1-505, A1-506. Bạn có thể bấm vào bất kỳ vai trò nào bên dưới để chuyển thử nghiệm tức thì.
+        </div>
+
+        <!-- BẢNG SO SÁNH NHANH -->
+        <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-xs">
+          <table class="w-full text-left text-[11px] border-collapse bg-white">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
+                <th class="py-2.5 px-3">Chức năng nghiệp vụ</th>
+                <th class="py-2.5 px-2 text-center text-red-700 bg-red-50/60">Super Admin</th>
+                <th class="py-2.5 px-2 text-center text-blue-700 bg-blue-50/60">Admin</th>
+                <th class="py-2.5 px-2 text-center text-indigo-700 bg-indigo-50/60">QL Phòng</th>
+                <th class="py-2.5 px-2 text-center text-emerald-700 bg-emerald-50/60">Giảng Viên</th>
+                <th class="py-2.5 px-2 text-center text-amber-700 bg-amber-50/60">Kỹ Thuật</th>
+                <th class="py-2.5 px-2 text-center text-purple-700 bg-purple-50/60">Sinh Viên</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700">
+              <tr>
+                <td class="py-2 px-3 font-semibold">1. Xem Dashboard & Sơ đồ 2D 104 máy</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+              </tr>
+              <tr class="bg-slate-50/50">
+                <td class="py-2 px-3 font-semibold">2. Bật / Tắt nguồn Wake-on-LAN máy trạm</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 font-semibold">3. Thêm / Sửa / Khóa máy tính & Cập nhật cấu hình</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+              <tr class="bg-slate-50/50">
+                <td class="py-2 px-3 font-semibold">4. Đăng ký ca thực hành mới & Mở ca dạy</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 font-semibold">5. Duyệt đơn & Phê duyệt lịch phòng máy</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+              <tr class="bg-slate-50/50">
+                <td class="py-2 px-3 font-semibold">6. Gửi phiếu báo hỏng thiết bị trực tiếp</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 font-semibold">7. Tiếp nhận xử lý sự cố & thay linh kiện</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+              <tr class="bg-slate-50/50">
+                <td class="py-2 px-3 font-semibold">8. Quản lý tài khoản cán bộ (Thêm/Sửa/Khóa)</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+              <tr class="bg-amber-50/40">
+                <td class="py-2 px-3 font-bold text-rose-800">9. Chỉnh sửa Ma trận phân quyền RBAC</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-black">✓ (Độc quyền)</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 6 THẺ VAI TRÒ NHANH KÈM NÚT DÙNG THỬ -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+          <div class="p-3 rounded-xl border border-red-200 bg-red-50/40 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-red-900 text-xs">🛡️ Super Admin (ThS. Trịnh Minh Phú)</div>
+              <div class="text-[10px] text-slate-600">Toàn quyền tối cao 42/42 thẩm quyền & ma trận RBAC</div>
+            </div>
+            <button onclick="Swal.close(); window.directTestRole('super_admin');" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+          </div>
+
+          <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/40 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-blue-900 text-xs">⚙️ Admin (KS. Trần Văn Hải)</div>
+              <div class="text-[10px] text-slate-600">Quản trị 104 máy trạm, người dùng cán bộ, TKB & sự cố</div>
+            </div>
+            <button onclick="Swal.close(); window.directTestRole('admin');" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+          </div>
+
+          <div class="p-3 rounded-xl border border-indigo-200 bg-indigo-50/40 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-indigo-900 text-xs">🏢 QL Phòng Máy (ThS. Lê Hoàng Nam)</div>
+              <div class="text-[10px] text-slate-600">Điều phối 4 phòng, duyệt lịch thực hành, kiểm kê tài sản</div>
+            </div>
+            <button onclick="Swal.close(); window.directTestRole('lab_manager');" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+          </div>
+
+          <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-emerald-900 text-xs">👨‍🏫 Giảng Viên (ThS. Nguyễn Văn Toàn)</div>
+              <div class="text-[10px] text-slate-600">Đăng ký ca dạy, mở ca thực hành & báo hỏng thiết bị</div>
+            </div>
+            <button onclick="Swal.close(); window.directTestRole('teacher');" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+          </div>
+
+          <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/40 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-amber-900 text-xs">🧑‍🔧 Kỹ Thuật Viên (KTV. Chu Tuấn Hưng)</div>
+              <div class="text-[10px] text-slate-600">Bật nguồn Wake-on-LAN, bảo trì, sửa chữa & in tem QR</div>
+            </div>
+            <button onclick="Swal.close(); window.directTestRole('lab_staff');" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+          </div>
+
+          <div class="p-3 rounded-xl border border-purple-200 bg-purple-50/40 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-purple-900 text-xs">👨‍🎓 Sinh Viên / Khách (Read-only)</div>
+              <div class="text-[10px] text-slate-600">Tra cứu sơ đồ 2D, xem cấu hình máy & thời khóa biểu tuần</div>
+            </div>
+            <button onclick="Swal.close(); window.directTestRole('student');" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+          </div>
+        </div>
+      </div>
+    `,
+    width: '760px',
+    showConfirmButton: false,
+    showCloseButton: true
   });
 };
 

@@ -84,36 +84,54 @@
       <nav class="flex-grow p-3 space-y-1.5 overflow-y-auto text-sm">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">Điều khiển chính</div>
 
-        <a href="#dashboard" data-tab="dashboard" onclick="window.switchTab('dashboard'); return false;" class="nav-tab-link nav-tab-active flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <i class="fa-solid fa-chart-pie w-5 text-center text-blue-400"></i>
-          <span class="font-medium">Dashboard Tổng quan</span>
+        <a href="#dashboard" data-tab="dashboard" onclick="window.switchTab('dashboard'); return false;" class="nav-tab-link nav-tab-active flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-chart-pie w-5 text-center text-blue-400"></i>
+            <span class="font-medium">Dashboard Tổng quan</span>
+          </div>
+          <span id="sidebar-pill-dashboard" class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition"></span>
         </a>
 
-        <a href="#simulation" data-tab="simulation" onclick="window.switchTab('simulation'); return false;" class="nav-tab-link flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <i class="fa-solid fa-vr-cardboard w-5 text-center text-emerald-400"></i>
-          <span class="font-medium">Sơ đồ Mô phỏng 2D</span>
+        <a href="#simulation" data-tab="simulation" onclick="window.switchTab('simulation'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-vr-cardboard w-5 text-center text-emerald-400"></i>
+            <span class="font-medium">Sơ đồ Mô phỏng 2D</span>
+          </div>
+          <span id="sidebar-pill-simulation" class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition"></span>
         </a>
 
-        <a href="#computers" data-tab="computers" onclick="window.switchTab('computers'); return false;" class="nav-tab-link flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <i class="fa-solid fa-computer w-5 text-center text-amber-400"></i>
-          <span class="font-medium">Quản lý Thiết bị (104 máy)</span>
+        <a href="#computers" data-tab="computers" onclick="window.switchTab('computers'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-computer w-5 text-center text-amber-400"></i>
+            <span class="font-medium">Quản lý Thiết bị (104 máy)</span>
+          </div>
+          <span id="sidebar-pill-computers" class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition"></span>
         </a>
 
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 pt-3 pb-1">Vận hành phòng máy</div>
 
-        <a href="#schedule" data-tab="schedule" onclick="window.switchTab('schedule'); return false;" class="nav-tab-link flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <i class="fa-solid fa-calendar-days w-5 text-center text-indigo-400"></i>
-          <span class="font-medium">Lịch thực hành</span>
+        <a href="#schedule" data-tab="schedule" onclick="window.switchTab('schedule'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-calendar-days w-5 text-center text-indigo-400"></i>
+            <span class="font-medium">Lịch thực hành</span>
+          </div>
+          <span id="sidebar-pill-schedule" class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition"></span>
         </a>
 
-        <a href="#maintenance" data-tab="maintenance" onclick="window.switchTab('maintenance'); return false;" class="nav-tab-link flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <i class="fa-solid fa-wrench w-5 text-center text-rose-400"></i>
-          <span class="font-medium">Bảo trì & Sự cố</span>
+        <a href="#maintenance" data-tab="maintenance" onclick="window.switchTab('maintenance'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-wrench w-5 text-center text-rose-400"></i>
+            <span class="font-medium">Bảo trì & Sự cố</span>
+          </div>
+          <span id="sidebar-pill-maintenance" class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition"></span>
         </a>
 
-        <a href="#users" data-tab="users" onclick="window.switchTab('users'); return false;" class="nav-tab-link flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <i class="fa-solid fa-users-gear w-5 text-center text-cyan-400"></i>
-          <span class="font-medium">Phân quyền & Tài khoản</span>
+        <a href="#users" data-tab="users" onclick="window.switchTab('users'); return false;" class="nav-tab-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-users-gear w-5 text-center text-cyan-400"></i>
+            <span class="font-medium">Phân quyền & Tài khoản</span>
+          </div>
+          <span id="sidebar-pill-users" class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition"></span>
         </a>
       </nav>
 
@@ -180,6 +198,12 @@
               <option value="student">Sinh viên / Khách (Student)</option>
             </select>
           </div>
+
+          <!-- Nút Mở bảng so sánh chức năng 6 vai trò -->
+          <button onclick="window.showAllRolesCapabilityModal()" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group" title="Xem bảng so sánh chức năng và phân quyền của 6 loại tài khoản">
+            <i class="fa-solid fa-circle-question text-indigo-600 group-hover:text-white"></i>
+            <span class="hidden md:inline">Chức năng 6 vai trò</span>
+          </button>
 
           <!-- Nút Đổi mật khẩu nhanh trên Header -->
           <button onclick="window.openChangePasswordModal()" class="px-2.5 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs" title="Đổi mật khẩu tài khoản hiện tại">
