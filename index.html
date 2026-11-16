@@ -1357,7 +1357,7 @@
                       <span class="px-2.5 py-1 rounded-full text-xs font-black bg-blue-600 text-white shadow-2xs">Admin (Quản trị viên)</span>
                       <span class="font-mono text-[10px] text-blue-700 font-bold">ADMIN</span>
                     </div>
-                    <div class="text-[11px] font-bold text-slate-900 mb-1">KS. Trần Văn Hải (0983.123.456)</div>
+                    <div class="text-[11px] font-bold text-slate-900 mb-1">Cán bộ Quản trị hệ thống</div>
                     <p class="text-slate-600 text-[11px] leading-relaxed">Điều hành kỹ thuật hàng ngày, quản lý dữ liệu thiết bị, tài khoản cán bộ, kiểm duyệt lịch thực hành và xử lý bảo trì.</p>
                     <div class="mt-3 pt-2.5 border-t border-blue-200 text-[11px] space-y-1.5">
                       <div class="font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-check text-emerald-600"></i> Được phép:</div>
@@ -1385,7 +1385,7 @@
                       <span class="px-2.5 py-1 rounded-full text-xs font-black bg-indigo-600 text-white shadow-2xs">Quản lý phòng máy</span>
                       <span class="font-mono text-[10px] text-indigo-700 font-bold">LAB_MANAGER</span>
                     </div>
-                    <div class="text-[11px] font-bold text-slate-900 mb-1">ThS. Lê Hoàng Nam (0978.889.991)</div>
+                    <div class="text-[11px] font-bold text-slate-900 mb-1">Cán bộ Quản lý phòng máy</div>
                     <p class="text-slate-600 text-[11px] leading-relaxed">Trực tiếp quản trị cơ sở vật chất 4 phòng máy A1-503 đến A1-506, duyệt đơn đăng ký phòng và giám sát bảo trì.</p>
                     <div class="mt-3 pt-2.5 border-t border-indigo-200 text-[11px] space-y-1.5">
                       <div class="font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-check text-emerald-600"></i> Được phép:</div>
@@ -1413,7 +1413,7 @@
                       <span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-600 text-white shadow-2xs">Giảng viên (Teacher)</span>
                       <span class="font-mono text-[10px] text-emerald-700 font-bold">TEACHER</span>
                     </div>
-                    <div class="text-[11px] font-bold text-slate-900 mb-1">ThS. Nguyễn Văn Toàn (0912.345.678)</div>
+                    <div class="text-[11px] font-bold text-slate-900 mb-1">Giảng viên giảng dạy / thực hành</div>
                     <p class="text-slate-600 text-[11px] leading-relaxed">Cán bộ giảng dạy các môn thực hành tin học, lập trình, tính toán khoa học cho sinh viên các khoa.</p>
                     <div class="mt-3 pt-2.5 border-t border-emerald-200 text-[11px] space-y-1.5">
                       <div class="font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-check text-emerald-600"></i> Được phép:</div>
@@ -1441,7 +1441,7 @@
                       <span class="px-2.5 py-1 rounded-full text-xs font-black bg-amber-600 text-white shadow-2xs">Kỹ thuật viên (Lab Staff)</span>
                       <span class="font-mono text-[10px] text-amber-700 font-bold">LAB_STAFF</span>
                     </div>
-                    <div class="text-[11px] font-bold text-slate-900 mb-1">KTV. Chu Tuấn Hưng (0988.776.655)</div>
+                    <div class="text-[11px] font-bold text-slate-900 mb-1">Kỹ thuật viên phòng máy</div>
                     <p class="text-slate-600 text-[11px] leading-relaxed">Chuyên trách bảo trì kỹ thuật phần cứng, mạng LAN, cài đặt phần mềm và xử lý sự cố máy tính tại 4 phòng.</p>
                     <div class="mt-3 pt-2.5 border-t border-amber-200 text-[11px] space-y-1.5">
                       <div class="font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-check text-emerald-600"></i> Được phép:</div>
@@ -1469,7 +1469,7 @@
                       <span class="px-2.5 py-1 rounded-full text-xs font-black bg-purple-600 text-white shadow-2xs">Sinh viên / Khách (Student)</span>
                       <span class="font-mono text-[10px] text-purple-700 font-bold">STUDENT</span>
                     </div>
-                    <div class="text-[11px] font-bold text-slate-900 mb-1">Sinh viên TNUS các khóa K20 - K24</div>
+                    <div class="text-[11px] font-bold text-slate-900 mb-1">Sinh viên / Người dùng tra cứu</div>
                     <p class="text-slate-600 text-[11px] leading-relaxed">Chế độ tra cứu công khai an toàn, phục vụ sinh viên học thực hành và khách tham quan tra cứu tình trạng phòng máy.</p>
                     <div class="mt-3 pt-2.5 border-t border-purple-200 text-[11px] space-y-1.5">
                       <div class="font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-check text-emerald-600"></i> Được phép:</div>
@@ -1571,22 +1571,25 @@
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-                <!-- Link Quản trị viên -->
-                <div class="bg-white p-3 rounded-xl border border-blue-200 shadow-2xs flex flex-col justify-between hover:border-blue-400 transition">
+                <!-- Link Quản trị viên (Admin) -->
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between hover:border-blue-400 hover:shadow-xs transition">
                   <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-blue-600 text-white">Quản trị viên</span>
-                      <span class="font-mono text-[10px] text-blue-600 font-bold">?role=admin</span>
+                    <div class="flex items-center justify-between gap-1 mb-2">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                        <i class="fa-solid fa-shield-halved text-[10px]"></i>
+                        Quản trị viên
+                      </span>
+                      <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">admin</span>
                     </div>
-                    <div class="font-bold text-slate-800 text-xs">ThS. Trịnh Minh Phú</div>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Toàn quyền cấu hình, tài khoản & thiết bị</p>
+                    <div class="font-bold text-slate-900 text-xs">ThS. Trịnh Minh Phú</div>
+                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">Toàn quyền cấu hình, tài khoản & thiết bị</p>
                   </div>
-                  <div class="flex items-center space-x-1.5 mt-3">
-                    <button onclick="window.copyRoleAccessLink('admin', 'dashboard')" class="flex-1 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-blue-200" title="Sao chép link Web App cho Quản trị viên">
+                  <div class="flex items-center space-x-1.5 mt-3 pt-2.5 border-t border-slate-100">
+                    <button onclick="window.copyRoleAccessLink('admin', 'dashboard')" class="flex-1 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-blue-200/60" title="Sao chép link Web App cho Quản trị viên">
                       <i class="fa-solid fa-copy"></i>
                       <span>Sao chép</span>
                     </button>
-                    <button onclick="window.directTestRole('admin', 'dashboard')" class="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Quản trị viên">
+                    <button onclick="window.directTestRole('admin', 'dashboard')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Quản trị viên">
                       <i class="fa-solid fa-arrow-right-to-bracket"></i>
                       <span>Vào</span>
                     </button>
@@ -1594,21 +1597,24 @@
                 </div>
 
                 <!-- Link Quản lý phòng máy -->
-                <div class="bg-white p-3 rounded-xl border border-indigo-200 shadow-2xs flex flex-col justify-between hover:border-indigo-400 transition">
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between hover:border-indigo-400 hover:shadow-xs transition">
                   <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-indigo-600 text-white">Quản lý PM</span>
-                      <span class="font-mono text-[10px] text-indigo-600 font-bold">?role=lab_manager</span>
+                    <div class="flex items-center justify-between gap-1 mb-2">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60">
+                        <i class="fa-solid fa-desktop text-[10px]"></i>
+                        Quản lý PM
+                      </span>
+                      <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">manager</span>
                     </div>
-                    <div class="font-bold text-slate-800 text-xs">ThS. Lê Hoàng Nam</div>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Quản lý thiết bị, TKB & báo cáo</p>
+                    <div class="font-bold text-slate-900 text-xs">Quản lý phòng máy</div>
+                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">Quản lý thiết bị 4 phòng, duyệt lịch & báo cáo</p>
                   </div>
-                  <div class="flex items-center space-x-1.5 mt-3">
-                    <button onclick="window.copyRoleAccessLink('lab_manager', 'dashboard')" class="flex-1 py-1.5 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-indigo-200" title="Sao chép link Web App cho Quản lý phòng máy">
+                  <div class="flex items-center space-x-1.5 mt-3 pt-2.5 border-t border-slate-100">
+                    <button onclick="window.copyRoleAccessLink('lab_manager', 'dashboard')" class="flex-1 py-1.5 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-indigo-200/60" title="Sao chép link Web App cho Quản lý phòng máy">
                       <i class="fa-solid fa-copy"></i>
                       <span>Sao chép</span>
                     </button>
-                    <button onclick="window.directTestRole('lab_manager', 'dashboard')" class="px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Quản lý phòng máy">
+                    <button onclick="window.directTestRole('lab_manager', 'dashboard')" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Quản lý phòng máy">
                       <i class="fa-solid fa-arrow-right-to-bracket"></i>
                       <span>Vào</span>
                     </button>
@@ -1616,21 +1622,24 @@
                 </div>
 
                 <!-- Link Giảng viên -->
-                <div class="bg-white p-3 rounded-xl border border-emerald-200 shadow-2xs flex flex-col justify-between hover:border-emerald-400 transition">
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between hover:border-emerald-400 hover:shadow-xs transition">
                   <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-600 text-white">Giảng viên</span>
-                      <span class="font-mono text-[10px] text-emerald-600 font-bold">?role=teacher</span>
+                    <div class="flex items-center justify-between gap-1 mb-2">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                        <i class="fa-solid fa-chalkboard-user text-[10px]"></i>
+                        Giảng viên
+                      </span>
+                      <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">teacher</span>
                     </div>
-                    <div class="font-bold text-slate-800 text-xs">ThS. Nguyễn Văn Toàn</div>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Mở thẳng Thời khóa biểu & vào ca dạy</p>
+                    <div class="font-bold text-slate-900 text-xs">Giảng viên thực hành</div>
+                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">Mở thẳng Thời khóa biểu & vào ca dạy</p>
                   </div>
-                  <div class="flex items-center space-x-1.5 mt-3">
-                    <button onclick="window.copyRoleAccessLink('teacher', 'schedule')" class="flex-1 py-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-emerald-200" title="Sao chép link Web App cho Giảng viên">
+                  <div class="flex items-center space-x-1.5 mt-3 pt-2.5 border-t border-slate-100">
+                    <button onclick="window.copyRoleAccessLink('teacher', 'schedule')" class="flex-1 py-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-emerald-200/60" title="Sao chép link Web App cho Giảng viên">
                       <i class="fa-solid fa-copy"></i>
                       <span>Sao chép</span>
                     </button>
-                    <button onclick="window.directTestRole('teacher', 'schedule')" class="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Giảng viên">
+                    <button onclick="window.directTestRole('teacher', 'schedule')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Giảng viên">
                       <i class="fa-solid fa-arrow-right-to-bracket"></i>
                       <span>Vào</span>
                     </button>
@@ -1638,21 +1647,24 @@
                 </div>
 
                 <!-- Link Kỹ thuật viên -->
-                <div class="bg-white p-3 rounded-xl border border-amber-200 shadow-2xs flex flex-col justify-between hover:border-amber-400 transition">
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between hover:border-amber-400 hover:shadow-xs transition">
                   <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-600 text-white">Kỹ thuật viên</span>
-                      <span class="font-mono text-[10px] text-amber-600 font-bold">?role=lab_staff</span>
+                    <div class="flex items-center justify-between gap-1 mb-2">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                        <i class="fa-solid fa-wrench text-[10px]"></i>
+                        Kỹ thuật viên
+                      </span>
+                      <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">staff</span>
                     </div>
-                    <div class="font-bold text-slate-800 text-xs">KTV. Tổ Phòng Máy</div>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Mở thẳng Bảo trì sự cố & Wake-on-LAN</p>
+                    <div class="font-bold text-slate-900 text-xs">Kỹ thuật viên phòng máy</div>
+                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">Mở thẳng Bảo trì sự cố & Wake-on-LAN</p>
                   </div>
-                  <div class="flex items-center space-x-1.5 mt-3">
-                    <button onclick="window.copyRoleAccessLink('lab_staff', 'maintenance')" class="flex-1 py-1.5 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-amber-200" title="Sao chép link Web App cho Kỹ thuật viên">
+                  <div class="flex items-center space-x-1.5 mt-3 pt-2.5 border-t border-slate-100">
+                    <button onclick="window.copyRoleAccessLink('lab_staff', 'maintenance')" class="flex-1 py-1.5 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-amber-200/60" title="Sao chép link Web App cho Kỹ thuật viên">
                       <i class="fa-solid fa-copy"></i>
                       <span>Sao chép</span>
                     </button>
-                    <button onclick="window.directTestRole('lab_staff', 'maintenance')" class="px-2 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Kỹ thuật viên">
+                    <button onclick="window.directTestRole('lab_staff', 'maintenance')" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Kỹ thuật viên">
                       <i class="fa-solid fa-arrow-right-to-bracket"></i>
                       <span>Vào</span>
                     </button>
@@ -1660,21 +1672,24 @@
                 </div>
 
                 <!-- Link Sinh viên / Khách -->
-                <div class="bg-white p-3 rounded-xl border border-purple-200 shadow-2xs flex flex-col justify-between hover:border-purple-400 transition">
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between hover:border-purple-400 hover:shadow-xs transition">
                   <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-600 text-white">Sinh viên / Khách</span>
-                      <span class="font-mono text-[10px] text-purple-600 font-bold">?role=student</span>
+                    <div class="flex items-center justify-between gap-1 mb-2">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/60">
+                        <i class="fa-solid fa-graduation-cap text-[10px]"></i>
+                        Sinh viên
+                      </span>
+                      <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">student</span>
                     </div>
-                    <div class="font-bold text-slate-800 text-xs">Chế độ Tra Cứu (Chỉ đọc)</div>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Mở thẳng Sơ đồ 2D & Thời khóa biểu</p>
+                    <div class="font-bold text-slate-900 text-xs">Sinh viên / Khách tra cứu</div>
+                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">Mở thẳng Sơ đồ 2D & Thời khóa biểu</p>
                   </div>
-                  <div class="flex items-center space-x-1.5 mt-3">
-                    <button onclick="window.copyRoleAccessLink('student', 'simulation')" class="flex-1 py-1.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-purple-200" title="Sao chép link Web App cho Sinh viên/Khách">
+                  <div class="flex items-center space-x-1.5 mt-3 pt-2.5 border-t border-slate-100">
+                    <button onclick="window.copyRoleAccessLink('student', 'simulation')" class="flex-1 py-1.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-purple-200/60" title="Sao chép link Web App cho Sinh viên/Khách">
                       <i class="fa-solid fa-copy"></i>
                       <span>Sao chép</span>
                     </button>
-                    <button onclick="window.directTestRole('student', 'simulation')" class="px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Sinh viên tra cứu">
+                    <button onclick="window.directTestRole('student', 'simulation')" class="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào ngay phiên Sinh viên tra cứu">
                       <i class="fa-solid fa-arrow-right-to-bracket"></i>
                       <span>Vào</span>
                     </button>

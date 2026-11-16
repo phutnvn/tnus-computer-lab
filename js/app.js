@@ -4322,7 +4322,7 @@ window.ROLE_CAPABILITY_PROFILES = {
   },
   admin: {
     title: 'Admin (Quản trị viên Hệ thống)',
-    subtitle: 'KS. Trần Văn Hải • Kỹ sư Quản trị mạng',
+    subtitle: 'Cán bộ Quản trị hệ thống',
     badge: 'bg-blue-100 text-blue-800 border-blue-300',
     color: 'blue',
     icon: 'fa-user-gear',
@@ -4338,11 +4338,11 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Không thể chỉnh sửa Ma trận phân quyền RBAC (chỉ xem ma trận)',
       'Không thể xóa tài khoản Super Admin gốc'
     ],
-    sampleAccount: 'KS. Trần Văn Hải (username: <code>admin_cntt</code> • SĐT: <strong>0983.123.456</strong>)'
+    sampleAccount: 'Tài khoản Quản trị viên (Admin)'
   },
   lab_manager: {
     title: 'Quản Lý Phòng Máy',
-    subtitle: 'ThS. Lê Hoàng Nam • Tổ Quản trị Phòng máy Tầng 5',
+    subtitle: 'Cán bộ Quản lý phòng máy',
     badge: 'bg-indigo-100 text-indigo-800 border-indigo-300',
     color: 'indigo',
     icon: 'fa-desktop',
@@ -4358,11 +4358,11 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Không có quyền tạo, sửa hoặc xóa tài khoản cán bộ trong hệ thống',
       'Không có quyền thay đổi cấu hình bảo mật hoặc Ma trận phân quyền RBAC'
     ],
-    sampleAccount: 'ThS. Lê Hoàng Nam (username: <code>qlphongmay</code> • SĐT: <strong>0978.889.991</strong>)'
+    sampleAccount: 'Tài khoản Quản lý phòng máy (Lab Manager)'
   },
   teacher: {
     title: 'Giảng Viên Thực Hành',
-    subtitle: 'ThS. Nguyễn Văn Toàn • Giảng viên Bộ môn Khoa học Máy tính',
+    subtitle: 'Giảng viên giảng dạy / thực hành',
     badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     color: 'emerald',
     icon: 'fa-chalkboard-user',
@@ -4380,11 +4380,11 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Không thể duyệt hoặc hủy ca thực hành của giảng viên khác',
       'Không thể can thiệp phân quyền hoặc quản trị tài khoản'
     ],
-    sampleAccount: 'ThS. Nguyễn Văn Toàn (username: <code>toannv</code> • SĐT: <strong>0912.345.678</strong>)'
+    sampleAccount: 'Tài khoản Giảng viên thực hành'
   },
   lab_staff: {
     title: 'Kỹ Thuật Viên Phòng Máy',
-    subtitle: 'KTV. Chu Tuấn Hưng • Kỹ thuật viên Phần cứng & Mạng',
+    subtitle: 'Kỹ thuật viên phòng máy',
     badge: 'bg-amber-100 text-amber-800 border-amber-300',
     color: 'amber',
     icon: 'fa-wrench',
@@ -4401,11 +4401,11 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Không có quyền tạo hoặc phân quyền tài khoản người dùng',
       'Không có quyền xóa hoàn toàn máy trạm khỏi cơ sở dữ liệu'
     ],
-    sampleAccount: 'KTV. Chu Tuấn Hưng (username: <code>ktvlab</code> • SĐT: <strong>0988.776.655</strong>)'
+    sampleAccount: 'Tài khoản Kỹ thuật viên phòng máy'
   },
   student: {
     title: 'Sinh Viên / Khách Tra Cứu',
-    subtitle: 'Sinh viên các khóa K20, K21, K22, K23 • Khách tra cứu',
+    subtitle: 'Sinh viên TNUS • Khách tra cứu',
     badge: 'bg-purple-100 text-purple-800 border-purple-300',
     color: 'purple',
     icon: 'fa-graduation-cap',
@@ -4422,7 +4422,7 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Không thể sửa cấu hình, thêm hoặc xóa máy trạm',
       'Không thể xếp lịch, báo sự cố hay can thiệp hệ thống'
     ],
-    sampleAccount: 'Sinh viên TNUS (username: <code>student</code>)'
+    sampleAccount: 'Sinh viên TNUS (Chế độ chỉ xem)'
   }
 };
 
@@ -4644,7 +4644,7 @@ window.showAllRolesCapabilityModal = function() {
 
           <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/40 flex items-center justify-between">
             <div>
-              <div class="font-bold text-blue-900 text-xs">⚙️ Admin (KS. Trần Văn Hải)</div>
+              <div class="font-bold text-blue-900 text-xs">⚙️ Admin (Quản trị viên)</div>
               <div class="text-[10px] text-slate-600">Quản trị 104 máy trạm, người dùng cán bộ, TKB & sự cố</div>
             </div>
             <button onclick="Swal.close(); window.directTestRole('admin');" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
@@ -4652,7 +4652,7 @@ window.showAllRolesCapabilityModal = function() {
 
           <div class="p-3 rounded-xl border border-indigo-200 bg-indigo-50/40 flex items-center justify-between">
             <div>
-              <div class="font-bold text-indigo-900 text-xs">🏢 QL Phòng Máy (ThS. Lê Hoàng Nam)</div>
+              <div class="font-bold text-indigo-900 text-xs">🏢 Quản lý phòng máy</div>
               <div class="text-[10px] text-slate-600">Điều phối 4 phòng, duyệt lịch thực hành, kiểm kê tài sản</div>
             </div>
             <button onclick="Swal.close(); window.directTestRole('lab_manager');" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
@@ -4660,7 +4660,7 @@ window.showAllRolesCapabilityModal = function() {
 
           <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
             <div>
-              <div class="font-bold text-emerald-900 text-xs">👨‍🏫 Giảng Viên (ThS. Nguyễn Văn Toàn)</div>
+              <div class="font-bold text-emerald-900 text-xs">👨‍🏫 Giảng viên thực hành</div>
               <div class="text-[10px] text-slate-600">Đăng ký ca dạy, mở ca thực hành & báo hỏng thiết bị</div>
             </div>
             <button onclick="Swal.close(); window.directTestRole('teacher');" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
@@ -4668,7 +4668,7 @@ window.showAllRolesCapabilityModal = function() {
 
           <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/40 flex items-center justify-between">
             <div>
-              <div class="font-bold text-amber-900 text-xs">🧑‍🔧 Kỹ Thuật Viên (KTV. Chu Tuấn Hưng)</div>
+              <div class="font-bold text-amber-900 text-xs">🧑‍🔧 Kỹ thuật viên phòng máy</div>
               <div class="text-[10px] text-slate-600">Bật nguồn Wake-on-LAN, bảo trì, sửa chữa & in tem QR</div>
             </div>
             <button onclick="Swal.close(); window.directTestRole('lab_staff');" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
@@ -4770,7 +4770,7 @@ window.openLoginModal = function() {
                 <span>Admin</span>
                 <span class="text-[9px] opacity-75 font-mono">@admin_cntt</span>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-blue-100 truncate mt-0.5">KS. Trần Văn Hải</div>
+              <div class="text-[10px] text-slate-500 group-hover:text-blue-100 truncate mt-0.5">Cán bộ Quản trị</div>
             </button>
 
             <!-- Quản lý phòng máy -->
@@ -4780,7 +4780,7 @@ window.openLoginModal = function() {
                 <span>Quản Lý Phòng</span>
                 <span class="text-[9px] opacity-75 font-mono">@qlpm</span>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-indigo-100 truncate mt-0.5">ThS. Lê Hoàng Nam</div>
+              <div class="text-[10px] text-slate-500 group-hover:text-indigo-100 truncate mt-0.5">Quản lý phòng máy</div>
             </button>
 
             <!-- Giảng viên -->
@@ -4790,7 +4790,7 @@ window.openLoginModal = function() {
                 <span>Giảng Viên</span>
                 <span class="text-[9px] opacity-75 font-mono">@toannv</span>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-emerald-100 truncate mt-0.5">ThS. Nguyễn Văn Toàn</div>
+              <div class="text-[10px] text-slate-500 group-hover:text-emerald-100 truncate mt-0.5">Giảng viên thực hành</div>
             </button>
 
             <!-- Kỹ thuật viên -->
@@ -4800,7 +4800,7 @@ window.openLoginModal = function() {
                 <span>Kỹ Thuật Viên</span>
                 <span class="text-[9px] opacity-75 font-mono">@ktvlab</span>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-amber-100 truncate mt-0.5">KTV. Chu Tuấn Hưng</div>
+              <div class="text-[10px] text-slate-500 group-hover:text-amber-100 truncate mt-0.5">Kỹ thuật viên phòng máy</div>
             </button>
 
             <!-- Sinh viên -->
@@ -4810,7 +4810,7 @@ window.openLoginModal = function() {
                 <span>Sinh Viên</span>
                 <span class="text-[9px] opacity-75 font-mono">@student</span>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-purple-100 truncate mt-0.5">Sinh viên TNUS</div>
+              <div class="text-[10px] text-slate-500 group-hover:text-purple-100 truncate mt-0.5">Sinh viên tra cứu</div>
             </button>
           </div>
         </div>
