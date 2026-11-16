@@ -54,6 +54,8 @@ function loadState() {
 
       // 2. Khởi tạo & nạp Ma trận phân quyền (ROLE_PERMISSIONS)
       window.appState.rolePermissions = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS)), parsed.rolePermissions || {});
+      // Admin luôn luôn có toàn quyền 42/42 chức năng trên toàn hệ thống
+      window.appState.rolePermissions.admin = [...DEFAULT_ROLE_PERMISSIONS.admin];
 
       // 3. Đồng bộ danh sách tài khoản (USERS)
       if (parsed.users && Array.isArray(parsed.users) && parsed.users.length > 0) {
@@ -4285,24 +4287,79 @@ window.renderRbacMatrixTable = function() {
   const isAdminRole = currentRole === 'admin';
 
   // Lấy ma trận quyền hiện hành của vai trò này
-  const matrix = window.appState.rolePermissions || DEFAULT_ROLE_PERMISSIONS;
-  const rolePerms = matrix[currentRole] || (DEFAULT_ROLE_PERMISSIONS[currentRole] || []);
+  if (!window.appState.rolePermissions) {
+    window.appState.rolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+  }
+  // Admin luôn giữ trọn vẹn 42/42 quyền
+  if (isAdminRole) {
+    window.appState.rolePermissions.admin = [...DEFAULT_ROLE_PERMISSIONS.admin];
+  }
 
+  const rolePerms = window.appState.rolePermissions[currentRole] || (DEFAULT_ROLE_PERMISSIONS[currentRole] || []);
+  const activeCount = isAdminRole ? 42 : rolePerms.length;
+  const totalPerms = 42;
+  const percent = Math.round((activeCount / totalPerms) * 100);
+
+  // Cập nhật thanh tóm tắt trạng thái vai trò
+  const summaryTitle = document.getElementById('matrix-role-title');
+  const summaryBadge = document.getElementById('matrix-role-badge');
+  const summaryDesc = document.getElementById('matrix-role-desc');
+  const selectAllBtn = document.getElementById('btn-matrix-select-all');
+  const clearAllBtn = document.getElementById('btn-matrix-clear-all');
+
+  const roleDescriptions = {
+    admin: 'Quản trị viên luôn sở hữu toàn quyền 42/42 chức năng trên hệ thống (không thể vô hiệu hóa).',
+    lab_manager: 'Toàn quyền cấu hình máy tính, thiết bị, duyệt ca học, bảo trì và xuất báo cáo.',
+    teacher: 'Xem sơ đồ, theo dõi và đăng ký lịch thực hành, gửi phiếu báo hỏng máy tính.',
+    lab_staff: 'Điều khiển Wake-on-LAN, quản lý danh mục thiết bị, xử lý sự cố và bảo dưỡng kỹ thuật.',
+    student: 'Chế độ tra cứu thông tin (Read-only): Xem sơ đồ phòng máy và lịch thực hành.'
+  };
+
+  const roleLabels = {
+    admin: 'Admin (Quản trị hệ thống)',
+    lab_manager: 'Quản lý phòng máy',
+    teacher: 'Giảng viên (Teacher)',
+    lab_staff: 'Kỹ thuật viên (Lab Staff)',
+    student: 'Sinh viên / Khách'
+  };
+
+  if (summaryTitle) summaryTitle.textContent = roleLabels[currentRole] || currentRole;
+  if (summaryDesc) summaryDesc.textContent = roleDescriptions[currentRole] || '';
+  if (summaryBadge) {
+    summaryBadge.textContent = `${activeCount} / ${totalPerms} quyền (${percent}%)`;
+    summaryBadge.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${isAdminRole ? 'bg-emerald-100 text-emerald-800' : (activeCount > 20 ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700')}`;
+  }
+
+  if (selectAllBtn) {
+    selectAllBtn.disabled = isAdminRole;
+    selectAllBtn.classList.toggle('opacity-50', isAdminRole);
+    selectAllBtn.classList.toggle('cursor-not-allowed', isAdminRole);
+  }
+  if (clearAllBtn) {
+    clearAllBtn.disabled = isAdminRole;
+    clearAllBtn.classList.toggle('opacity-50', isAdminRole);
+    clearAllBtn.classList.toggle('cursor-not-allowed', isAdminRole);
+  }
+
+  // Kết xuất từng dòng module nghiệp vụ
   tbody.innerHTML = RBAC_MODULES.map(mod => {
+    let modPermCount = 0;
+
     // 7 ô checkbox cho 7 hành động
     const actionTds = RBAC_ACTIONS.map(act => {
       const permKey = `${mod.id}.${act.id}`;
-      const isChecked = rolePerms.includes(permKey);
+      const isChecked = isAdminRole ? true : rolePerms.includes(permKey);
+      if (isChecked) modPermCount++;
 
       return `
         <td class="py-2.5 px-3 text-center whitespace-nowrap">
-          <label class="inline-flex items-center justify-center cursor-pointer ${isAdminRole ? 'cursor-not-allowed opacity-75' : ''}">
+          <label class="inline-flex items-center justify-center ${isAdminRole ? 'cursor-not-allowed' : 'cursor-pointer'}">
             <input type="checkbox" 
-              class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 rbac-matrix-checkbox" 
+              class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 transition ${isAdminRole ? 'accent-emerald-600 cursor-not-allowed' : 'accent-blue-600 cursor-pointer'}" 
               data-role="${currentRole}" 
               data-perm="${permKey}"
               ${isChecked ? 'checked' : ''} 
-              ${isAdminRole ? 'disabled title="Admin luôn có toàn quyền tuyệt đối"' : ''}
+              ${isAdminRole ? 'disabled title="Admin luôn có toàn quyền tuyệt đối 42/42"' : `title="${act.name} cho module ${mod.name}"`}
               onchange="window.onMatrixCheckboxChange(this)">
           </label>
         </td>
@@ -4310,24 +4367,29 @@ window.renderRbacMatrixTable = function() {
     }).join('');
 
     return `
-      <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-        <td class="py-3 px-4 font-semibold text-slate-800 flex items-center space-x-2">
-          <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs">
+      <tr class="hover:bg-slate-50/80 transition border-b border-slate-100">
+        <td class="py-3 px-4 font-semibold text-slate-800 flex items-center space-x-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs shadow-2xs shrink-0">
             <i class="fa-solid ${mod.icon}"></i>
           </div>
-          <div>
-            <div class="font-bold text-xs text-slate-900">${mod.name}</div>
-            <div class="text-[10px] text-slate-400 font-normal">${mod.description}</div>
+          <div class="min-w-0">
+            <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+              <span>${mod.name}</span>
+              <span class="text-[10px] font-semibold text-slate-400">(${modPermCount}/7)</span>
+            </div>
+            <div class="text-[10px] text-slate-400 font-normal truncate max-w-xs">${mod.description}</div>
           </div>
         </td>
         ${actionTds}
         <td class="py-2.5 px-3 text-center whitespace-nowrap">
           ${isAdminRole ? `
-            <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Toàn quyền</span>
+            <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              <i class="fa-solid fa-check mr-0.5"></i> 7/7 Toàn quyền
+            </span>
           ` : `
             <div class="flex items-center justify-center space-x-1">
-              <button onclick="window.toggleModuleAllPerms('${currentRole}', '${mod.id}', true)" class="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 rounded text-[10px] font-bold transition" title="Cấp tất cả 7 quyền cho module này">Bật hết</button>
-              <button onclick="window.toggleModuleAllPerms('${currentRole}', '${mod.id}', false)" class="px-1.5 py-0.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded text-[10px] font-bold transition" title="Tắt toàn bộ quyền của module này">Tắt hết</button>
+              <button onclick="window.toggleModuleAllPerms('${currentRole}', '${mod.id}', true)" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 rounded text-[10px] font-bold transition shadow-2xs" title="Cấp tất cả 7 quyền cho module này">Bật 7 quyền</button>
+              <button onclick="window.toggleModuleAllPerms('${currentRole}', '${mod.id}', false)" class="px-1.5 py-0.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded text-[10px] font-bold transition shadow-2xs" title="Tắt toàn bộ quyền của module này">Tắt hết</button>
             </div>
           `}
         </td>
@@ -4359,6 +4421,7 @@ window.onMatrixCheckboxChange = function(inputEl) {
   }
 
   window.saveStateToLocalStorage();
+  window.renderRbacMatrixTable();
 };
 
 // Bật / Tắt nhanh toàn bộ quyền của một module cho vai trò đang chọn
@@ -4387,23 +4450,85 @@ window.toggleModuleAllPerms = function(role, moduleId, enable) {
   window.renderRbacMatrixTable();
 };
 
+// Bật / Tắt toàn bộ 42 quyền cho vai trò đang chọn
+window.toggleAllMatrixPermissions = function(enable) {
+  const roleSelect = document.getElementById('matrix-role-selector');
+  const currentRole = roleSelect ? roleSelect.value : 'admin';
+  if (currentRole === 'admin') return;
+
+  if (!window.appState.rolePermissions) {
+    window.appState.rolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+  }
+
+  if (enable) {
+    const allPerms = [];
+    RBAC_MODULES.forEach(mod => {
+      RBAC_ACTIONS.forEach(act => {
+        allPerms.push(`${mod.id}.${act.id}`);
+      });
+    });
+    window.appState.rolePermissions[currentRole] = allPerms;
+  } else {
+    window.appState.rolePermissions[currentRole] = [];
+  }
+
+  window.saveStateToLocalStorage();
+  window.renderRbacMatrixTable();
+};
+
+// Đổi trạng thái toàn bộ 1 cột hành động (Ví dụ: bật/tắt toàn bộ View cho 6 module)
+window.toggleColumnActionPerms = function(actionId) {
+  const roleSelect = document.getElementById('matrix-role-selector');
+  const currentRole = roleSelect ? roleSelect.value : 'admin';
+  if (currentRole === 'admin') return;
+
+  if (!window.appState.rolePermissions) {
+    window.appState.rolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+  }
+  if (!window.appState.rolePermissions[currentRole]) {
+    window.appState.rolePermissions[currentRole] = [];
+  }
+
+  const colPerms = RBAC_MODULES.map(mod => `${mod.id}.${actionId}`);
+  let list = window.appState.rolePermissions[currentRole];
+
+  // Nếu tất cả đã bật thì tắt, ngược lại thì bật hết
+  const allAlreadyEnabled = colPerms.every(p => list.includes(p));
+  if (allAlreadyEnabled) {
+    window.appState.rolePermissions[currentRole] = list.filter(p => !colPerms.includes(p));
+  } else {
+    colPerms.forEach(p => {
+      if (!list.includes(p)) list.push(p);
+    });
+  }
+
+  window.saveStateToLocalStorage();
+  window.renderRbacMatrixTable();
+};
+
 // Lưu ma trận phân quyền
 window.saveCurrentRolePermissions = function() {
   const roleSelect = document.getElementById('matrix-role-selector');
-  const currentRole = roleSelect ? roleSelect.value : 'all';
+  const currentRole = roleSelect ? roleSelect.value : 'admin';
   const rObj = (window.appState.roles || SYSTEM_ROLES).find(r => r.id === currentRole);
   const roleName = rObj ? rObj.name : currentRole;
 
   window.saveStateToLocalStorage();
+  if (typeof window.applyRoleRestrictionsToUI === 'function') {
+    window.applyRoleRestrictionsToUI();
+  }
   window.logUserActivity('Cập nhật quyền', `Lưu thay đổi ma trận phân quyền cho vai trò: ${roleName}`);
+
+  const activeCount = (currentRole === 'admin') ? 42 : ((window.appState.rolePermissions && window.appState.rolePermissions[currentRole]) ? window.appState.rolePermissions[currentRole].length : 0);
 
   Swal.fire({
     icon: 'success',
-    title: 'Đã lưu phân quyền thành công!',
+    title: 'Đã lưu ma trận phân quyền!',
     html: `
-      <div class="text-xs text-slate-600 text-left space-y-1">
-        <div>Vai trò cập nhật: <strong>${roleName}</strong></div>
-        <p class="text-[11px] text-slate-500">Toàn bộ tài khoản thuộc vai trò này sẽ ngay lập tức được áp dụng các thẩm quyền mới.</p>
+      <div class="text-xs text-slate-600 text-left space-y-1.5">
+        <div>Vai trò: <strong>${roleName}</strong></div>
+        <div>Tổng quyền kích hoạt: <strong class="text-blue-600">${activeCount} / 42 quyền</strong></div>
+        <p class="text-[11px] text-slate-500">Mọi tài khoản thuộc vai trò này sẽ ngay lập tức được áp dụng các thẩm quyền vừa cấu hình.</p>
       </div>
     `,
     timer: 1600,
@@ -4431,6 +4556,9 @@ window.resetRolePermissionsToDefault = function() {
       if (!window.appState.rolePermissions) window.appState.rolePermissions = {};
       window.appState.rolePermissions[currentRole] = [...(DEFAULT_ROLE_PERMISSIONS[currentRole] || [])];
       window.saveStateToLocalStorage();
+      if (typeof window.applyRoleRestrictionsToUI === 'function') {
+        window.applyRoleRestrictionsToUI();
+      }
       window.renderRbacMatrixTable();
       window.logUserActivity('Khôi phục quyền', `Đặt lại ma trận quyền mặc định cho vai trò: ${roleName}`);
 
