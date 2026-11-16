@@ -6561,21 +6561,13 @@ const RBAC_ACTIONS = [
   { id: 'manage', name: 'Quản trị module', icon: 'fa-gear', badge: 'bg-purple-100 text-purple-700', desc: 'Quyền quản trị toàn diện, đổi cấu hình sâu và can thiệp vận hành cấp cao' }
 ];
 
-// 3. BẢNG ROLES (DANH SÁCH 6 VAI TRÒ CHUẨN RBAC)
+// 3. BẢNG ROLES (DANH SÁCH 5 VAI TRÒ CHUẨN RBAC)
 const SYSTEM_ROLES = [
-  {
-    id: 'super_admin',
-    name: 'Super Admin',
-    code: 'SUPER_ADMIN',
-    description: 'Toàn quyền hệ thống, quản lý tài khoản và phân quyền cao nhất',
-    badgeClass: 'bg-red-600 text-white',
-    isSuper: true
-  },
   {
     id: 'admin',
     name: 'Admin',
     code: 'ADMIN',
-    description: 'Quản lý dữ liệu, người dùng và cấu hình hệ thống theo quyền được cấp',
+    description: 'Toàn quyền quản trị hệ thống, thiết bị, người dùng và phân quyền',
     badgeClass: 'bg-blue-600 text-white',
     isSuper: true
   },
@@ -6615,23 +6607,14 @@ const SYSTEM_ROLES = [
 
 // 4. BẢNG ROLE_PERMISSIONS: MA TRẬN PHÂN QUYỀN MẶC ĐỊNH (6 MODULES X 7 ACTIONS = 42 PERMISSIONS)
 const DEFAULT_ROLE_PERMISSIONS = {
-  super_admin: [
-    // Super Admin: Toàn quyền 100% tất cả 6 module x 7 hành động = 42 quyền
+  admin: [
+    // Admin: Toàn quyền quản trị 100% tất cả 6 module x 7 hành động = 42 quyền
     'dashboard.view', 'dashboard.create', 'dashboard.edit', 'dashboard.delete', 'dashboard.approve', 'dashboard.export', 'dashboard.manage',
     'simulation.view', 'simulation.create', 'simulation.edit', 'simulation.delete', 'simulation.approve', 'simulation.export', 'simulation.manage',
     'computers.view', 'computers.create', 'computers.edit', 'computers.delete', 'computers.approve', 'computers.export', 'computers.manage',
     'schedule.view', 'schedule.create', 'schedule.edit', 'schedule.delete', 'schedule.approve', 'schedule.export', 'schedule.manage',
     'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.delete', 'maintenance.approve', 'maintenance.export', 'maintenance.manage',
     'users.view', 'users.create', 'users.edit', 'users.delete', 'users.approve', 'users.export', 'users.manage'
-  ],
-  admin: [
-    // Admin: Quản lý dữ liệu, người dùng và cấu hình hệ thống theo quyền được cấp
-    'dashboard.view', 'dashboard.create', 'dashboard.edit', 'dashboard.export', 'dashboard.manage',
-    'simulation.view', 'simulation.create', 'simulation.edit', 'simulation.export', 'simulation.manage',
-    'computers.view', 'computers.create', 'computers.edit', 'computers.delete', 'computers.approve', 'computers.export', 'computers.manage',
-    'schedule.view', 'schedule.create', 'schedule.edit', 'schedule.delete', 'schedule.approve', 'schedule.export', 'schedule.manage',
-    'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.delete', 'maintenance.approve', 'maintenance.export', 'maintenance.manage',
-    'users.view', 'users.create', 'users.edit', 'users.export'
   ],
   lab_manager: [
     // Quản lý phòng máy: Quản lý phòng máy, thiết bị, lịch bảo trì và báo cáo
@@ -6689,14 +6672,14 @@ function verifyPassword(inputPassword, user) {
   return hash === user.passwordHash;
 }
 
-// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (CHỈ DUY TRÌ SUPER ADMIN GỐC USR-01 THEO CHỈ ĐẠO)
+// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (CHỈ DUY TRÌ ADMIN GỐC USR-01 THEO CHỈ ĐẠO)
 const INITIAL_USERS = [
   {
     id: 'USR-01',
     username: 'admin',
     name: 'ThS. Trịnh Minh Phú',
-    role: 'super_admin',
-    roleName: 'Super Admin',
+    role: 'admin',
+    roleName: 'Quản trị viên',
     email: 'phutm@tnus.edu.vn',
     phone: '0975.090.666',
     department: 'Khoa Toán - Tin, TNUS',
@@ -6717,10 +6700,10 @@ const INITIAL_ACTIVITY_LOGS = [
     timestamp: '2026-11-16 08:00:00',
     username: 'admin',
     userName: 'ThS. Trịnh Minh Phú',
-    role: 'super_admin',
+    role: 'admin',
     action: 'Khởi tạo hệ thống',
     module: 'system',
-    details: 'Khởi tạo hệ thống quản lý phòng máy TNUS với tài khoản Super Admin gốc',
+    details: 'Khởi tạo hệ thống quản lý phòng máy TNUS với tài khoản Quản trị viên (Admin)',
     ip: '10.10.5.1'
   },
   {
@@ -6728,7 +6711,7 @@ const INITIAL_ACTIVITY_LOGS = [
     timestamp: '2026-11-16 08:15:00',
     username: 'admin',
     userName: 'ThS. Trịnh Minh Phú',
-    role: 'super_admin',
+    role: 'admin',
     action: 'Cập nhật phân quyền',
     module: 'users',
     details: 'Áp dụng ma trận phân quyền RBAC 3.0 với 7 hành động độc lập trên 6 module',
@@ -6738,16 +6721,10 @@ const INITIAL_ACTIVITY_LOGS = [
 
 // Khả năng tương thích ngược
 const ROLE_PERMISSIONS = {
-  super_admin: {
-    label: 'Super Admin',
-    badgeClass: 'bg-red-600 text-white',
-    description: 'Toàn quyền hệ thống, quản lý tài khoản và phân quyền cao nhất',
-    permissions: DEFAULT_ROLE_PERMISSIONS.super_admin
-  },
   admin: {
-    label: 'Admin',
+    label: 'Admin (Quản trị viên)',
     badgeClass: 'bg-blue-600 text-white',
-    description: 'Quản lý dữ liệu, người dùng và cấu hình hệ thống',
+    description: 'Toàn quyền quản trị hệ thống, dữ liệu thiết bị, tài khoản và phân quyền',
     permissions: DEFAULT_ROLE_PERMISSIONS.admin
   },
   lab_manager: {

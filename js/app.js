@@ -49,7 +49,7 @@ function loadState() {
       window.appState.schedules = parsed.schedules || INITIAL_SCHEDULES;
       window.appState.maintenance = parsed.maintenance || INITIAL_MAINTENANCE;
 
-      // 1. Khởi tạo & đồng bộ danh sách 6 Vai trò chuẩn (SYSTEM_ROLES)
+      // 1. Khởi tạo & đồng bộ danh sách 5 Vai trò chuẩn (SYSTEM_ROLES)
       window.appState.roles = [...SYSTEM_ROLES];
 
       // 2. Khởi tạo & nạp Ma trận phân quyền (ROLE_PERMISSIONS)
@@ -58,20 +58,27 @@ function loadState() {
       // 3. Đồng bộ danh sách tài khoản (USERS)
       if (parsed.users && Array.isArray(parsed.users) && parsed.users.length > 0) {
         window.appState.users = parsed.users;
-        // Đảm bảo luôn có Super Admin gốc USR-01 (ThS. Trịnh Minh Phú)
+        // Chuyển đổi mọi vai trò super_admin cũ sang admin chuẩn
+        window.appState.users.forEach(u => {
+          if (u.role === 'super_admin') {
+            u.role = 'admin';
+            u.roleName = 'Quản trị viên';
+          }
+        });
+        // Đảm bảo luôn có Quản trị viên (Admin) gốc USR-01 (ThS. Trịnh Minh Phú)
         let rootAdmin = window.appState.users.find(u => u.id === 'USR-01');
         if (!rootAdmin) {
           window.appState.users.unshift({ ...INITIAL_USERS[0] });
         } else {
-          rootAdmin.role = 'super_admin';
-          rootAdmin.roleName = 'Super Admin';
+          rootAdmin.role = 'admin';
+          rootAdmin.roleName = 'Quản trị viên';
           rootAdmin.name = 'ThS. Trịnh Minh Phú';
           rootAdmin.phone = '0975.090.666';
           rootAdmin.email = 'phutm@tnus.edu.vn';
           rootAdmin.department = 'Khoa Toán - Tin, TNUS';
           rootAdmin.status = 'active';
         }
-        // Loại bỏ các tài khoản mẫu cũ (USR-02 đến USR-06) theo chỉ đạo: chỉ duy trì Super Admin USR-01, các tài khoản khác sẽ do người dùng tự khởi tạo thêm vào sau
+        // Loại bỏ các tài khoản mẫu cũ (USR-02 đến USR-06) theo chỉ đạo: chỉ duy trì Admin USR-01, các tài khoản khác sẽ do người dùng tự khởi tạo thêm vào sau
         window.appState.users = window.appState.users.filter(u => !['USR-02', 'USR-03', 'USR-04', 'USR-05', 'USR-06'].includes(u.id));
         if (typeof window.saveStateToLocalStorage === 'function') {
           window.saveStateToLocalStorage();
@@ -608,9 +615,8 @@ window.checkPermission = function(permKey, actionName = 'thực hiện thao tác
   // Chuẩn hóa khóa quyền (Hỗ trợ cả dạng 'module.action' lẫn khóa tương thích cũ)
   const canonicalKey = (typeof RBAC_LEGACY_MAP !== 'undefined' && RBAC_LEGACY_MAP[permKey]) ? RBAC_LEGACY_MAP[permKey] : permKey;
 
-  // B. Phân cấp Quản trị viên tối cao & Quản trị viên
-  if (user.role === 'super_admin') return true;
-  if (user.role === 'admin' && canonicalKey !== 'matrix.manage') return true;
+  // B. Quản trị viên (Admin) luôn có toàn quyền trên toàn hệ thống
+  if (user.role === 'admin') return true;
 
   const userRole = user.role || 'student';
 
@@ -862,11 +868,7 @@ window.renderUserAccountsTable = function() {
   let list = [...(window.appState.users || [])];
 
   if (roleVal !== 'all') {
-    if (roleVal === 'admins') {
-      list = list.filter(u => u.role === 'admin' || u.role === 'super_admin');
-    } else {
-      list = list.filter(u => u.role === roleVal);
-    }
+    list = list.filter(u => u.role === roleVal);
   }
 
   if (statusVal !== 'all') {
@@ -922,8 +924,7 @@ window.renderUserAccountsTable = function() {
   const currentUserId = window.appState.currentUser?.id;
 
   const roleBadges = {
-    super_admin: { label: 'Super Admin', bg: 'bg-red-100 text-red-800 border-red-200' },
-    admin: { label: 'Admin', bg: 'bg-blue-100 text-blue-800 border-blue-200' },
+    admin: { label: 'Quản trị viên (Admin)', bg: 'bg-blue-100 text-blue-800 border-blue-200' },
     lab_manager: { label: 'Quản lý phòng máy', bg: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
     teacher: { label: 'Giảng viên', bg: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
     lab_staff: { label: 'Kỹ thuật viên', bg: 'bg-amber-100 text-amber-800 border-amber-200' },
@@ -1062,8 +1063,8 @@ window.renderUserAccountsTable = function() {
 window.updateUserKPIs = function() {
   const users = window.appState.users || [];
   const total = users.length;
-  // Quản trị viên gồm Super Admin và Admin
-  const adminCount = users.filter(u => u.role === 'admin' || u.role === 'super_admin').length;
+  // Quản trị viên (Admin)
+  const adminCount = users.filter(u => u.role === 'admin').length;
   const managerCount = users.filter(u => u.role === 'lab_manager').length;
   const teacherCount = users.filter(u => u.role === 'teacher').length;
   const staffCount = users.filter(u => u.role === 'lab_staff').length;
@@ -1296,7 +1297,6 @@ window.showEditUserModal = function(userId) {
           <div>
             <label class="block font-bold text-slate-700 mb-1">Vai Trò Phân Quyền</label>
             <select id="edit-user-role" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 bg-white" ${user.id === 'USR-01' ? 'disabled' : ''}>
-              ${user.id === 'USR-01' ? '<option value="super_admin" selected>Super Admin (Toàn quyền hệ thống)</option>' : ''}
               <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin (Quản trị viên)</option>
               <option value="lab_manager" ${user.role === 'lab_manager' ? 'selected' : ''}>Quản lý phòng máy (Lab Manager)</option>
               <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Giảng viên (Teacher)</option>
@@ -3787,12 +3787,12 @@ window.applyRoleRestrictionsToUI = function() {
   // 2. SIDEBAR ĐƯỢC GIỮ TINH GỌN, CHỐNG TRÀN VÀ XUỐNG DÒNG CHỮ
 
   // 3. KHÓA / MỞ KHÓA VÀ GẮN CHỈ BÁO TRỰC QUAN TRÊN TẤT CẢ CÁC NÚT BẤM (RBAC ENFORCEMENT)
-  const isSuperOrAdmin = (role === 'super_admin' || role === 'admin');
-  const canControlPower = isSuperOrAdmin || role === 'lab_manager' || role === 'lab_staff';
-  const canManageComputers = isSuperOrAdmin || role === 'lab_manager' || role === 'lab_staff';
-  const canCreateSchedule = isSuperOrAdmin || role === 'lab_manager' || role === 'teacher';
+  const isAdmin = (role === 'admin');
+  const canControlPower = isAdmin || role === 'lab_manager' || role === 'lab_staff';
+  const canManageComputers = isAdmin || role === 'lab_manager' || role === 'lab_staff';
+  const canCreateSchedule = isAdmin || role === 'lab_manager' || role === 'teacher';
   const canCreateTicket = role !== 'student';
-  const canResolveTicket = isSuperOrAdmin || role === 'lab_manager' || role === 'lab_staff';
+  const canResolveTicket = isAdmin || role === 'lab_manager' || role === 'lab_staff';
 
   const applyBtnState = (btnEl, isAllowed, allowedMsg, deniedMsg) => {
     if (!btnEl) return;
@@ -3807,8 +3807,8 @@ window.applyRoleRestrictionsToUI = function() {
 
   // Nút trong Tab 2 (Simulation)
   applyBtnState(document.getElementById('btn-scenario-wol'), canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên và Kỹ thuật viên mới có quyền điều khiển nguồn Wake-on-LAN');
-  applyBtnState(document.getElementById('btn-scenario-lock'), isSuperOrAdmin || role === 'teacher', 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên và Giảng viên mở ca mới có quyền khóa màn hình');
-  applyBtnState(document.getElementById('btn-scenario-fault'), isSuperOrAdmin || role === 'lab_staff', 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
+  applyBtnState(document.getElementById('btn-scenario-lock'), isAdmin || role === 'teacher', 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên và Giảng viên mở ca mới có quyền khóa màn hình');
+  applyBtnState(document.getElementById('btn-scenario-fault'), isAdmin || role === 'lab_staff', 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
   applyBtnState(document.getElementById('btn-scenario-reset'), canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên và Kỹ thuật viên mới có quyền khôi phục');
 
   // Nút trong Tab 3 (Computers)
@@ -3822,13 +3822,13 @@ window.applyRoleRestrictionsToUI = function() {
   applyBtnState(document.getElementById('btn-create-ticket'), canCreateTicket, 'Gửi báo cáo sự cố', 'Chế độ sinh viên chỉ có quyền tra cứu thông tin');
 
   // Nút trong Tab 6 (Users)
-  applyBtnState(document.getElementById('btn-add-user'), isSuperOrAdmin, 'Tạo tài khoản người dùng mới', 'Chỉ Super Admin và Admin mới có quyền thêm tài khoản');
-  applyBtnState(document.getElementById('btn-export-users'), isSuperOrAdmin, 'Xuất danh sách ra file Excel', 'Chỉ Quản trị viên mới có quyền xuất dữ liệu tài khoản');
-  applyBtnState(document.querySelector('button[title*="Nhập danh sách tài khoản"]'), isSuperOrAdmin, 'Nhập danh sách tài khoản từ Excel', 'Chỉ Quản trị viên mới có quyền nhập tài khoản');
+  applyBtnState(document.getElementById('btn-add-user'), isAdmin, 'Tạo tài khoản người dùng mới', 'Chỉ Quản trị viên (Admin) mới có quyền thêm tài khoản');
+  applyBtnState(document.getElementById('btn-export-users'), isAdmin, 'Xuất danh sách ra file Excel', 'Chỉ Quản trị viên mới có quyền xuất dữ liệu tài khoản');
+  applyBtnState(document.querySelector('button[title*="Nhập danh sách tài khoản"]'), isAdmin, 'Nhập danh sách tài khoản từ Excel', 'Chỉ Quản trị viên mới có quyền nhập tài khoản');
 
   const btnResetUsers = document.querySelector('button[title*="Khôi phục danh sách tài khoản gốc"]');
   if (btnResetUsers) {
-    if (role === 'super_admin') {
+    if (role === 'admin') {
       btnResetUsers.classList.remove('hidden');
     } else {
       btnResetUsers.classList.add('hidden');
@@ -4107,7 +4107,7 @@ window.renderRbacMatrixTable = function() {
   if (!tbody || !roleSelect) return;
 
   const currentRole = roleSelect.value;
-  const isSuperAdminRole = currentRole === 'super_admin';
+  const isAdminRole = currentRole === 'admin';
 
   // Lấy ma trận quyền hiện hành của vai trò này
   const matrix = window.appState.rolePermissions || DEFAULT_ROLE_PERMISSIONS;
@@ -4121,13 +4121,13 @@ window.renderRbacMatrixTable = function() {
 
       return `
         <td class="py-2.5 px-3 text-center whitespace-nowrap">
-          <label class="inline-flex items-center justify-center cursor-pointer ${isSuperAdminRole ? 'cursor-not-allowed opacity-75' : ''}">
+          <label class="inline-flex items-center justify-center cursor-pointer ${isAdminRole ? 'cursor-not-allowed opacity-75' : ''}">
             <input type="checkbox" 
               class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 rbac-matrix-checkbox" 
               data-role="${currentRole}" 
               data-perm="${permKey}"
               ${isChecked ? 'checked' : ''} 
-              ${isSuperAdminRole ? 'disabled title="Super Admin luôn có quyền này tuyệt đối"' : ''}
+              ${isAdminRole ? 'disabled title="Admin luôn có toàn quyền tuyệt đối"' : ''}
               onchange="window.onMatrixCheckboxChange(this)">
           </label>
         </td>
@@ -4147,7 +4147,7 @@ window.renderRbacMatrixTable = function() {
         </td>
         ${actionTds}
         <td class="py-2.5 px-3 text-center whitespace-nowrap">
-          ${isSuperAdminRole ? `
+          ${isAdminRole ? `
             <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Toàn quyền</span>
           ` : `
             <div class="flex items-center justify-center space-x-1">
@@ -4167,7 +4167,7 @@ window.onMatrixCheckboxChange = function(inputEl) {
   const perm = inputEl.getAttribute('data-perm');
   const isChecked = inputEl.checked;
 
-  if (role === 'super_admin') return; // Super Admin luôn khóa cứng toàn quyền
+  if (role === 'admin') return; // Admin luôn có toàn quyền tuyệt đối
 
   if (!window.appState.rolePermissions) {
     window.appState.rolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
@@ -4289,8 +4289,7 @@ window.changeUserPage = function(delta) {
 // Tóm tắt trách nhiệm & chức năng của từng vai trò
 window.getRoleDutySummary = function(role) {
   const summaries = {
-    super_admin: '🛡️ Toàn quyền hệ thống • Phân quyền RBAC',
-    admin: '⚙️ Quản lý thiết bị, tài khoản & lịch dạy',
+    admin: '🛡️ Toàn quyền quản trị hệ thống, thiết bị & phân quyền',
     lab_manager: '🏢 Điều phối 4 phòng PM • Duyệt lịch • Bảo trì',
     teacher: '👨‍🏫 Dạy thực hành • Đăng ký lịch • Báo hỏng máy',
     lab_staff: '🧑‍🔧 Bật/Tắt Wake-on-LAN • Bảo trì & Sửa chữa',
@@ -4299,15 +4298,15 @@ window.getRoleDutySummary = function(role) {
   return summaries[role] || 'Thành viên hệ thống';
 };
 
-// Cấu trúc định nghĩa chi tiết chức năng, quyền hạn & giới hạn an toàn của 6 vai trò
+// Cấu trúc định nghĩa chi tiết chức năng, quyền hạn & giới hạn an toàn của 5 vai trò
 window.ROLE_CAPABILITY_PROFILES = {
-  super_admin: {
-    title: 'Super Admin (Quản trị viên Tối cao)',
-    subtitle: 'ThS. Trịnh Minh Phú • Trưởng phòng / Trưởng bộ môn Tin học',
-    badge: 'bg-red-100 text-red-800 border-red-300',
-    color: 'red',
+  admin: {
+    title: 'Admin (Quản trị viên Hệ thống)',
+    subtitle: 'ThS. Trịnh Minh Phú (0975.090.666)',
+    badge: 'bg-blue-100 text-blue-800 border-blue-300',
+    color: 'blue',
     icon: 'fa-shield-halved',
-    desc: 'Nắm giữ thẩm quyền cao nhất của toàn bộ hệ thống quản lý phòng máy TNUS. Đảm bảo an ninh, kiến trúc phân quyền và điều hành liên phòng.',
+    desc: 'Quản trị viên toàn quyền tối cao của toàn hệ thống, chịu trách nhiệm kiến trúc bảo mật, ma trận phân quyền, quản lý 104 máy trạm và an toàn dữ liệu.',
     allowed: [
       'Toàn quyền 42/42 quyền hạn trên toàn bộ 6 module nghiệp vụ',
       'Độc quyền chỉnh sửa, nạp và lưu Ma trận phân quyền RBAC Enterprise',
@@ -4316,29 +4315,9 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Điều khiển toàn diện 104 máy trạm và 4 phòng máy A1-503 đến A1-506'
     ],
     restricted: [
-      'Không có giới hạn nào áp dụng cho Super Admin'
+      'Không có giới hạn nào áp dụng cho Admin'
     ],
     sampleAccount: 'ThS. Trịnh Minh Phú (username: <code>admin</code> • SĐT: <strong>0975.090.666</strong>)'
-  },
-  admin: {
-    title: 'Admin (Quản trị viên Hệ thống)',
-    subtitle: 'Cán bộ Quản trị hệ thống',
-    badge: 'bg-blue-100 text-blue-800 border-blue-300',
-    color: 'blue',
-    icon: 'fa-user-gear',
-    desc: 'Hỗ trợ Super Admin vận hành hệ thống máy tính hàng ngày, quản lý dữ liệu thiết bị, tài khoản cán bộ, kiểm duyệt lịch thực hành và bảo trì.',
-    allowed: [
-      'Quản lý danh sách thiết bị 104 máy (Thêm, Sửa cấu hình, Xuất/Nhập Excel)',
-      'Điều khiển nguồn máy tính (Bật/Tắt nguồn Wake-on-LAN)',
-      'Thêm, sửa tài khoản người dùng và mở khóa tài khoản cán bộ',
-      'Xếp lịch, duyệt ca thực hành và giải quyết xung đột phòng học',
-      'Tiếp nhận, phân công và nghiệm thu các phiếu báo hỏng thiết bị'
-    ],
-    restricted: [
-      'Không thể chỉnh sửa Ma trận phân quyền RBAC (chỉ xem ma trận)',
-      'Không thể xóa tài khoản Super Admin gốc'
-    ],
-    sampleAccount: 'Tài khoản Quản trị viên (Admin)'
   },
   lab_manager: {
     title: 'Quản Lý Phòng Máy',
@@ -4510,7 +4489,7 @@ window.viewRoleDetailModal = function(roleId) {
   });
 };
 
-// Hiển thị Modal So sánh & Đối chiếu Năng lực 6 Loại Tài Khoản Toàn Hệ Thống
+// Hiển thị Modal So sánh & Đối chiếu Năng lực 5 Loại Tài Khoản Toàn Hệ Thống
 window.showAllRolesCapabilityModal = function() {
   Swal.fire({
     title: `
@@ -4520,7 +4499,7 @@ window.showAllRolesCapabilityModal = function() {
             <i class="fa-solid fa-scale-balanced"></i>
           </div>
           <div>
-            <h3 class="text-base font-black text-slate-900 leading-tight">Đối Chiếu Năng Lực & Chức Năng 6 Loại Tài Khoản</h3>
+            <h3 class="text-base font-black text-slate-900 leading-tight">Đối Chiếu Năng Lực & Chức Năng 5 Loại Tài Khoản</h3>
             <p class="text-[11px] text-slate-500 font-normal">Khoa Toán - Tin • Trường Đại học Khoa học (TNUS) • Chuẩn RBAC Enterprise</p>
           </div>
         </div>
@@ -4532,13 +4511,12 @@ window.showAllRolesCapabilityModal = function() {
           Mỗi vai trò được thiết kế chuyên biệt theo quy trình vận hành giảng dạy thực tế tại 4 phòng máy A1-503, A1-504, A1-505, A1-506. Bạn có thể bấm vào bất kỳ vai trò nào bên dưới để chuyển thử nghiệm tức thì.
         </div>
 
-        <!-- BẢNG SO SÁNH NHANH -->
+        <!-- BẢNG SO SÁNH NHANH 5 VAI TRÒ -->
         <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-xs">
           <table class="w-full text-left text-[11px] border-collapse bg-white">
             <thead>
               <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
-                <th class="py-2.5 px-3">Chức năng nghiệp vụ</th>
-                <th class="py-2.5 px-2 text-center text-red-700 bg-red-50/60">Super Admin</th>
+                <th class="py-2.5 px-3">Nghiệp vụ / Chức năng chính</th>
                 <th class="py-2.5 px-2 text-center text-blue-700 bg-blue-50/60">Admin</th>
                 <th class="py-2.5 px-2 text-center text-indigo-700 bg-indigo-50/60">QL Phòng</th>
                 <th class="py-2.5 px-2 text-center text-emerald-700 bg-emerald-50/60">Giảng Viên</th>
@@ -4548,8 +4526,7 @@ window.showAllRolesCapabilityModal = function() {
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-700">
               <tr>
-                <td class="py-2 px-3 font-semibold">1. Xem Dashboard & Sơ đồ 2D 104 máy</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-3 font-semibold">1. Xem Dashboard KPI & Sơ đồ 2D 104 máy</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
@@ -4560,14 +4537,12 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-3 font-semibold">2. Bật / Tắt nguồn Wake-on-LAN máy trạm</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr>
-                <td class="py-2 px-3 font-semibold">3. Thêm / Sửa / Khóa máy tính & Cập nhật cấu hình</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-3 font-semibold">3. Thêm / Sửa / Khóa máy tính & Cập nhật IP/MAC</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
@@ -4579,13 +4554,11 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr>
                 <td class="py-2 px-3 font-semibold">5. Duyệt đơn & Phê duyệt lịch phòng máy</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
@@ -4598,12 +4571,10 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr>
                 <td class="py-2 px-3 font-semibold">7. Tiếp nhận xử lý sự cố & thay linh kiện</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
@@ -4611,18 +4582,16 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr class="bg-slate-50/50">
-                <td class="py-2 px-3 font-semibold">8. Quản lý tài khoản cán bộ (Thêm/Sửa/Khóa)</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
+                <td class="py-2 px-3 font-semibold">8. Quản lý tài khoản cán bộ (Thêm/Sửa/Khóa/Reset)</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
-              <tr class="bg-amber-50/40">
-                <td class="py-2 px-3 font-bold text-rose-800">9. Chỉnh sửa Ma trận phân quyền RBAC</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-black">✓ (Độc quyền)</td>
-                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
+              <tr class="bg-blue-50/50">
+                <td class="py-2 px-3 font-bold text-blue-900">9. Chỉnh sửa Ma trận phân quyền RBAC</td>
+                <td class="py-2 px-2 text-center text-emerald-600 font-black">✓ (Toàn quyền)</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
@@ -4632,20 +4601,12 @@ window.showAllRolesCapabilityModal = function() {
           </table>
         </div>
 
-        <!-- 6 THẺ VAI TRÒ NHANH KÈM NÚT DÙNG THỬ -->
+        <!-- 5 THẺ VAI TRÒ NHANH KÈM NÚT DÙNG THỬ -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
-          <div class="p-3 rounded-xl border border-red-200 bg-red-50/40 flex items-center justify-between">
-            <div>
-              <div class="font-bold text-red-900 text-xs">🛡️ Super Admin (ThS. Trịnh Minh Phú)</div>
-              <div class="text-[10px] text-slate-600">Toàn quyền tối cao 42/42 thẩm quyền & ma trận RBAC</div>
-            </div>
-            <button onclick="Swal.close(); window.directTestRole('super_admin');" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
-          </div>
-
           <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/40 flex items-center justify-between">
             <div>
-              <div class="font-bold text-blue-900 text-xs">⚙️ Admin (Quản trị viên)</div>
-              <div class="text-[10px] text-slate-600">Quản trị 104 máy trạm, người dùng cán bộ, TKB & sự cố</div>
+              <div class="font-bold text-blue-900 text-xs">⚙️ Admin (ThS. Trịnh Minh Phú)</div>
+              <div class="text-[10px] text-slate-600">Toàn quyền 42/42 thẩm quyền, quản trị 104 máy trạm & RBAC</div>
             </div>
             <button onclick="Swal.close(); window.directTestRole('admin');" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
           </div>
@@ -4674,10 +4635,10 @@ window.showAllRolesCapabilityModal = function() {
             <button onclick="Swal.close(); window.directTestRole('lab_staff');" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
           </div>
 
-          <div class="p-3 rounded-xl border border-purple-200 bg-purple-50/40 flex items-center justify-between">
+          <div class="p-3 rounded-xl border border-purple-200 bg-purple-50/40 flex items-center justify-between md:col-span-2">
             <div>
               <div class="font-bold text-purple-900 text-xs">👨‍🎓 Sinh Viên / Khách (Read-only)</div>
-              <div class="text-[10px] text-slate-600">Tra cứu sơ đồ 2D, xem cấu hình máy & thời khóa biểu tuần</div>
+              <div class="text-[10px] text-slate-600">Tra cứu sơ đồ 2D trực quan, cấu hình máy & thời khóa biểu tuần các phòng máy</div>
             </div>
             <button onclick="Swal.close(); window.directTestRole('student');" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
           </div>
@@ -4746,31 +4707,21 @@ window.openLoginModal = function() {
           </div>
         </div>
 
-        <!-- Khối Đăng Nhập Nhanh 1-Click (Dành cho Kiểm thử & Vận hành nhanh) -->
+        <!-- Khối Đăng Nhập Nhanh 1-Click (Dành cho Kiểm thử & Vận hành nhanh 5 vai trò) -->
         <div>
           <div class="text-xs font-bold text-slate-800 mb-2 flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-500"></i>Đăng Nhập Nhanh Theo Vai Trò (1-Click Demo)</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-500"></i>Đăng Nhập Nhanh Theo 5 Vai Trò (1-Click Demo)</span>
             <span class="text-[10px] text-slate-400 font-normal">Pass: tnus@2026</span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <!-- Super Admin -->
-            <button type="button" onclick="window.quickFillLogin('admin', 'tnus@2026')" 
-              class="p-2 bg-red-50 hover:bg-red-600 hover:text-white text-red-700 border border-red-200 rounded-lg text-left transition group shadow-2xs">
-              <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
-                <span>Super Admin</span>
-                <span class="text-[9px] opacity-75 font-mono">@admin</span>
-              </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-red-100 truncate mt-0.5">ThS. Trịnh Minh Phú</div>
-            </button>
-
             <!-- Admin -->
-            <button type="button" onclick="window.quickFillLogin('admin_cntt', 'tnus@2026')" 
+            <button type="button" onclick="window.quickFillLogin('admin', 'tnus@2026')" 
               class="p-2 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded-lg text-left transition group shadow-2xs">
               <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
-                <span>Admin</span>
-                <span class="text-[9px] opacity-75 font-mono">@admin_cntt</span>
+                <span>Quản trị viên (Admin)</span>
+                <span class="text-[9px] opacity-75 font-mono">@admin</span>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-blue-100 truncate mt-0.5">Cán bộ Quản trị</div>
+              <div class="text-[10px] text-slate-500 group-hover:text-blue-100 truncate mt-0.5">ThS. Trịnh Minh Phú</div>
             </button>
 
             <!-- Quản lý phòng máy -->
@@ -4805,7 +4756,7 @@ window.openLoginModal = function() {
 
             <!-- Sinh viên -->
             <button type="button" onclick="window.quickFillLogin('student', 'tnus@2026')" 
-              class="p-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 border border-purple-200 rounded-lg text-left transition group shadow-2xs">
+              class="p-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 border border-purple-200 rounded-lg text-left transition group shadow-2xs col-span-2 sm:col-span-1">
               <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
                 <span>Sinh Viên</span>
                 <span class="text-[9px] opacity-75 font-mono">@student</span>
@@ -4899,7 +4850,7 @@ window.handleLoginSubmit = function(username, password) {
       html: `
         <div class="text-left text-xs space-y-2">
           <p>Tài khoản <strong>${user.name}</strong> (@${user.username}) hiện đang ở trạng thái khóa an toàn.</p>
-          <p class="text-slate-500">Vui lòng liên hệ Super Admin ThS. Trịnh Minh Phú (0975.090.666) để mở khóa tài khoản.</p>
+          <p class="text-slate-500">Vui lòng liên hệ Quản trị viên ThS. Trịnh Minh Phú (0975.090.666) để mở khóa tài khoản.</p>
         </div>
       `,
       confirmButtonColor: '#2563eb'
@@ -4928,7 +4879,7 @@ window.handleLoginSubmit = function(username, password) {
           <div class="text-left text-xs space-y-2">
             <p class="text-rose-600 font-bold">Cảnh báo an ninh: Nhập sai mật khẩu quá 5 lần liên tiếp!</p>
             <p>Hệ thống đã tự động khóa tài khoản <strong>${user.name}</strong> để bảo vệ dữ liệu.</p>
-            <p class="text-slate-500">Liên hệ Super Admin ThS. Trịnh Minh Phú (0975.090.666) để khôi phục.</p>
+            <p class="text-slate-500">Liên hệ Quản trị viên ThS. Trịnh Minh Phú (0975.090.666) để khôi phục.</p>
           </div>
         `,
         confirmButtonColor: '#2563eb'
@@ -5110,12 +5061,12 @@ window.openChangePasswordModal = function() {
 };
 
 /**
- * Đặt lại mật khẩu về mặc định (Chỉ dành cho Super Admin / Admin)
+ * Đặt lại mật khẩu về mặc định (Chỉ dành cho Quản trị viên Admin)
  */
 window.resetUserPassword = function(userId) {
   const current = window.appState.currentUser;
-  if (!current || (current.role !== 'super_admin' && current.role !== 'admin')) {
-    Swal.fire('Từ chối truy cập', 'Chỉ Super Admin mới có quyền đặt lại mật khẩu của người dùng khác!', 'error');
+  if (!current || current.role !== 'admin') {
+    Swal.fire('Từ chối truy cập', 'Chỉ Quản trị viên (Admin) mới có quyền đặt lại mật khẩu của người dùng khác!', 'error');
     return;
   }
 
@@ -5145,7 +5096,7 @@ window.resetUserPassword = function(userId) {
       target.status = 'active';
 
       window.saveStateToLocalStorage();
-      window.logUserActivity('Reset mật khẩu', `Super Admin ${current.name} đã đặt lại mật khẩu cho ${target.name} (@${target.username})`, 'users', 'SUCCESS');
+      window.logUserActivity('Reset mật khẩu', `Quản trị viên ${current.name} đã đặt lại mật khẩu cho ${target.name} (@${target.username})`, 'users', 'SUCCESS');
 
       if (window.renderUserAccountsTable) window.renderUserAccountsTable();
       if (window.updateUserKPIs) window.updateUserKPIs();
