@@ -52,6 +52,36 @@ function loadState() {
         const w13Items = INITIAL_SCHEDULES.filter(s => s.date >= '2026-11-16' && s.date <= '2026-11-21');
         window.appState.schedules = window.appState.schedules.concat(w13Items);
       }
+
+      // Chuẩn hóa và nâng cấp toàn bộ ca học theo bảng Tiết học TNUS chuẩn thời gian thực (Sáng 07:00-11:50, Chiều 13:00-17:50)
+      if (Array.isArray(window.appState.schedules)) {
+        window.appState.schedules.forEach(s => {
+          if (!s.shift) return;
+          if (s.shift.includes('07:24 - 09:14')) {
+            s.shift = '07:00 - 08:50 (Tiết 1-2)'; s.startTime = '07:00'; s.endTime = '08:50'; s.startPeriod = '1'; s.endPeriod = '2';
+          } else if (s.shift.includes('09:24 - 11:14')) {
+            s.shift = '09:00 - 10:50 (Tiết 3-4)'; s.startTime = '09:00'; s.endTime = '10:50'; s.startPeriod = '3'; s.endPeriod = '4';
+          } else if (s.shift.includes('07:24 - 12:14')) {
+            s.shift = '07:00 - 11:50 (Tiết 1-5)'; s.startTime = '07:00'; s.endTime = '11:50'; s.startPeriod = '1'; s.endPeriod = '5';
+          } else if (s.shift.includes('07:24 - 10:14')) {
+            s.shift = '07:00 - 09:50 (Tiết 1-3)'; s.startTime = '07:00'; s.endTime = '09:50'; s.startPeriod = '1'; s.endPeriod = '3';
+          } else if (s.shift.includes('09:24 - 12:14')) {
+            s.shift = '09:00 - 11:50 (Tiết 3-5)'; s.startTime = '09:00'; s.endTime = '11:50'; s.startPeriod = '3'; s.endPeriod = '5';
+          } else if (s.shift.includes('11:24 - 13:14')) {
+            s.shift = '11:00 - 13:50 (Tiết 5-6)'; s.startTime = '11:00'; s.endTime = '13:50'; s.startPeriod = '5'; s.endPeriod = '6';
+          } else if (s.shift.includes('13:24 - 15:14')) {
+            s.shift = '13:00 - 14:50 (Tiết 6-7)'; s.startTime = '13:00'; s.endTime = '14:50'; s.startPeriod = '6'; s.endPeriod = '7';
+          } else if (s.shift.includes('13:24 - 16:14')) {
+            s.shift = '13:00 - 15:50 (Tiết 6-8)'; s.startTime = '13:00'; s.endTime = '15:50'; s.startPeriod = '6'; s.endPeriod = '8';
+          } else if (s.shift.includes('15:24 - 17:14')) {
+            s.shift = '15:00 - 16:50 (Tiết 8-9)'; s.startTime = '15:00'; s.endTime = '16:50'; s.startPeriod = '8'; s.endPeriod = '9';
+          } else if (s.shift.includes('13:24 - 18:14')) {
+            s.shift = '13:00 - 17:50 (Tiết 6-10)'; s.startTime = '13:00'; s.endTime = '17:50'; s.startPeriod = '6'; s.endPeriod = '10';
+          } else if (s.shift.includes('16:24 - 19:14')) {
+            s.shift = '17:00 - 19:50 (Tiết 10-12)'; s.startTime = '17:00'; s.endTime = '19:50'; s.startPeriod = '10'; endPeriod = '12';
+          }
+        });
+      }
       window.appState.maintenance = parsed.maintenance || INITIAL_MAINTENANCE;
 
       // 1. Khởi tạo & đồng bộ danh sách 5 Vai trò chuẩn (SYSTEM_ROLES)
