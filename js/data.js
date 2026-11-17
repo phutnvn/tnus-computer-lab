@@ -6486,6 +6486,26 @@ const INITIAL_SCHEDULES = [
   }
 ];
 
+// Tự động bổ sung tiến trình lịch thực hành tuần 13 (16/11/2026 - 21/11/2026) theo thời gian thực
+(function() {
+  const WEEK13_DATE_MAP = {
+    '2026-11-09': '2026-11-16',
+    '2026-11-10': '2026-11-17',
+    '2026-11-11': '2026-11-18',
+    '2026-11-12': '2026-11-19',
+    '2026-11-13': '2026-11-20',
+    '2026-11-14': '2026-11-21'
+  };
+  const week13Items = INITIAL_SCHEDULES.filter(s => WEEK13_DATE_MAP[s.date]).map(s => {
+    const item = Object.assign({}, s);
+    item.id = s.id.replace('LICH-', 'LICH-W13-');
+    item.date = WEEK13_DATE_MAP[s.date];
+    item.status = 'Chưa diễn ra';
+    return item;
+  });
+  INITIAL_SCHEDULES.push(...week13Items);
+})();
+
 const INITIAL_MAINTENANCE = [
   {
     id: 'INC-2026-001',

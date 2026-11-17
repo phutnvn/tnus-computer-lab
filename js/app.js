@@ -47,6 +47,11 @@ function loadState() {
       window.appState.labs = INITIAL_LABS;
       window.appState.computers = parsed.computers || INITIAL_COMPUTERS;
       window.appState.schedules = parsed.schedules || INITIAL_SCHEDULES;
+      // Luôn đồng bộ bổ sung lịch học tuần 13 (16/11 - 21/11/2026) theo thời gian thực nếu dữ liệu lưu cục bộ chưa có
+      if (!window.appState.schedules.some(s => s.date === '2026-11-17')) {
+        const w13Items = INITIAL_SCHEDULES.filter(s => s.date >= '2026-11-16' && s.date <= '2026-11-21');
+        window.appState.schedules = window.appState.schedules.concat(w13Items);
+      }
       window.appState.maintenance = parsed.maintenance || INITIAL_MAINTENANCE;
 
       // 1. Khởi tạo & đồng bộ danh sách 5 Vai trò chuẩn (SYSTEM_ROLES)

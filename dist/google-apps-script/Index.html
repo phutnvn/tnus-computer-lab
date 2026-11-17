@@ -8649,6 +8649,26 @@ const INITIAL_SCHEDULES = [
   }
 ];
 
+// Tự động bổ sung tiến trình lịch thực hành tuần 13 (16/11/2026 - 21/11/2026) theo thời gian thực
+(function() {
+  const WEEK13_DATE_MAP = {
+    '2026-11-09': '2026-11-16',
+    '2026-11-10': '2026-11-17',
+    '2026-11-11': '2026-11-18',
+    '2026-11-12': '2026-11-19',
+    '2026-11-13': '2026-11-20',
+    '2026-11-14': '2026-11-21'
+  };
+  const week13Items = INITIAL_SCHEDULES.filter(s => WEEK13_DATE_MAP[s.date]).map(s => {
+    const item = Object.assign({}, s);
+    item.id = s.id.replace('LICH-', 'LICH-W13-');
+    item.date = WEEK13_DATE_MAP[s.date];
+    item.status = 'Chưa diễn ra';
+    return item;
+  });
+  INITIAL_SCHEDULES.push(...week13Items);
+})();
+
 const INITIAL_MAINTENANCE = [
   {
     id: 'INC-2026-001',
@@ -10787,7 +10807,15 @@ class ScheduleManager {
   constructor() {
     this.container = document.getElementById('schedule-module-container');
     this.selectedLab = 'all';
-    this.selectedDate = '2026-11-14'; // Mặc định hôm nay (Thứ Bảy, 14/11/2026)
+    
+    // Khởi tạo ngày thực tế hiện hành theo đồng hồ hệ thống
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    this.todayStr = `${y}-${m}-${d}`;
+    this.selectedDate = this.todayStr;
+
     this.selectedSession = 'all';     // all, sang, chieu, toi
     this.selectedStatus = 'all';      // all, live, upcoming, completed
     this.searchQuery = '';
@@ -10797,14 +10825,55 @@ class ScheduleManager {
     this.autoCheckInterval = null;
   }
 
+  getTodayDateStr() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  formatDateLabel(dateStr, includeTodayTag = true) {
+    if (!dateStr || dateStr === 'all') return 'Tất cả các ngày trong kỳ';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const dayName = dayNames[d.getDay()] || '';
+    const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const isToday = dateStr === this.getTodayDateStr();
+    if (includeTodayTag && isToday) {
+      return `${dayName} (${formatted} - Hôm nay)`;
+    }
+    return `${dayName} (${formatted})`;
+  }
+
+  getDateOptionsHtml() {
+    const schedules = window.appState && window.appState.schedules ? window.appState.schedules : [];
+    const datesSet = new Set(schedules.map(s => s.date).filter(Boolean));
+    const today = this.getTodayDateStr();
+    datesSet.add(today);
+    const sortedDates = Array.from(datesSet).sort();
+
+    let html = `<option value="all">📅 Tất cả các ngày (${schedules.length} ca)</option>`;
+    sortedDates.forEach(date => {
+      const isSelected = this.selectedDate === date;
+      const label = this.formatDateLabel(date, true);
+      html += `<option value="${date}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+    });
+    return html;
+  }
+
   init() {
-    // Xác định ngày mặc định
-    const todayStr = new Date().toISOString().split('T')[0];
+    this.todayStr = this.getTodayDateStr();
+
+    // Luôn ưu tiên chọn ngày thực tế hôm nay nếu có lịch, hoặc ngày gần nhất
     if (window.appState && window.appState.schedules) {
-      if (window.appState.schedules.some(s => s.date === todayStr)) {
-        this.selectedDate = todayStr;
-      } else if (window.appState.schedules.some(s => s.date === '2026-11-14')) {
-        this.selectedDate = '2026-11-14';
+      if (window.appState.schedules.some(s => s.date === this.todayStr)) {
+        this.selectedDate = this.todayStr;
+      } else {
+        const allDates = [...new Set(window.appState.schedules.map(s => s.date))].sort();
+        this.selectedDate = allDates[allDates.length - 1] || this.todayStr;
       }
     }
 
@@ -10840,6 +10909,7 @@ class ScheduleManager {
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
     const actualToday = `${y}-${m}-${d}`;
+    this.todayStr = actualToday;
 
     // Lấy thời gian hiện tại (hoặc giờ mô phỏng nếu người dùng đang thử nghiệm)
     let currentTimeStr = '';
@@ -10851,24 +10921,36 @@ class ScheduleManager {
       currentTimeStr = `${hh}:${mm}`;
     }
 
-    // Chọn ngày kiểm tra
-    let targetDate = actualToday;
-    if (!window.appState.schedules || !window.appState.schedules.some(s => s.date === targetDate)) {
-      targetDate = '2026-11-14';
-    }
-
     const schedules = window.appState.schedules || [];
-    const targetSchedules = schedules.filter(s => s.date === targetDate);
-
     let stateChanged = false;
     let newlyActivated = [];
     let newlyCompleted = [];
 
-    targetSchedules.forEach(sch => {
+    // Tự động kiểm tra và cập nhật trạng thái thời gian thực cho TẤT CẢ các ca học
+    schedules.forEach(sch => {
+      // 1. Nếu ngày học trong quá khứ (< actualToday): Đã hoàn thành
+      if (sch.date < actualToday) {
+        if (sch.status !== 'Đã hoàn thành') {
+          sch.status = 'Đã hoàn thành';
+          stateChanged = true;
+        }
+        return;
+      }
+
+      // 2. Nếu ngày học trong tương lai (> actualToday): Chưa diễn ra
+      if (sch.date > actualToday) {
+        if (sch.status === 'Đang diễn ra') {
+          sch.status = 'Chưa diễn ra';
+          stateChanged = true;
+        }
+        return;
+      }
+
+      // 3. Nếu là ngày hôm nay (=== actualToday): So khớp chính xác theo giờ phút
       const start = sch.startTime || '07:24';
       const end = sch.endTime || '12:14';
 
-      // 1. ĐIỀU KIỆN VÀO CA: startTime <= currentTime < endTime
+      // 3.1. ĐIỀU KIỆN VÀO CA: startTime <= currentTime < endTime
       if (currentTimeStr >= start && currentTimeStr < end) {
         if (sch.status !== 'Đang diễn ra') {
           sch.status = 'Đang diễn ra';
@@ -10886,7 +10968,7 @@ class ScheduleManager {
           });
         }
       }
-      // 2. ĐIỀU KIỆN TRẢ PHÒNG KHI HẾT GIỜ: currentTime >= endTime
+      // 3.2. ĐIỀU KIỆN TRẢ PHÒNG KHI HẾT GIỜ: currentTime >= endTime
       else if (currentTimeStr >= end) {
         if (sch.status === 'Đang diễn ra') {
           sch.status = 'Đã hoàn thành';
@@ -10894,7 +10976,7 @@ class ScheduleManager {
           newlyCompleted.push(sch);
 
           // Kiểm tra xem phòng đó có ca nào khác đang học cùng lúc không
-          const hasOtherActive = targetSchedules.some(s => s.id !== sch.id && s.labId === sch.labId && s.status === 'Đang diễn ra');
+          const hasOtherActive = schedules.some(s => s.id !== sch.id && s.labId === sch.labId && s.date === actualToday && s.status === 'Đang diễn ra');
           if (!hasOtherActive && window.autoShiftConfig.autoReleaseOnEnd) {
             window.appState.computers.forEach(comp => {
               if (comp.labId === sch.labId && comp.status === 'in_use') {
@@ -10904,14 +10986,19 @@ class ScheduleManager {
           }
         }
       }
-      // 3. ĐIỀU KIỆN SẮP DIỄN RA: còn dưới 15 phút là đến giờ
+      // 3.3. ĐIỀU KIỆN SẮP DIỄN RA HOẶC CHƯA HỌC: currentTime < startTime
       else if (currentTimeStr < start) {
         const [curH, curM] = currentTimeStr.split(':').map(Number);
         const [stH, stM] = start.split(':').map(Number);
         const diffMinutes = (stH * 60 + stM) - (curH * 60 + curM);
-        if (diffMinutes <= 15 && diffMinutes > 0) {
-          if (sch.status === 'Chưa diễn ra') {
+        if (diffMinutes <= 30 && diffMinutes > 0) {
+          if (sch.status !== 'Sắp diễn ra') {
             sch.status = 'Sắp diễn ra';
+            stateChanged = true;
+          }
+        } else {
+          if (sch.status !== 'Chưa diễn ra') {
+            sch.status = 'Chưa diễn ra';
             stateChanged = true;
           }
         }
@@ -11077,7 +11164,7 @@ class ScheduleManager {
 
     // Tìm ca tiếp theo sắp diễn ra
     const schedules = window.appState.schedules || [];
-    const todayTarget = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const todayTarget = this.selectedDate === 'all' ? (this.todayStr || '2026-11-17') : this.selectedDate;
     const todaySchedules = schedules.filter(s => s.date === todayTarget);
 
     const compareTime = window.autoShiftConfig.simulatedTime || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -11345,20 +11432,14 @@ class ScheduleManager {
             <!-- Nút chọn Hôm nay nhanh -->
             <button onclick="window.scheduleManager.selectTodayQuick()" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-bold transition flex items-center space-x-1">
               <i class="fa-solid fa-sun text-amber-500"></i>
-              <span>Hôm nay (14/11)</span>
+              <span>Hôm nay (${new Date().getDate().toString().padStart(2, '0')}/${(new Date().getMonth() + 1).toString().padStart(2, '0')})</span>
             </button>
 
             <!-- Chọn ngày trong học kỳ -->
             <div class="flex items-center space-x-1">
               <span class="text-slate-500 font-medium">Ngày học:</span>
               <select id="sch-date-select" class="p-1.5 bg-slate-50 border border-slate-300 rounded-lg font-bold text-blue-700">
-                <option value="all">📅 Tất cả các ngày (100 ca)</option>
-                <option value="2026-11-09">Thứ Hai (09/11/2026)</option>
-                <option value="2026-11-10">Thứ Ba (10/11/2026)</option>
-                <option value="2026-11-11">Thứ Tư (11/11/2026)</option>
-                <option value="2026-11-12">Thứ Năm (12/11/2026)</option>
-                <option value="2026-11-13">Thứ Sáu (13/11/2026)</option>
-                <option value="2026-11-14" selected>Thứ Bảy (14/11/2026 - Hôm nay)</option>
+                ${this.getDateOptionsHtml()}
               </select>
             </div>
 
@@ -11419,7 +11500,7 @@ class ScheduleManager {
   updateKPIs() {
     const schedules = window.appState.schedules || [];
     const total = schedules.length;
-    const todayTarget = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const todayTarget = this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate;
     const todayList = schedules.filter(s => s.date === todayTarget);
     const liveCount = schedules.filter(s => s.status === 'Đang diễn ra').length;
     const totalStudents = schedules.reduce((sum, s) => sum + (parseInt(s.studentCount, 10) || 0), 0);
@@ -11434,23 +11515,14 @@ class ScheduleManager {
     setEl('sch-kpi-live', liveCount);
     setEl('sch-kpi-students', totalStudents.toLocaleString('vi-VN'));
 
-    const dateLabels = {
-      '2026-11-09': '09/11/2026 (Thứ Hai)',
-      '2026-11-10': '10/11/2026 (Thứ Ba)',
-      '2026-11-11': '11/11/2026 (Thứ Tư)',
-      '2026-11-12': '12/11/2026 (Thứ Năm)',
-      '2026-11-13': '13/11/2026 (Thứ Sáu)',
-      '2026-11-14': '14/11/2026 (Thứ Bảy - Hôm nay)',
-      'all': 'Tất cả các tuần trong kỳ'
-    };
-    setEl('sch-kpi-date-label', dateLabels[this.selectedDate] || this.selectedDate);
+    setEl('sch-kpi-date-label', this.formatDateLabel(this.selectedDate, true));
   }
 
   // Chọn ngày hôm nay nhanh
   selectTodayQuick() {
-    this.selectedDate = '2026-11-14';
+    this.selectedDate = this.getTodayDateStr();
     const dateSelect = document.getElementById('sch-date-select');
-    if (dateSelect) dateSelect.value = '2026-11-14';
+    if (dateSelect) dateSelect.value = this.selectedDate;
     this.renderMainContent();
     this.updateKPIs();
   }
@@ -11581,7 +11653,7 @@ class ScheduleManager {
   // VIEW MODE 1: MA TRẬN THỜI KHÓA BIỂU 4 PHÒNG MÁY (WEEKLY MATRIX VIEW)
   // =========================================================================
   buildMatrixViewHtml() {
-    const targetDate = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const targetDate = this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate;
     const dateSchedules = (window.appState.schedules || []).filter(s => s.date === targetDate);
 
     // Danh sách 4 phòng máy chuẩn TNUS (Tầng 5, Nhà A1)
@@ -11624,7 +11696,7 @@ class ScheduleManager {
         <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center space-x-2">
             <span class="w-3 h-3 rounded-full bg-blue-600"></span>
-            <span class="font-bold text-slate-800 text-sm">Thời Khóa Biểu Ngày ${targetDate}</span>
+            <span class="font-bold text-slate-800 text-sm">Thời Khóa Biểu Ngày ${this.formatDateLabel(targetDate, true)}</span>
             <span class="text-xs text-slate-500 font-medium">(${dateSchedules.length} ca học đã được xếp phòng)</span>
           </div>
           <div class="flex items-center space-x-3 text-xs">
@@ -12045,7 +12117,7 @@ class ScheduleManager {
   // =========================================================================
   showAddScheduleModal(prefillLab = null, prefillShift = null, prefillDate = null) {
     if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Đăng ký ca thực hành mới')) return;
-    const defaultDate = prefillDate || (this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate);
+    const defaultDate = prefillDate || (this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate);
 
     Swal.fire({
       title: `
@@ -12503,7 +12575,7 @@ class ScheduleManager {
           else if (labRaw.includes('PM3') || labRaw.includes('505')) labId = 'PM3';
           else if (labRaw.includes('PM4') || labRaw.includes('506')) labId = 'PM4';
 
-          const date = (row['Ngày học'] || row['Ngày'] || row['date'] || '2026-11-14').toString().trim();
+          const date = (row['Ngày học'] || row['Ngày'] || row['date'] || this.getTodayDateStr()).toString().trim();
           const shift = (row['Ca thực hành'] || row['Ca học'] || row['shift'] || '07:24 - 09:14 (Tiết 1-2)').toString().trim();
           const subject = (row['Tên môn học'] || row['Môn học'] || row['subject'] || 'Tin học ứng dụng').toString().trim();
           const courseCode = (row['Mã học phần'] || row['Mã môn'] || row['courseCode'] || 'TIN-TNUS').toString().trim().toUpperCase();
@@ -12565,7 +12637,7 @@ class ScheduleManager {
   // IN BẢN THỜI KHÓA BIỂU CHUẨN ĐẠI HỌC (PRINT TIMETABLE)
   // =========================================================================
   printSchedule() {
-    const targetDate = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const targetDate = this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate;
     const list = this.getFilteredSchedules();
     const labNames = {
       'PM1': 'PM 1 (A1-503)',
@@ -13884,6 +13956,11 @@ function loadState() {
       window.appState.labs = INITIAL_LABS;
       window.appState.computers = parsed.computers || INITIAL_COMPUTERS;
       window.appState.schedules = parsed.schedules || INITIAL_SCHEDULES;
+      // Luôn đồng bộ bổ sung lịch học tuần 13 (16/11 - 21/11/2026) theo thời gian thực nếu dữ liệu lưu cục bộ chưa có
+      if (!window.appState.schedules.some(s => s.date === '2026-11-17')) {
+        const w13Items = INITIAL_SCHEDULES.filter(s => s.date >= '2026-11-16' && s.date <= '2026-11-21');
+        window.appState.schedules = window.appState.schedules.concat(w13Items);
+      }
       window.appState.maintenance = parsed.maintenance || INITIAL_MAINTENANCE;
 
       // 1. Khởi tạo & đồng bộ danh sách 5 Vai trò chuẩn (SYSTEM_ROLES)
