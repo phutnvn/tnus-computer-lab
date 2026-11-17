@@ -61,6 +61,8 @@ function loadState() {
       window.appState.rolePermissions = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS)), parsed.rolePermissions || {});
       // Admin luôn luôn có toàn quyền 42/42 chức năng trên toàn hệ thống
       window.appState.rolePermissions.admin = [...DEFAULT_ROLE_PERMISSIONS.admin];
+      // Quản lý phòng máy luôn được đồng bộ đúng chuẩn quyền vận hành thiết bị, lịch & bảo trì
+      window.appState.rolePermissions.lab_manager = [...DEFAULT_ROLE_PERMISSIONS.lab_manager];
 
       // 3. Đồng bộ danh sách tài khoản (USERS)
       if (parsed.users && Array.isArray(parsed.users) && parsed.users.length > 0) {
@@ -443,17 +445,17 @@ window.switchTab = function(targetTab) {
     return;
   }
 
-  // Kiểm tra thẩm quyền khi truy cập Tab Phân quyền & Người dùng (Tab 6)
+  // Kiểm tra thẩm quyền khi truy cập Tab Phân quyền & Người dùng (Tab 6) - Độc quyền Quản trị viên (Admin)
   if (targetTab === 'users') {
-    if (role !== 'admin' && role !== 'lab_manager') {
+    if (role !== 'admin') {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'error',
           title: 'TỪ CHỐI TRUY CẬP (ACCESS DENIED)',
           html: `
             <div class="text-left text-xs space-y-2">
-              <p>Phân hệ <strong>Quản trị Người dùng & Phân quyền</strong> chỉ dành cho Quản trị viên (Admin) và Cán bộ Quản lý phòng máy.</p>
-              <p class="text-slate-500">Vai trò hiện tại của bạn: <strong class="text-rose-600">${curUser?.roleName || role}</strong> không có thẩm quyền truy cập cấu hình hệ thống.</p>
+              <p>Phân hệ <strong>Quản trị Người dùng & Phân quyền</strong> chỉ dành riêng cho Quản trị viên hệ thống (Admin - ThS. Trịnh Minh Phú).</p>
+              <p class="text-slate-500">Vai trò hiện tại của bạn: <strong class="text-rose-600">${curUser?.roleName || role}</strong> không có thẩm quyền truy cập cấu hình hệ thống & phân quyền RBAC.</p>
             </div>
           `,
           confirmButtonColor: '#2563eb'
@@ -901,8 +903,8 @@ function initUserRoleSwitcher() {
         // Nếu đang ở tab users mà vai trò mới không có quyền thì tự động chuyển về dashboard
         const currentTab = window.appState.currentTab || 'dashboard';
         const normRole = window.normalizeRole(targetUser.role);
-        if (currentTab === 'users' && normRole !== 'admin' && normRole !== 'lab_manager') {
-          const homeTabs = { teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
+        if (currentTab === 'users' && normRole !== 'admin') {
+          const homeTabs = { lab_manager: 'computers', teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
           window.switchTab(homeTabs[normRole] || 'dashboard');
         }
 
@@ -3978,12 +3980,12 @@ window.applyRoleRestrictionsToUI = function() {
 
   const usersTabLink = document.querySelector('.nav-tab-link[data-tab="users"]');
   if (usersTabLink) {
-    if (isAdmin || role === 'lab_manager') {
-      usersTabLink.classList.remove('opacity-40');
+    if (isAdmin) {
+      usersTabLink.classList.remove('opacity-40', 'pointer-events-none');
       usersTabLink.title = 'Phân quyền & Tài khoản';
     } else {
-      usersTabLink.classList.add('opacity-40');
-      usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành cho Quản trị viên';
+      usersTabLink.classList.add('opacity-40', 'pointer-events-none');
+      usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành riêng cho Quản trị viên (Admin)';
     }
   }
 
@@ -4039,7 +4041,7 @@ window.applyRoleRestrictionsToUI = function() {
 
   // Nút trong Tab 2 (Simulation)
   applyBtnState(document.getElementById('btn-scenario-wol'), canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền điều khiển nguồn Wake-on-LAN');
-  applyBtnState(document.getElementById('btn-scenario-lock'), isAdmin || role === 'teacher', 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên và Giảng viên mở ca mới có quyền khóa màn hình');
+  applyBtnState(document.getElementById('btn-scenario-lock'), isAdmin || role === 'teacher' || role === 'lab_manager', 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mở ca mới có quyền khóa màn hình');
   applyBtnState(document.getElementById('btn-scenario-fault'), isAdmin || role === 'lab_staff', 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
   applyBtnState(document.getElementById('btn-scenario-reset'), canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền khôi phục');
 
@@ -4055,7 +4057,7 @@ window.applyRoleRestrictionsToUI = function() {
 
   // Nút trong Tab 6 (Users)
   applyBtnState(document.getElementById('btn-add-user'), isAdmin, 'Tạo tài khoản người dùng mới', 'Chỉ Quản trị viên (Admin) mới có quyền thêm tài khoản');
-  applyBtnState(document.getElementById('btn-export-users'), isAdmin || role === 'lab_manager', 'Xuất danh sách ra file Excel', 'Chỉ Quản trị viên mới có quyền xuất dữ liệu tài khoản');
+  applyBtnState(document.getElementById('btn-export-users'), isAdmin, 'Xuất danh sách ra file Excel', 'Chỉ Quản trị viên mới có quyền xuất dữ liệu tài khoản');
   applyBtnState(document.querySelector('button[title*="Nhập danh sách tài khoản"]'), isAdmin, 'Nhập danh sách tài khoản từ Excel', 'Chỉ Quản trị viên mới có quyền nhập tài khoản');
 
   const btnResetUsers = document.querySelector('button[title*="Khôi phục danh sách tài khoản gốc"]');
@@ -4067,10 +4069,12 @@ window.applyRoleRestrictionsToUI = function() {
     }
   }
 
-  // Khóa các nút Sao lưu & Khôi phục JSON trên Header
+  // Khóa các nút Sao lưu & Khôi phục JSON / Reset trên Header
+  const btnResetData = document.getElementById('btn-reset-data');
   const btnExportJson = document.getElementById('btn-export-json');
   const btnImportJson = document.getElementById('btn-import-json');
-  if (btnExportJson) applyBtnState(btnExportJson, isAdmin || role === 'lab_manager', 'Xuất file JSON sao lưu', 'Chỉ Quản trị viên mới có quyền sao lưu hệ thống');
+  if (btnResetData) applyBtnState(btnResetData, isAdmin, 'Khôi phục 104 máy mặc định', 'Chỉ Quản trị viên (Admin) mới có quyền reset hệ thống');
+  if (btnExportJson) applyBtnState(btnExportJson, isAdmin || role === 'lab_manager', 'Xuất file JSON sao lưu', 'Chỉ Quản trị viên và Quản lý phòng mới có quyền sao lưu hệ thống');
   if (btnImportJson) applyBtnState(btnImportJson, isAdmin, 'Khôi phục từ file JSON', 'Chỉ Quản trị viên mới có quyền khôi phục hệ thống');
 
   // Tự động chuyển tab an toàn nếu người dùng đang ở Tab bị khóa
@@ -4079,8 +4083,8 @@ window.applyRoleRestrictionsToUI = function() {
     setTimeout(() => {
       window.switchTab('simulation');
     }, 50);
-  } else if (curTab === 'users' && !isAdmin && role !== 'lab_manager') {
-    const homeTabs = { teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
+  } else if (curTab === 'users' && !isAdmin) {
+    const homeTabs = { lab_manager: 'computers', teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
     setTimeout(() => {
       window.switchTab(homeTabs[role] || 'dashboard');
     }, 50);

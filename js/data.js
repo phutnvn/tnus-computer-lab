@@ -6637,13 +6637,12 @@ const DEFAULT_ROLE_PERMISSIONS = {
     'users.view', 'users.create', 'users.edit', 'users.delete', 'users.approve', 'users.export', 'users.manage'
   ],
   lab_manager: [
-    // Quản lý phòng máy: Quản lý phòng máy, thiết bị, lịch bảo trì và báo cáo
+    // Quản lý phòng máy: Điều phối 4 phòng máy, toàn quyền thiết bị, xếp và duyệt lịch, bảo trì & báo cáo
     'dashboard.view', 'dashboard.export',
     'simulation.view', 'simulation.edit', 'simulation.export', 'simulation.manage',
     'computers.view', 'computers.create', 'computers.edit', 'computers.delete', 'computers.approve', 'computers.export', 'computers.manage',
-    'schedule.view', 'schedule.create', 'schedule.edit', 'schedule.approve', 'schedule.export',
-    'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.approve', 'maintenance.export', 'maintenance.manage',
-    'users.view', 'users.export'
+    'schedule.view', 'schedule.create', 'schedule.edit', 'schedule.delete', 'schedule.approve', 'schedule.export', 'schedule.manage',
+    'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.delete', 'maintenance.approve', 'maintenance.export', 'maintenance.manage'
   ],
   teacher: [
     // Giảng viên: Xem lịch thực hành, đăng ký phòng, cập nhật thông tin được phép
