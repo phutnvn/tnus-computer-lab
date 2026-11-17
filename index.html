@@ -266,12 +266,12 @@
                   <i class="fa-solid fa-calendar-check text-cyan-400"></i>
                   <span>Lịch thực hành</span>
                 </button>
-                <button onclick="window.maintenanceManager.showCreateIncidentModal()" 
+                <button id="dash-btn-report" onclick="window.maintenanceManager.showCreateIncidentModal()" 
                   class="px-4 py-2.5 bg-rose-600/90 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition shadow-md flex items-center space-x-2">
                   <i class="fa-solid fa-triangle-exclamation text-rose-200"></i>
                   <span>Báo hỏng</span>
                 </button>
-                <button onclick="exportComputersToExcel()" 
+                <button id="dash-btn-export" onclick="exportComputersToExcel()" 
                   class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-md flex items-center space-x-2">
                   <i class="fa-solid fa-file-excel text-emerald-200"></i>
                   <span>Xuất Excel</span>
@@ -636,7 +636,7 @@
                     <p class="text-[11px] text-slate-500">Tiến độ khắc phục sự cố thiết bị gần đây</p>
                   </div>
                 </div>
-                <button onclick="document.querySelector('[data-tab=maintenance]').click()" class="text-xs text-blue-600 hover:underline font-bold">
+                <button id="dash-link-maintenance" onclick="document.querySelector('[data-tab=maintenance]').click()" class="text-xs text-blue-600 hover:underline font-bold">
                   Quản lý bảo trì <i class="fa-solid fa-arrow-right text-[10px]"></i>
                 </button>
               </div>

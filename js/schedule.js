@@ -411,6 +411,16 @@ class ScheduleManager {
 
   // Mở hộp thoại cài đặt tham số Tự Động Vào Ca
   openAutoShiftSettingsModal() {
+    const curUser = window.appState?.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    if (role !== 'admin' && role !== 'lab_manager') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Truy cập bị từ chối',
+        html: 'Chỉ <strong>Quản trị viên (Admin)</strong> và <strong>Quản lý phòng máy</strong> mới có thẩm quyền cấu hình cơ chế tự động vào ca và cấp nguồn Wake-on-LAN.'
+      });
+      return;
+    }
     const cfg = window.autoShiftConfig;
     Swal.fire({
       title: `
@@ -502,6 +512,12 @@ class ScheduleManager {
   renderView() {
     if (!this.container) return;
 
+    const curUser = window.appState?.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canConfigAuto = (role === 'admin' || role === 'lab_manager');
+    const canImportSchedule = (role === 'admin' || role === 'lab_manager');
+    const canCreateSchedule = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
+
     this.container.innerHTML = `
       <div class="space-y-4">
         <!-- 1. THANH TỔNG QUAN CHỈ SỐ VẬN HÀNH THỜI KHÓA BIỂU (KPI CARDS) -->
@@ -580,10 +596,11 @@ class ScheduleManager {
             <button onclick="window.scheduleManager.setSimulatedTime('15:30')" class="px-2 py-1 bg-indigo-900/60 hover:bg-indigo-800 border border-indigo-500/50 text-indigo-200 rounded font-mono font-bold transition" title="Thử nghiệm vào Ca 4 chiều">
               15:30 (Ca 4)
             </button>
+            ${canConfigAuto ? `
             <button onclick="window.scheduleManager.openAutoShiftSettingsModal()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition flex items-center space-x-1 shadow-xs ml-1" title="Cài đặt cơ chế tự động">
               <i class="fa-solid fa-gear"></i>
               <span>Cài đặt</span>
-            </button>
+            </button>` : ''}
           </div>
         </div>
 
@@ -621,12 +638,13 @@ class ScheduleManager {
                 <span>In TKB</span>
               </button>
 
+              ${canImportSchedule ? `
               <!-- Nhập Excel -->
               <label class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
                 <i class="fa-solid fa-file-import text-blue-600"></i>
                 <span>Nhập TKB Excel</span>
                 <input type="file" id="input-import-schedule" accept=".xlsx, .xls, .csv" class="hidden">
-              </label>
+              </label>` : ''}
 
               <!-- Xuất Excel -->
               <button id="btn-export-schedule" onclick="window.scheduleManager.exportScheduleToExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs">
@@ -634,11 +652,12 @@ class ScheduleManager {
                 <span>Xuất Excel</span>
               </button>
 
+              ${canCreateSchedule ? `
               <!-- Đăng ký ca mới -->
               <button id="btn-add-schedule" onclick="window.scheduleManager.showAddScheduleModal()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center space-x-1.5">
                 <i class="fa-solid fa-calendar-plus"></i>
                 <span>Xếp Lịch Mới</span>
-              </button>
+              </button>` : ''}
             </div>
           </div>
 
@@ -1252,6 +1271,10 @@ class ScheduleManager {
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
 
+    const curUser = window.appState?.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canManageShift = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
+
     const labMap = {
       'PM1': { name: 'PM 1 (A1-503)', cap: 30, room: 'Phòng A1-503 • Tầng 5, Nhà A1', config: 'FPT Elead Core i5-14400, RAM 16GB' },
       'PM2': { name: 'PM2 (A1-504)', cap: 26, room: 'Phòng A1-504 • Tầng 5, Nhà A1', config: 'Asus & FPT Elead Core i5' },
@@ -1355,11 +1378,12 @@ class ScheduleManager {
       `,
       width: '600px',
       showCancelButton: true,
+      showConfirmButton: canManageShift,
       confirmButtonText: isLive ? '<i class="fa-solid fa-door-open mr-1"></i>Kết Thúc & Trả Phòng' : '<i class="fa-solid fa-play mr-1"></i>Bắt Đầu Vào Ca Học',
       confirmButtonColor: isLive ? '#1e293b' : '#059669',
       cancelButtonText: 'Đóng'
     }).then(res => {
-      if (res.isConfirmed) {
+      if (res.isConfirmed && canManageShift) {
         this.toggleSessionActive(item.id, !isLive);
       }
     });

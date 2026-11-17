@@ -2162,9 +2162,10 @@ window.openComputerDetailModal = function(computerId) {
             <button onclick="window.pingTestComputer('${comp.id}', '${comp.ipAddress}')" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold rounded-lg flex items-center">
               <i class="fa-solid fa-network-wired mr-1.5 text-blue-600"></i>Ping Test
             </button>
+            ${role !== 'student' ? `
             <button onclick="window.reportIncidentFromModal('${comp.id}')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-semibold rounded-lg flex items-center">
               <i class="fa-solid fa-flag mr-1.5 text-rose-600"></i>Báo hỏng
-            </button>
+            </button>` : ''}
           </div>
         </div>
 
@@ -3633,6 +3634,18 @@ window.reportIncidentForComputer = function(computerId) {
 
 // 8. XUẤT EXCEL DANH MỤC MÁY TÍNH (PRESERVING FULL DETAILS & SPECS)
 function exportComputersToExcel() {
+  const curUser = window.appState?.currentUser;
+  const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+  if (curRole !== 'admin' && curRole !== 'lab_manager' && curRole !== 'lab_staff') {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Truy cập bị từ chối',
+        html: 'Chỉ <strong>Cán bộ Quản lý</strong> và <strong>Kỹ thuật viên</strong> mới có thẩm quyền xuất dữ liệu kiểm kê thiết bị máy tính.'
+      });
+    }
+    return;
+  }
   if (typeof XLSX === 'undefined') {
     Swal.fire('Lỗi', 'Thư viện xuất Excel chưa tải xong. Vui lòng thử lại sau giây lát.', 'error');
     return;
@@ -4018,10 +4031,10 @@ window.applyRoleRestrictionsToUI = function() {
   const maintenanceTabLink = document.querySelector('.nav-tab-link[data-tab="maintenance"]');
   if (maintenanceTabLink) {
     if (role === 'student') {
-      maintenanceTabLink.classList.add('opacity-40');
+      maintenanceTabLink.classList.add('opacity-40', 'pointer-events-none');
       maintenanceTabLink.title = '[🔒 Bị khóa] Phân hệ Bảo trì & Sự cố dành cho Giảng viên và Kỹ thuật viên';
     } else {
-      maintenanceTabLink.classList.remove('opacity-40');
+      maintenanceTabLink.classList.remove('opacity-40', 'pointer-events-none');
       maintenanceTabLink.title = 'Bảo trì & Sự cố';
     }
   }
@@ -4073,6 +4086,9 @@ window.applyRoleRestrictionsToUI = function() {
   const canControlPower = isAdmin || role === 'lab_manager' || role === 'lab_staff';
   const canManageComputers = isAdmin || role === 'lab_manager' || role === 'lab_staff';
   const canCreateSchedule = isAdmin || role === 'lab_manager' || role === 'teacher';
+  const canBroadcast = isAdmin || role === 'lab_manager' || role === 'teacher';
+  const canLockScreen = isAdmin || role === 'lab_manager' || role === 'teacher';
+  const canFaultInject = isAdmin || role === 'lab_staff';
   const canCreateTicket = role !== 'student';
   const canResolveTicket = isAdmin || role === 'lab_manager' || role === 'lab_staff';
 
@@ -4082,16 +4098,43 @@ window.applyRoleRestrictionsToUI = function() {
       btnEl.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
       btnEl.title = allowedMsg;
     } else {
-      btnEl.classList.add('opacity-40', 'cursor-not-allowed');
+      btnEl.classList.add('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
       btnEl.title = `[🔒 Bị khóa] ${deniedMsg}`;
     }
   };
 
   // Nút trong Tab 2 (Simulation)
   applyBtnState(document.getElementById('btn-scenario-wol'), canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền điều khiển nguồn Wake-on-LAN');
-  applyBtnState(document.getElementById('btn-scenario-lock'), isAdmin || role === 'teacher' || role === 'lab_manager', 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mở ca mới có quyền khóa màn hình');
-  applyBtnState(document.getElementById('btn-scenario-fault'), isAdmin || role === 'lab_staff', 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
+  applyBtnState(document.getElementById('btn-scenario-broadcast'), canBroadcast, 'Phát bài giảng & đề thi (UDP Multicast)', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mới có quyền phát bài giảng');
+  applyBtnState(document.getElementById('btn-scenario-lock'), canLockScreen, 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mở ca mới có quyền khóa màn hình');
+  applyBtnState(document.getElementById('btn-scenario-fault'), canFaultInject, 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
   applyBtnState(document.getElementById('btn-scenario-reset'), canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền khôi phục');
+
+  // Nút thao tác nhanh trên Banner Dashboard (Tab 1)
+  const dashBtnReport = document.getElementById('dash-btn-report');
+  const dashBtnExport = document.getElementById('dash-btn-export');
+  const dashLinkMaint = document.getElementById('dash-link-maintenance');
+  if (dashBtnReport) {
+    if (role === 'student') {
+      dashBtnReport.classList.add('hidden');
+    } else {
+      dashBtnReport.classList.remove('hidden');
+    }
+  }
+  if (dashBtnExport) {
+    if (role === 'student' || role === 'teacher') {
+      dashBtnExport.classList.add('hidden');
+    } else {
+      dashBtnExport.classList.remove('hidden');
+    }
+  }
+  if (dashLinkMaint) {
+    if (role === 'student') {
+      dashLinkMaint.classList.add('hidden');
+    } else {
+      dashLinkMaint.classList.remove('hidden');
+    }
+  }
 
   // Nút trong Tab 3 (Computers)
   applyBtnState(document.getElementById('btn-add-computer'), canManageComputers, 'Thêm máy trạm mới', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền thêm máy tính');
