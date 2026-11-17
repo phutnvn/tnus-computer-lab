@@ -879,7 +879,9 @@ class ScheduleManager {
                 ${displayLabs.map(lab => `
                   <th class="p-3 border-r border-slate-200 last:border-r-0 min-w-[240px]">
                     <div class="flex items-center justify-between">
-                      <span class="font-black text-slate-800 text-sm">${lab.name}</span>
+                      <span onclick="window.navigateToLab('${lab.id}')" class="font-black text-slate-800 text-sm hover:text-blue-700 hover:underline cursor-pointer flex items-center gap-1.5 transition" title="Mở Sơ đồ 2D phòng ${lab.id}">
+                        ${lab.name} <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-blue-500 opacity-70"></i>
+                      </span>
                       <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${lab.badge}">${lab.cap} Máy</span>
                     </div>
                     <div class="text-[10px] text-slate-500 font-normal mt-0.5 line-clamp-1">${lab.brand}</div>
@@ -1057,7 +1059,10 @@ class ScheduleManager {
           <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')">
             <td class="py-3 px-3 font-mono font-bold text-blue-600">${item.id}</td>
             <td class="py-3 px-3 font-bold">
-              <span class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-mono text-[11px]">${labNames[item.labId] || item.labId}</span>
+              <span onclick="event.stopPropagation(); window.navigateToLab('${item.labId}')" 
+                class="px-2 py-0.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded font-mono text-[11px] cursor-pointer transition flex items-center gap-1 w-max" title="Mở sơ đồ 2D phòng ${item.labId}">
+                ${labNames[item.labId] || item.labId} <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+              </span>
             </td>
             <td class="py-3 px-3 font-mono text-slate-700 text-[11px]">${item.date}</td>
             <td class="py-3 px-3 font-semibold text-slate-800 text-[11px]">${item.shift}</td>
@@ -1085,6 +1090,10 @@ class ScheduleManager {
                   <i class="fa-solid fa-play mr-1"></i>Vào ca
                 </button>
               `}
+              <button onclick="window.navigateToLab('${item.labId}')" 
+                class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition" title="Xem sơ đồ 2D phòng ${item.labId}">
+                <i class="fa-solid fa-desktop"></i>
+              </button>
               <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" 
                 class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition" title="Chỉnh sửa ca học">
                 <i class="fa-solid fa-pen-to-square"></i>
@@ -1242,6 +1251,15 @@ class ScheduleManager {
           <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
             <div class="font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">Nội dung bài thực hành & Yêu cầu phần mềm</div>
             <div class="text-slate-700">${item.note || 'Cần cài đặt MS Office, Dev C++, Visual Studio Code, Python 3.12.'}</div>
+          </div>
+
+          <!-- Liên kết đồng bộ sang Sơ đồ phòng máy -->
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200">
+            <button type="button" onclick="Swal.close(); window.navigateToLab('${item.labId}')" 
+              class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+              <i class="fa-solid fa-desktop text-blue-600"></i>Xem sơ đồ phòng ${item.labId}
+            </button>
+            <span class="text-[11px] text-slate-400 font-mono">Tầng 5, Nhà A1</span>
           </div>
         </div>
       `,

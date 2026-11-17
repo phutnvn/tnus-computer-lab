@@ -345,8 +345,14 @@ class MaintenanceManager {
           <td class="py-3 px-3 font-mono font-bold text-blue-600">${item.id}</td>
           <td class="py-3 px-3 font-mono font-bold">
             <div class="flex items-center space-x-1.5">
-              <span class="text-blue-700 hover:underline">${item.computerId}</span>
-              <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-100 border border-slate-200 text-slate-600 font-sans">${labNames[item.labId] || item.labId}</span>
+              <span onclick="event.stopPropagation(); window.locateComputerOn2D('${item.computerId}')" 
+                class="text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center gap-1" title="Định vị máy ${item.computerId} trên Sơ đồ 2D">
+                ${item.computerId} <i class="fa-solid fa-map-location-dot text-[10px] text-teal-600"></i>
+              </span>
+              <span onclick="event.stopPropagation(); window.navigateToLab('${item.labId}')" 
+                class="px-1.5 py-0.2 rounded text-[10px] bg-slate-100 hover:bg-blue-100 border border-slate-200 text-slate-600 hover:text-blue-700 font-sans cursor-pointer transition" title="Mở sơ đồ phòng ${item.labId}">
+                ${labNames[item.labId] || item.labId}
+              </span>
             </div>
             <div class="text-[10px] text-slate-400 font-sans font-normal mt-0.5">Tầng 5, Nhà A1</div>
           </td>
@@ -369,6 +375,10 @@ class MaintenanceManager {
             <button onclick="window.maintenanceManager.showIncidentDetailModal('${item.id}')" 
               class="p-1.5 text-blue-600 hover:bg-blue-100/70 rounded transition" title="Xem chi tiết">
               <i class="fa-regular fa-eye"></i>
+            </button>
+            <button onclick="window.locateComputerOn2D('${item.computerId}')" 
+              class="p-1.5 text-teal-600 hover:bg-teal-100/70 rounded transition" title="Định vị máy trên sơ đồ 2D">
+              <i class="fa-solid fa-map-location-dot"></i>
             </button>
             <button onclick="window.maintenanceManager.updateIncidentStatus('${item.id}')" 
               class="p-1.5 text-amber-600 hover:bg-amber-100/70 rounded transition" title="Cập nhật tiến độ & Nghiệm thu">
@@ -503,6 +513,21 @@ class MaintenanceManager {
               <strong>Giải pháp:</strong> ${item.solution || '<span class="text-slate-400 italic">Chưa cập nhật nội dung xử lý</span>'}
             </div>
             ${item.cost ? `<div class="text-amber-800"><strong>Chi phí linh kiện:</strong> ${item.cost} VNĐ</div>` : ''}
+          </div>
+
+          <!-- Liên kết đồng bộ sang Sơ đồ 2D & Quản lý thiết bị -->
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200">
+            <div class="flex items-center space-x-2">
+              <button type="button" onclick="Swal.close(); window.locateComputerOn2D('${item.computerId}')" 
+                class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-300 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                <i class="fa-solid fa-map-location-dot text-teal-600"></i>Định vị trên sơ đồ 2D
+              </button>
+              <button type="button" onclick="Swal.close(); window.openComputerDetailModal('${item.computerId}')" 
+                class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs">
+                <i class="fa-solid fa-circle-info text-slate-500"></i>Xem hồ sơ máy
+              </button>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono">TNUS Lab System</span>
           </div>
         </div>
       `,

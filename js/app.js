@@ -281,11 +281,15 @@ function renderDashboardTodaySchedules() {
     }
 
     return `
-      <div class="p-2.5 rounded-lg border border-slate-100 hover:border-blue-200 bg-slate-50/60 hover:bg-blue-50/30 transition flex items-center justify-between gap-3 text-xs">
+      <div onclick="window.scheduleManager ? window.scheduleManager.showScheduleDetailModal('${sch.id}') : null" 
+        class="p-2.5 rounded-lg border border-slate-100 hover:border-blue-300 bg-slate-50/60 hover:bg-blue-50/40 transition flex items-center justify-between gap-3 text-xs cursor-pointer group shadow-2xs">
         <div class="flex items-center space-x-2.5 min-w-0">
-          <span class="px-2 py-1 rounded bg-blue-600 text-white font-mono font-bold text-[11px] shadow-xs flex-shrink-0">${sch.labId}</span>
+          <span onclick="event.stopPropagation(); window.navigateToLab('${sch.labId}')" title="Mở Sơ đồ 2D phòng ${sch.labId}" 
+            class="px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-mono font-bold text-[11px] shadow-xs flex-shrink-0 cursor-pointer transition flex items-center gap-1">
+            ${sch.labId} <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-80 group-hover:opacity-100"></i>
+          </span>
           <div class="min-w-0">
-            <div class="font-bold text-slate-800 truncate" title="${sch.subject}">${sch.subject}</div>
+            <div class="font-bold text-slate-800 group-hover:text-blue-700 transition truncate" title="${sch.subject}">${sch.subject}</div>
             <div class="text-[11px] text-slate-500 truncate">
               <span class="font-semibold text-slate-700">${sch.shift}</span> • <span>GV: ${sch.lecturer}</span> • <span class="italic text-slate-400">${sch.className || ''}</span>
             </div>
@@ -328,11 +332,15 @@ function renderDashboardRecentIncidents() {
     }
 
     return `
-      <div class="p-2.5 rounded-lg border border-slate-100 hover:border-rose-200 bg-slate-50/60 hover:bg-rose-50/20 transition flex items-center justify-between gap-3 text-xs">
+      <div onclick="window.maintenanceManager ? window.maintenanceManager.showIncidentDetailModal('${inc.id}') : null" 
+        class="p-2.5 rounded-lg border border-slate-100 hover:border-rose-300 bg-slate-50/60 hover:bg-rose-50/30 transition flex items-center justify-between gap-3 text-xs cursor-pointer group shadow-2xs">
         <div class="flex items-center space-x-2.5 min-w-0">
-          <span class="px-2 py-1 rounded bg-rose-100 text-rose-800 font-mono font-bold text-[11px] border border-rose-200 flex-shrink-0">${inc.computerId}</span>
+          <span onclick="event.stopPropagation(); window.locateComputerOn2D('${inc.computerId}')" title="Định vị máy ${inc.computerId} trên Sơ đồ 2D" 
+            class="px-2 py-1 rounded bg-rose-100 hover:bg-rose-200 text-rose-800 font-mono font-bold text-[11px] border border-rose-200 flex-shrink-0 cursor-pointer transition flex items-center gap-1">
+            ${inc.computerId} <i class="fa-solid fa-map-location-dot text-[10px] text-rose-600"></i>
+          </span>
           <div class="min-w-0">
-            <div class="font-bold text-slate-800 truncate" title="${inc.title}">${inc.title}</div>
+            <div class="font-bold text-slate-800 group-hover:text-rose-700 transition truncate" title="${inc.title}">${inc.title}</div>
             <div class="text-[11px] text-slate-500 truncate">Phòng ${inc.labId} • Người báo: ${inc.reportedBy}</div>
           </div>
         </div>
@@ -528,6 +536,47 @@ window.switchTab = function(targetTab) {
   } catch (err) {
     console.warn(`[Navigation] Cảnh báo kích hoạt dữ liệu tab ${targetTab}:`, err);
   }
+};
+
+// ============================================================================
+// ĐIỀU HƯỚNG LIÊN KẾT ĐỒNG BỘ GIỮA CÁC PHÂN HỆ (CROSS-MODULE DEEP LINKING)
+// ============================================================================
+
+// 1. Chuyển thẳng đến sơ đồ phòng máy cụ thể (PM1, PM2, PM3, PM4)
+window.navigateToLab = function(labId) {
+  if (!labId) return;
+  const upperLab = labId.toUpperCase();
+  window.switchTab('simulation');
+  setTimeout(() => {
+    if (window.labSimulation && typeof window.labSimulation.switchLab === 'function') {
+      window.labSimulation.switchLab(upperLab);
+    }
+  }, 100);
+};
+
+// 2. Định vị máy tính trên Sơ đồ 2D từ bất kỳ phân hệ nào (Dashboard, Thiết bị, Lịch học, Sự cố)
+window.locateComputerOn2D = function(computerId) {
+  if (!computerId) return;
+  const compId = computerId.trim();
+  const comp = (window.appState?.computers || []).find(c => c.id === compId);
+  const labId = comp ? comp.labId : compId.split('-')[0].toUpperCase();
+
+  // Chuyển sang Tab Sơ đồ 2D
+  window.switchTab('simulation');
+
+  // Đổi sang đúng phòng máy và cuộn trọng tâm vào máy với hiệu ứng highlight
+  setTimeout(() => {
+    if (window.labSimulation) {
+      if (labId && window.labSimulation.currentLabId !== labId) {
+        window.labSimulation.switchLab(labId);
+      }
+      setTimeout(() => {
+        if (typeof window.labSimulation.centerOnComputer === 'function') {
+          window.labSimulation.centerOnComputer(compId);
+        }
+      }, 150);
+    }
+  }, 120);
 };
 
 // Điều hướng Single Page Application (Tabs)
@@ -2074,11 +2123,16 @@ window.openComputerDetailModal = function(computerId) {
           </div>
         </div>
 
-        <!-- Thao tác kiểm tra mạng, Desktop ảo & Báo hỏng -->
+        <!-- Thao tác kiểm tra mạng, Desktop ảo, Định vị 2D & Báo hỏng -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <button onclick="window.openVirtualDesktopModal('${comp.id}')" class="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center">
-            <i class="fa-solid fa-display mr-1.5"></i>Xem Màn hình ảo (Desktop)
-          </button>
+          <div class="flex items-center space-x-2">
+            <button onclick="window.openVirtualDesktopModal('${comp.id}')" class="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center">
+              <i class="fa-solid fa-display mr-1.5"></i>Màn hình ảo (Desktop)
+            </button>
+            <button onclick="Swal.close(); window.locateComputerOn2D('${comp.id}')" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-300 text-xs font-bold rounded-lg flex items-center shadow-2xs">
+              <i class="fa-solid fa-map-location-dot mr-1.5 text-teal-600"></i>Xem trên Sơ đồ 2D
+            </button>
+          </div>
           <div class="flex items-center space-x-2">
             <button onclick="window.pingTestComputer('${comp.id}', '${comp.ipAddress}')" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold rounded-lg flex items-center">
               <i class="fa-solid fa-network-wired mr-1.5 text-blue-600"></i>Ping Test
@@ -2526,7 +2580,9 @@ function renderComputerTable() {
         <td class="py-3 px-3">
           <div class="flex items-center space-x-1.5">
             <span class="w-2 h-2 rounded-full ${isPowerOn ? 'bg-emerald-500 shadow-xs' : 'bg-slate-300'}" title="${isPowerOn ? 'Nguồn: BẬT' : 'Nguồn: TẮT'}"></span>
-            <span class="font-mono font-bold text-blue-700 hover:underline">${c.id}</span>
+            <span onclick="event.stopPropagation(); window.locateComputerOn2D('${c.id}')" class="font-mono font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center gap-1" title="Định vị máy ${c.id} trên Sơ đồ 2D">
+              ${c.id} <i class="fa-solid fa-map-location-dot text-[10px] text-teal-600 opacity-70 hover:opacity-100"></i>
+            </span>
           </div>
           <div class="text-[10px] text-slate-400 font-mono">${c.name || ''}</div>
         </td>
@@ -2580,6 +2636,9 @@ function renderComputerTable() {
           <div class="flex items-center justify-end space-x-1">
             <button onclick="window.openComputerDetailModal('${c.id}')" class="p-1.5 text-blue-600 hover:bg-blue-100/70 rounded transition" title="Xem chi tiết">
               <i class="fa-regular fa-eye"></i>
+            </button>
+            <button onclick="window.locateComputerOn2D('${c.id}')" class="p-1.5 text-teal-600 hover:bg-teal-100/70 rounded transition" title="Định vị máy trên sơ đồ 2D">
+              <i class="fa-solid fa-map-location-dot"></i>
             </button>
             <button onclick="window.openVirtualDesktopModal('${c.id}')" class="p-1.5 text-indigo-600 hover:bg-indigo-100/70 rounded transition" title="Màn hình ảo (Desktop)">
               <i class="fa-solid fa-desktop"></i>
@@ -3783,6 +3842,16 @@ function applyUrlParameters(params) {
         window.labSimulation.switchLab(labParam.toUpperCase());
       }
     }, 180);
+  }
+
+  // 4. Tự động định vị máy tính cụ thể theo tham số ?comp= (VD: ?comp=PM1-08)
+  const compParam = params.comp || params.computer;
+  if (compParam) {
+    setTimeout(() => {
+      if (typeof window.locateComputerOn2D === 'function') {
+        window.locateComputerOn2D(compParam);
+      }
+    }, 250);
   }
 }
 
