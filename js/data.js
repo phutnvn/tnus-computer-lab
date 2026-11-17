@@ -6654,7 +6654,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
   lab_staff: [
     // Kỹ thuật viên: Quản lý thiết bị, cập nhật tình trạng và xử lý sự cố
     'dashboard.view', 'dashboard.export',
-    'simulation.view', 'simulation.edit', 'simulation.manage',
+    'simulation.view', 'simulation.edit', 'simulation.export', 'simulation.manage',
     'computers.view', 'computers.create', 'computers.edit', 'computers.export',
     'schedule.view',
     'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.approve', 'maintenance.export'

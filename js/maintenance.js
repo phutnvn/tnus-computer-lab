@@ -321,6 +321,11 @@ class MaintenanceManager {
       'PM4': 'PM4 (A1-506)'
     };
 
+    const curUser = window.appState?.currentUser;
+    const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canUpdateStatus = (curRole === 'admin' || curRole === 'lab_manager' || curRole === 'lab_staff');
+    const canDeleteTicket = (curRole === 'admin' || curRole === 'lab_manager');
+
     tbody.innerHTML = pageItems.map(item => {
       let priorityBadge = '';
       if (item.priority === 'critical') {
@@ -380,18 +385,20 @@ class MaintenanceManager {
               class="p-1.5 text-teal-600 hover:bg-teal-100/70 rounded transition" title="Định vị máy trên sơ đồ 2D">
               <i class="fa-solid fa-map-location-dot"></i>
             </button>
+            ${canUpdateStatus ? `
             <button onclick="window.maintenanceManager.updateIncidentStatus('${item.id}')" 
               class="p-1.5 text-amber-600 hover:bg-amber-100/70 rounded transition" title="Cập nhật tiến độ & Nghiệm thu">
               <i class="fa-solid fa-pen-to-square"></i>
-            </button>
+            </button>` : ''}
             <button onclick="window.maintenanceManager.printMaintenanceTicket('${item.id}')" 
               class="p-1.5 text-purple-600 hover:bg-purple-100/70 rounded transition" title="In phiếu sửa chữa">
               <i class="fa-solid fa-print"></i>
             </button>
+            ${canDeleteTicket ? `
             <button onclick="window.maintenanceManager.deleteIncident('${item.id}')" 
               class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Hủy phiếu">
               <i class="fa-regular fa-trash-can"></i>
-            </button>
+            </button>` : ''}
           </td>
         </tr>
       `;
@@ -723,7 +730,7 @@ class MaintenanceManager {
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Kỹ thuật viên thực hiện *</label>
-              <input type="text" id="modal-update-tech" value="${item.assignedTo || 'KTV. Phạm Văn Hải'}" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold">
+              <input type="text" id="modal-update-tech" value="${item.assignedTo || (window.appState.currentUser?.name || 'KTV. Chu Tuấn Hưng')}" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold">
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Linh kiện thay thế (nếu có)</label>
@@ -807,6 +814,19 @@ class MaintenanceManager {
   // XÓA / HỦY PHIẾU SỰ CỐ
   // =========================================================================
   deleteIncident(incidentId) {
+    const curUser = window.appState?.currentUser;
+    const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canDeleteTicket = (curRole === 'admin' || curRole === 'lab_manager');
+    if (!canDeleteTicket) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Truy cập bị từ chối',
+          html: 'Chỉ <strong>Quản trị viên (Admin)</strong> và <strong>Quản lý phòng máy</strong> mới có thẩm quyền xóa hủy phiếu sự cố khỏi hệ thống lưu trữ.'
+        });
+      }
+      return;
+    }
     if (typeof window.checkPermission === 'function' && !window.checkPermission('resolve_ticket', 'Xóa phiếu sự cố bảo trì')) return;
     const item = window.appState.maintenance.find(m => m.id === incidentId);
     if (!item) return;

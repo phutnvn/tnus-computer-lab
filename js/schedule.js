@@ -870,6 +870,9 @@ class ScheduleManager {
   buildMatrixViewHtml() {
     const targetDate = this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate;
     const dateSchedules = (window.appState.schedules || []).filter(s => s.date === targetDate);
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canManageShift = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
 
     // Danh sách 4 phòng máy chuẩn TNUS (Tầng 5, Nhà A1)
     const labs = [
@@ -1009,47 +1012,68 @@ class ScheduleManager {
 
                               <!-- Nút hành động nhanh trên ô -->
                               <div class="mt-2.5 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
-                                <div class="flex items-center space-x-1">
-                                  <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Xem chi tiết">
-                                    <i class="fa-regular fa-eye"></i>
-                                  </button>
-                                  <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" class="p-1 text-amber-600 hover:bg-amber-100 rounded" title="Chỉnh sửa ca học">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                  </button>
-                                  <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-100 rounded" title="Hủy ca học">
-                                    <i class="fa-regular fa-trash-can"></i>
-                                  </button>
-                                </div>
+                                ${canManageShift ? `
+                                  <div class="flex items-center space-x-1">
+                                    <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Xem chi tiết">
+                                      <i class="fa-regular fa-eye"></i>
+                                    </button>
+                                    <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" class="p-1 text-amber-600 hover:bg-amber-100 rounded" title="Chỉnh sửa ca học">
+                                      <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-100 rounded" title="Hủy ca học">
+                                      <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                  </div>
 
-                                ${isLive ? `
-                                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
-                                    class="px-2 py-0.5 bg-slate-800 hover:bg-slate-900 text-white rounded font-bold text-[10px] transition shadow-xs">
-                                    Trả phòng
-                                  </button>
+                                  ${isLive ? `
+                                    <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
+                                      class="px-2 py-0.5 bg-slate-800 hover:bg-slate-900 text-white rounded font-bold text-[10px] transition shadow-xs">
+                                      Trả phòng
+                                    </button>
+                                  ` : `
+                                    <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
+                                      class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[10px] transition shadow-xs flex items-center">
+                                      <i class="fa-solid fa-play text-[9px] mr-1"></i>Vào ca
+                                    </button>
+                                  `}
                                 ` : `
-                                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
-                                    class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[10px] transition shadow-xs flex items-center">
-                                    <i class="fa-solid fa-play text-[9px] mr-1"></i>Vào ca
+                                  <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition flex items-center gap-1">
+                                    <i class="fa-regular fa-eye"></i>Xem chi tiết
                                   </button>
+                                  <span class="text-[10px] text-slate-400 font-mono">${isLive ? '🔴 Đang học' : '⚪ Giờ học'}</span>
                                 `}
                               </div>
                             </div>
                           </td>
                         `;
                       } else {
-                        // Ô trống: Hiển thị nút xếp lịch trực tiếp
-                        return `
-                          <td class="p-2.5 border-r border-slate-200 last:border-r-0 align-middle text-center">
-                            <div onclick="window.scheduleManager.showAddScheduleModal('${lab.id}', '${slot.time} (${slot.periods})', '${targetDate}')" 
-                              class="border border-dashed border-slate-200 rounded-xl p-3 text-slate-400 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600 cursor-pointer transition flex flex-col items-center justify-center space-y-1 group" style="min-height: 140px;">
-                              <div class="w-7 h-7 rounded-full bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center text-xs">
-                                <i class="fa-solid fa-plus text-slate-400 group-hover:text-blue-600"></i>
+                        // Ô trống
+                        if (canManageShift) {
+                          return `
+                            <td class="p-2.5 border-r border-slate-200 last:border-r-0 align-middle text-center">
+                              <div onclick="window.scheduleManager.showAddScheduleModal('${lab.id}', '${slot.time} (${slot.periods})', '${targetDate}')" 
+                                class="border border-dashed border-slate-200 rounded-xl p-3 text-slate-400 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600 cursor-pointer transition flex flex-col items-center justify-center space-y-1 group" style="min-height: 140px;">
+                                <div class="w-7 h-7 rounded-full bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center text-xs">
+                                  <i class="fa-solid fa-plus text-slate-400 group-hover:text-blue-600"></i>
+                                </div>
+                                <span class="text-[11px] font-semibold">Phòng trống</span>
+                                <span class="text-[10px] text-slate-400 group-hover:text-blue-500">Bấm để xếp lịch</span>
                               </div>
-                              <span class="text-[11px] font-semibold">Phòng trống</span>
-                              <span class="text-[10px] text-slate-400 group-hover:text-blue-500">Bấm để xếp lịch</span>
-                            </div>
-                          </td>
-                        `;
+                            </td>
+                          `;
+                        } else {
+                          return `
+                            <td class="p-2.5 border-r border-slate-200 last:border-r-0 align-middle text-center">
+                              <div class="border border-slate-100 rounded-xl p-3 text-slate-400 bg-slate-50/40 flex flex-col items-center justify-center space-y-1" style="min-height: 140px;">
+                                <div class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs">
+                                  <i class="fa-regular fa-clock"></i>
+                                </div>
+                                <span class="text-[11px] font-semibold text-slate-500">Phòng trống</span>
+                                ${role === 'lab_staff' ? '<span class="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Khả dụng bảo trì</span>' : '<span class="text-[10px] text-slate-400">Chưa có ca học</span>'}
+                              </div>
+                            </td>
+                          `;
+                        }
                       }
                     }).join('')}
                   </tr>
@@ -1071,6 +1095,9 @@ class ScheduleManager {
     const totalPages = Math.ceil(totalItems / this.pageSize) || 1;
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const pageItems = list.slice(startIndex, startIndex + this.pageSize);
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canManageShift = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
 
     const labNames = {
       'PM1': 'PM 1 (A1-503)',
@@ -1131,29 +1158,40 @@ class ScheduleManager {
             <td class="py-3 px-3 text-center font-bold font-mono text-blue-700">${item.studentCount} SV</td>
             <td class="py-3 px-3 text-center">${statusBadge}</td>
             <td class="py-3 px-3 text-right space-x-1" onclick="event.stopPropagation()">
-              ${item.status === 'Đang diễn ra' ? `
-                <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
-                  class="px-2 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded text-[11px] font-bold transition shadow-xs" title="Kết thúc ca học, giải phóng máy">
-                  Trả phòng
+              ${canManageShift ? `
+                ${item.status === 'Đang diễn ra' ? `
+                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
+                    class="px-2 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded text-[11px] font-bold transition shadow-xs" title="Kết thúc ca học, giải phóng máy">
+                    Trả phòng
+                  </button>
+                ` : `
+                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
+                    class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded text-[11px] font-bold transition" title="Kích hoạt phòng máy đang sử dụng">
+                    <i class="fa-solid fa-play mr-1"></i>Vào ca
+                  </button>
+                `}
+                <button onclick="window.navigateToLab('${item.labId}')" 
+                  class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition" title="Xem sơ đồ 2D phòng ${item.labId}">
+                  <i class="fa-solid fa-desktop"></i>
+                </button>
+                <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" 
+                  class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition" title="Chỉnh sửa ca học">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" 
+                  class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Hủy ca học">
+                  <i class="fa-regular fa-trash-can"></i>
                 </button>
               ` : `
-                <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
-                  class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded text-[11px] font-bold transition" title="Kích hoạt phòng máy đang sử dụng">
-                  <i class="fa-solid fa-play mr-1"></i>Vào ca
+                <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" 
+                  class="px-2.5 py-1 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded text-[11px] font-bold transition inline-flex items-center gap-1" title="Xem chi tiết ca học">
+                  <i class="fa-regular fa-eye"></i>Chi tiết
+                </button>
+                <button onclick="window.navigateToLab('${item.labId}')" 
+                  class="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition" title="Xem sơ đồ 2D phòng ${item.labId}">
+                  <i class="fa-solid fa-desktop"></i>
                 </button>
               `}
-              <button onclick="window.navigateToLab('${item.labId}')" 
-                class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition" title="Xem sơ đồ 2D phòng ${item.labId}">
-                <i class="fa-solid fa-desktop"></i>
-              </button>
-              <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" 
-                class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition" title="Chỉnh sửa ca học">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" 
-                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Hủy ca học">
-                <i class="fa-regular fa-trash-can"></i>
-              </button>
             </td>
           </tr>
         `;
@@ -1331,9 +1369,20 @@ class ScheduleManager {
   // ĐĂNG KÝ LỊCH THỰC HÀNH MỚI (VỚI THUẬT TOÁN KIỂM TRA TRÙNG PHÒNG & QUÁ TẢI)
   // =========================================================================
   showAddScheduleModal(prefillLab = null, prefillShift = null, prefillDate = null) {
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    if (role === 'lab_staff' || role === 'student') {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Truy cập bị từ chối',
+          html: 'Tài khoản <strong>Kỹ thuật viên / Sinh viên</strong> chỉ có quyền tra cứu lịch phòng trống để phục vụ công tác bảo trì & học tập, không có thẩm quyền xếp lịch giảng dạy.'
+        });
+      }
+      return;
+    }
     if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Đăng ký ca thực hành mới')) return;
     const defaultDate = prefillDate || (this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate);
-    const curUser = window.appState.currentUser;
     const defaultLecturer = (curUser && curUser.role === 'teacher') ? (curUser.name || 'Giảng viên thực hành') : (curUser?.name || 'ThS. Trịnh Minh Phú');
 
     Swal.fire({
@@ -1653,8 +1702,16 @@ class ScheduleManager {
     const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
     const isAdminOrManager = (role === 'admin' || role === 'lab_manager');
 
-    // Giảng viên chỉ có quyền vào ca hoặc trả phòng cho ca dạy của chính mình
-    if (!isAdminOrManager && role === 'teacher') {
+    // Chỉ Quản trị viên, Quản lý phòng máy và Giảng viên phụ trách mới có quyền vào ca hoặc trả phòng
+    if (!isAdminOrManager) {
+      if (role !== 'teacher') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Từ chối quyền hạn',
+          text: 'Chỉ Giảng viên phụ trách ca dạy hoặc Quản lý phòng máy mới có quyền mở ca thực hành hoặc trả phòng.'
+        });
+        return;
+      }
       const teacherName = (curUser.name || '').trim();
       const itemLecturer = (item.lecturer || '').trim();
       const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));

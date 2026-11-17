@@ -65,6 +65,10 @@ function loadState() {
       window.appState.rolePermissions.lab_manager = [...DEFAULT_ROLE_PERMISSIONS.lab_manager];
       // Giảng viên luôn được đồng bộ đúng chuẩn quyền giảng dạy, đăng ký lịch & báo hỏng
       window.appState.rolePermissions.teacher = [...DEFAULT_ROLE_PERMISSIONS.teacher];
+      // Kỹ thuật viên luôn được đồng bộ đúng chuẩn quyền quản lý thiết bị, Wake-on-LAN & tiếp nhận bảo trì
+      window.appState.rolePermissions.lab_staff = [...DEFAULT_ROLE_PERMISSIONS.lab_staff];
+      // Sinh viên luôn được đồng bộ đúng chuẩn quyền tra cứu chỉ đọc
+      window.appState.rolePermissions.student = [...DEFAULT_ROLE_PERMISSIONS.student];
 
       // 3. Đồng bộ danh sách tài khoản (USERS)
       if (parsed.users && Array.isArray(parsed.users) && parsed.users.length > 0) {
@@ -2537,6 +2541,10 @@ function renderComputerTable() {
   const tbody = document.getElementById('computer-table-body');
   if (!tbody) return;
 
+  const curUser = window.appState?.currentUser;
+  const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+  const canDeleteComp = (curRole === 'admin' || curRole === 'lab_manager');
+
   const list = getFilteredComputers();
   const totalItems = list.length;
   const totalPages = Math.ceil(totalItems / compFilter.pageSize) || 1;
@@ -2673,9 +2681,10 @@ function renderComputerTable() {
             <button onclick="window.reportIncidentForComputer('${c.id}')" class="p-1.5 text-rose-500 hover:bg-rose-100/70 rounded transition" title="Báo sự cố">
               <i class="fa-solid fa-triangle-exclamation"></i>
             </button>
+            ${canDeleteComp ? `
             <button onclick="window.deleteComputer('${c.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Xóa thiết bị">
               <i class="fa-regular fa-trash-can"></i>
-            </button>
+            </button>` : ''}
           </div>
         </td>
       </tr>
@@ -2962,6 +2971,10 @@ window.showBatchActionsModal = function() {
     return;
   }
 
+  const curUser = window.appState?.currentUser;
+  const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+  const canDeleteComp = (curRole === 'admin' || curRole === 'lab_manager');
+
   Swal.fire({
     title: `
       <div class="text-left">
@@ -3036,6 +3049,7 @@ window.showBatchActionsModal = function() {
           </div>
         </div>
 
+        ${canDeleteComp ? `
         <!-- Hành động 5: Xóa máy -->
         <div class="p-3 bg-rose-50/70 border border-rose-200 rounded-xl flex items-center justify-between">
           <div>
@@ -3047,7 +3061,7 @@ window.showBatchActionsModal = function() {
           <button onclick="window.applyBatchDelete()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded font-bold transition">
             Xóa máy
           </button>
-        </div>
+        </div>` : ''}
       </div>
     `,
     showConfirmButton: false,
@@ -3118,6 +3132,16 @@ window.applyBatchNote = function() {
 };
 
 window.applyBatchDelete = function() {
+  const curUser = window.appState?.currentUser;
+  const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+  if (curRole !== 'admin' && curRole !== 'lab_manager') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Truy cập bị từ chối',
+      html: 'Chỉ <strong>Quản trị viên (Admin)</strong> và <strong>Quản lý phòng máy</strong> mới có thẩm quyền xóa bỏ tài sản máy tính khỏi hệ thống.'
+    });
+    return;
+  }
   const count = compFilter.selectedIds.size;
   Swal.fire({
     title: 'Xác nhận xóa hàng loạt?',
@@ -3564,6 +3588,16 @@ function showAddComputerModal() {
 
 // 6. XÓA MÁY TÍNH
 window.deleteComputer = function(compId) {
+  const curUser = window.appState?.currentUser;
+  const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+  if (curRole !== 'admin' && curRole !== 'lab_manager') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Truy cập bị từ chối',
+      html: 'Chỉ <strong>Quản trị viên (Admin)</strong> và <strong>Quản lý phòng máy</strong> mới có thẩm quyền xóa bỏ tài sản thiết bị máy tính khỏi danh mục.'
+    });
+    return;
+  }
   if (typeof window.checkPermission === 'function' && !window.checkPermission('delete_device', 'Xóa máy tính khỏi danh mục hệ thống')) return;
   Swal.fire({
     title: 'Xác nhận xóa?',
