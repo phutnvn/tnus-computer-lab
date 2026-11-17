@@ -63,6 +63,8 @@ function loadState() {
       window.appState.rolePermissions.admin = [...DEFAULT_ROLE_PERMISSIONS.admin];
       // Quản lý phòng máy luôn được đồng bộ đúng chuẩn quyền vận hành thiết bị, lịch & bảo trì
       window.appState.rolePermissions.lab_manager = [...DEFAULT_ROLE_PERMISSIONS.lab_manager];
+      // Giảng viên luôn được đồng bộ đúng chuẩn quyền giảng dạy, đăng ký lịch & báo hỏng
+      window.appState.rolePermissions.teacher = [...DEFAULT_ROLE_PERMISSIONS.teacher];
 
       // 3. Đồng bộ danh sách tài khoản (USERS)
       if (parsed.users && Array.isArray(parsed.users) && parsed.users.length > 0) {
@@ -406,22 +408,23 @@ window.switchTab = function(targetTab) {
   const curUser = window.appState?.currentUser || (window.appState?.users && window.appState.users[0]);
   const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
 
-  // Kiểm tra thẩm quyền khi truy cập Tab Quản lý Thiết bị (Tab 3) - Khóa với Sinh viên / Khách
-  if (targetTab === 'computers' && role === 'student') {
+  // Kiểm tra thẩm quyền khi truy cập Tab Quản lý Thiết bị (Tab 3) - Khóa với Sinh viên và Giảng viên
+  if (targetTab === 'computers' && (role === 'student' || role === 'teacher')) {
     if (typeof Swal !== 'undefined') {
+      const isTeacher = (role === 'teacher');
       Swal.fire({
         icon: 'warning',
-        title: 'CHỨC NĂNG DÀNH CHO CÁN BỘ QUẢN LÝ',
+        title: 'CHỨC NĂNG DÀNH CHO CÁN BỘ QUẢN LÝ THIẾT BỊ',
         html: `
           <div class="text-left text-xs space-y-2">
-            <p>Phân hệ <strong>Quản lý Thiết bị (104 máy)</strong> dành riêng cho Cán bộ Quản lý và Kỹ thuật viên để theo dõi vòng đời tài sản, cấu hình IP/MAC và kiểm kê thiết bị.</p>
-            <p class="text-slate-600">Sinh viên vui lòng tra cứu trực quan sơ đồ phòng máy, máy tính trống khả dụng và thông số tại phân hệ <strong>Sơ đồ Mô phỏng 2D</strong>.</p>
+            <p>Phân hệ <strong>Quản lý Thiết bị (104 máy)</strong> dành riêng cho Cán bộ Quản lý phòng máy và Kỹ thuật viên để theo dõi vòng đời tài sản, cấu hình IP/MAC và kiểm kê thiết bị.</p>
+            <p class="text-slate-600">${isTeacher ? 'Giảng viên vui lòng mở <strong>Thời khóa biểu</strong> để quản lý ca dạy hoặc tra cứu cấu hình và vị trí máy trên <strong>Sơ đồ Mô phỏng 2D</strong>.' : 'Sinh viên vui lòng tra cứu trực quan sơ đồ phòng máy, máy tính trống khả dụng và thông số tại phân hệ <strong>Sơ đồ Mô phỏng 2D</strong>.'}</p>
           </div>
         `,
         confirmButtonColor: '#2563eb',
-        confirmButtonText: 'Đến Sơ đồ Mô phỏng 2D'
+        confirmButtonText: isTeacher ? 'Đến Thời Khóa Biểu' : 'Đến Sơ đồ Mô phỏng 2D'
       }).then(() => {
-        window.switchTab('simulation');
+        window.switchTab(isTeacher ? 'schedule' : 'simulation');
       });
     }
     return;
@@ -2037,6 +2040,10 @@ window.openComputerDetailModal = function(computerId) {
   const comp = window.appState.computers.find(c => c.id === computerId);
   if (!comp) return;
 
+  const curUser = window.appState.currentUser;
+  const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+  const canManageStatus = (role === 'admin' || role === 'lab_manager' || role === 'lab_staff');
+
   const cfg = STATUS_CONFIG[comp.status] || STATUS_CONFIG.good;
   const isPowerOn = comp.powerState === 'on';
 
@@ -2117,6 +2124,7 @@ window.openComputerDetailModal = function(computerId) {
           </div>
         ` : ''}
 
+        ${canManageStatus ? `
         <!-- Thay đổi nhanh trạng thái máy -->
         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
           <div class="text-xs font-bold text-slate-700 mb-2">Cập nhật nhanh trạng thái:</div>
@@ -2129,6 +2137,12 @@ window.openComputerDetailModal = function(computerId) {
             <button onclick="window.toggleSinglePower('${comp.id}')" class="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold">⚡ ${isPowerOn ? 'Tắt nguồn' : 'Bật nguồn'}</button>
           </div>
         </div>
+        ` : `
+        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+          <span class="text-slate-600"><i class="fa-solid fa-power-off ${isPowerOn ? 'text-emerald-500' : 'text-slate-400'} mr-1.5"></i>Nguồn máy tính: <strong class="${isPowerOn ? 'text-emerald-600' : 'text-slate-500'}">${isPowerOn ? 'Đang BẬT' : 'Đang TẮT'}</strong></span>
+          <span class="text-slate-400 text-[11px] font-mono">Quản lý nguồn bởi Tổ PM</span>
+        </div>
+        `}
 
         <!-- Thao tác kiểm tra mạng, Desktop ảo, Định vị 2D & Báo hỏng -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
@@ -3958,11 +3972,11 @@ window.applyRoleRestrictionsToUI = function() {
   // 2. KHÓA LIÊN KẾT CÁC TAB TRÊN SIDEBAR NẾU VAI TRÒ KHÔNG ĐƯỢC PHÉP
   const computersTabLink = document.querySelector('.nav-tab-link[data-tab="computers"]');
   if (computersTabLink) {
-    if (role === 'student') {
-      computersTabLink.classList.add('opacity-40');
+    if (role === 'student' || role === 'teacher') {
+      computersTabLink.classList.add('opacity-40', 'pointer-events-none');
       computersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản lý Thiết bị chỉ dành cho Cán bộ Quản lý và Kỹ thuật viên';
     } else {
-      computersTabLink.classList.remove('opacity-40');
+      computersTabLink.classList.remove('opacity-40', 'pointer-events-none');
       computersTabLink.title = 'Quản lý Thiết bị (104 máy)';
     }
   }
@@ -4082,6 +4096,10 @@ window.applyRoleRestrictionsToUI = function() {
   if (role === 'student' && ['computers', 'maintenance', 'users'].includes(curTab)) {
     setTimeout(() => {
       window.switchTab('simulation');
+    }, 50);
+  } else if (role === 'teacher' && (curTab === 'computers' || curTab === 'users')) {
+    setTimeout(() => {
+      window.switchTab('schedule');
     }, 50);
   } else if (curTab === 'users' && !isAdmin) {
     const homeTabs = { lab_manager: 'computers', teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };

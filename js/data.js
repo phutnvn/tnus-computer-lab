@@ -6645,11 +6645,10 @@ const DEFAULT_ROLE_PERMISSIONS = {
     'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.delete', 'maintenance.approve', 'maintenance.export', 'maintenance.manage'
   ],
   teacher: [
-    // Giảng viên: Xem lịch thực hành, đăng ký phòng, cập nhật thông tin được phép
+    // Giảng viên: Xem lịch thực hành, đăng ký phòng, mở & kết thúc ca dạy, báo hỏng thiết bị, tra cứu sơ đồ 2D
     'dashboard.view',
     'simulation.view',
-    'computers.view',
-    'schedule.view', 'schedule.create', 'schedule.edit', 'schedule.export',
+    'schedule.view', 'schedule.create', 'schedule.edit', 'schedule.export', 'schedule.manage',
     'maintenance.view', 'maintenance.create'
   ],
   lab_staff: [

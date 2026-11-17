@@ -1333,6 +1333,8 @@ class ScheduleManager {
   showAddScheduleModal(prefillLab = null, prefillShift = null, prefillDate = null) {
     if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Đăng ký ca thực hành mới')) return;
     const defaultDate = prefillDate || (this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate);
+    const curUser = window.appState.currentUser;
+    const defaultLecturer = (curUser && curUser.role === 'teacher') ? (curUser.name || 'Giảng viên thực hành') : (curUser?.name || 'ThS. Trịnh Minh Phú');
 
     Swal.fire({
       title: `
@@ -1402,7 +1404,7 @@ class ScheduleManager {
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Giảng viên giảng dạy *</label>
-              <input type="text" id="modal-sch-lecturer" value="ThS. Trịnh Minh Phú" class="w-full p-2 bg-white border border-slate-300 rounded">
+              <input type="text" id="modal-sch-lecturer" value="${defaultLecturer}" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
             </div>
           </div>
 
@@ -1495,6 +1497,30 @@ class ScheduleManager {
   showEditScheduleModal(scheduleId) {
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
+
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const isAdminOrManager = (role === 'admin' || role === 'lab_manager');
+
+    // Giảng viên chỉ có quyền chỉnh sửa ca thực hành của chính mình
+    if (!isAdminOrManager) {
+      if (role !== 'teacher') {
+        Swal.fire('Từ chối', 'Bạn không có quyền chỉnh sửa thời khóa biểu.', 'error');
+        return;
+      }
+      const teacherName = (curUser.name || '').trim();
+      const itemLecturer = (item.lecturer || '').trim();
+      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      if (!isOwner) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'KHÔNG THỂ SỬA CA CỦA GIẢNG VIÊN KHÁC',
+          text: `Ca học này do Giảng viên [${item.lecturer}] phụ trách. Giảng viên chỉ có quyền chỉnh sửa ca thực hành do chính mình đảm nhiệm. Vui lòng liên hệ Quản lý phòng máy để được hỗ trợ.`,
+          confirmButtonColor: '#2563eb'
+        });
+        return;
+      }
+    }
 
     Swal.fire({
       title: `
@@ -1623,6 +1649,26 @@ class ScheduleManager {
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
 
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const isAdminOrManager = (role === 'admin' || role === 'lab_manager');
+
+    // Giảng viên chỉ có quyền vào ca hoặc trả phòng cho ca dạy của chính mình
+    if (!isAdminOrManager && role === 'teacher') {
+      const teacherName = (curUser.name || '').trim();
+      const itemLecturer = (item.lecturer || '').trim();
+      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      if (!isOwner) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'KHÔNG THỂ THAO TÁC CA DẠY CỦA GIẢNG VIÊN KHÁC',
+          text: `Ca học này do Giảng viên [${item.lecturer}] phụ trách. Giảng viên chỉ có quyền vào ca hoặc trả phòng cho ca dạy do chính mình đảm nhiệm.`,
+          confirmButtonColor: '#2563eb'
+        });
+        return;
+      }
+    }
+
     if (activate) {
       item.status = 'Đang diễn ra';
       let turnedOnCount = 0;
@@ -1684,6 +1730,30 @@ class ScheduleManager {
     if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Hủy ca thực hành')) return;
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
+
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const isAdminOrManager = (role === 'admin' || role === 'lab_manager');
+
+    // Giảng viên chỉ có quyền hủy ca thực hành của chính mình
+    if (!isAdminOrManager) {
+      if (role !== 'teacher') {
+        Swal.fire('Từ chối', 'Bạn không có quyền hủy ca học.', 'error');
+        return;
+      }
+      const teacherName = (curUser.name || '').trim();
+      const itemLecturer = (item.lecturer || '').trim();
+      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      if (!isOwner) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'KHÔNG THỂ HỦY CA CỦA GIẢNG VIÊN KHÁC',
+          text: `Ca học này do Giảng viên [${item.lecturer}] phụ trách. Giảng viên chỉ có quyền hủy ca thực hành do chính mình đảm nhiệm. Vui lòng liên hệ Quản lý phòng máy để được hỗ trợ.`,
+          confirmButtonColor: '#2563eb'
+        });
+        return;
+      }
+    }
 
     Swal.fire({
       title: 'Hủy ca thực hành này?',
