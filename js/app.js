@@ -122,42 +122,12 @@ function loadState() {
           rootAdmin.status = 'active';
         }
 
-        // Đảm bảo luôn có tài khoản Quản lý phòng máy (ThS. Trần Thị Linh - @linhtt)
-        let labManager = window.appState.users.find(u => u.username === 'linhtt' || u.role === 'lab_manager');
-        if (!labManager && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS.lab_manager) {
-          window.appState.users.push({ ...STANDARD_ROLE_ACCOUNTS.lab_manager });
-        } else if (labManager && labManager.username === 'qlphongmay') {
-          labManager.username = 'linhtt';
-          labManager.name = 'ThS. Trần Thị Linh';
-          labManager.email = 'linhtt@tnus.edu.vn';
-        }
-
-        // Đảm bảo luôn có các tài khoản Giảng viên chuẩn (@toannv, @anhnth)
-        let teacherToan = window.appState.users.find(u => u.username === 'toannv');
-        if (!teacherToan && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS.teacher) {
-          window.appState.users.push({ ...STANDARD_ROLE_ACCOUNTS.teacher });
-        }
-        let teacherAnh = window.appState.users.find(u => u.username === 'anhnth' || u.username === 'anhnt');
-        if (!teacherAnh) {
-          window.appState.users.push({
-            id: 'USR-04',
-            username: 'anhnth',
-            name: 'ThS. Nguyễn Tuấn Anh',
-            role: 'teacher',
-            roleName: 'Giảng viên',
-            email: 'anhnth@tnus.edu.vn',
-            phone: '0983.123.456',
-            department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-            avatar: '👨‍🏫',
-            status: 'active',
-            initialPassword: 'Tnus@2026',
-            passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
-            salt: 'TNUS_KHOA_TOAN_TIN_2026',
-            failedLogins: 0,
-            createdAt: '2026-10-15',
-            lastLogin: '2026-11-18 07:50'
-          });
-        }
+        // Đảm bảo các tài khoản có đầy đủ mật khẩu ban đầu phục vụ chức năng Sao chép
+        window.appState.users.forEach(u => {
+          if (!u.initialPassword) {
+            u.initialPassword = (u.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
+          }
+        });
 
         // Chỉ loại bỏ tài khoản kỹ thuật viên (lab_staff / ktvlab) nếu còn tồn đọng từ bộ nhớ đệm cũ
         window.appState.users = window.appState.users.filter(u => u.role !== 'lab_staff' && u.username !== 'ktvlab');
@@ -1121,30 +1091,56 @@ window.switchToUser = function(userId) {
     Swal.fire({
       icon: 'error',
       title: 'Tài khoản đã bị khóa',
-      text: `Tài khoản ${targetUser.name} (${targetUser.username}) hiện đang ở trạng thái khóa. Vui lòng mở khóa trước khi kích hoạt.`,
+      text: `Tài khoản ${targetUser.name} (@${(targetUser.username || '').replace(/^@+/, '')}) hiện đang ở trạng thái khóa an toàn. Vui lòng mở khóa trước khi kích hoạt phiên làm việc.`,
       confirmButtonColor: '#2563eb'
     });
     return;
   }
 
+  // Đặt người dùng hiện hành là targetUser
   window.appState.currentUser = targetUser;
   window.saveStateToLocalStorage();
   window.updateUserUI();
-  window.logUserActivity('Đổi phiên đăng nhập', `Chuyển người dùng thao tác sang ${targetUser.name} (${targetUser.roleName})`);
+  window.logUserActivity('Đổi phiên đăng nhập', `Quản trị viên chuyển sang làm việc dưới danh nghĩa ${targetUser.name} (${targetUser.roleName})`, 'users', 'SUCCESS');
 
   if (window.renderUserAccountsTable) window.renderUserAccountsTable();
   if (window.updateUserKPIs) window.updateUserKPIs();
+
+  // Tự động chuyển hướng không gian làm việc phù hợp với vai trò được kích hoạt
+  const targetRole = window.normalizeRole ? window.normalizeRole(targetUser.role) : targetUser.role;
+  let targetTab = 'dashboard';
+  let tabName = 'Dashboard Tổng quan';
+
+  if (targetRole === 'teacher' || targetRole === 'student') {
+    targetTab = 'schedule';
+    tabName = 'Lịch thực hành';
+  } else if (targetRole === 'lab_manager') {
+    targetTab = 'dashboard';
+    tabName = 'Dashboard & Điều hành 4 phòng máy';
+  } else if (targetRole === 'admin') {
+    targetTab = 'users';
+    tabName = 'Phân quyền & Tài khoản';
+  }
+
+  if (typeof window.switchTab === 'function') {
+    window.switchTab(targetTab);
+  }
 
   Swal.fire({
     icon: 'success',
     title: `Đã kích hoạt: ${targetUser.name}`,
     html: `
-      <div class="text-xs text-slate-600">
-        Vai trò: <strong class="text-blue-600">${targetUser.roleName}</strong><br>
-        Đơn vị: ${targetUser.department || 'Khoa Toán - Tin, TNUS'}
+      <div class="text-xs text-slate-600 text-left space-y-2 mt-1">
+        <div>Vai trò: <strong class="text-blue-600 font-bold">${targetUser.roleName || targetRole}</strong> • Username: <span class="font-mono font-bold">@${(targetUser.username || '').replace(/^@+/, '')}</span></div>
+        <div>Đơn vị: ${targetUser.department || 'Khoa Toán - Tin, TNUS'}</div>
+        <div class="p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-xs flex items-center gap-1.5 font-semibold">
+          <i class="fa-solid fa-arrow-right text-blue-600"></i>
+          <span>Đã tự động chuyển đến không gian làm việc: <strong>${tabName}</strong></span>
+        </div>
+        <p class="text-2xs text-slate-400 italic">Khi hoàn tất kiểm tra, bạn có thể ấn nút "Đăng xuất" ở thanh menu trên cùng để đăng nhập lại tài khoản Admin.</p>
       </div>
     `,
-    timer: 1500,
+    timer: 2200,
     showConfirmButton: false
   });
 };
@@ -1428,38 +1424,84 @@ window.copyUserCredentials = function(userId) {
   if (!user) return;
 
   const roleName = user.roleName || (window.appState.roles?.find(r => r.id === user.role)?.name) || user.role;
-  const pass = user.initialPassword || 'Tnus@2026';
+  const pass = user.initialPassword || (user.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
   const loginUrl = window.location.origin + window.location.pathname;
+  const cleanUname = (user.username || '').replace(/^@+/, '');
 
   const textToCopy = 
 `KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
 THÔNG TIN TÀI KHOẢN HỆ THỐNG PHÒNG MÁY:
 • Họ và tên: ${user.name}
 • Vai trò: ${roleName}
-• Tên đăng nhập: ${user.username}
+• Tên đăng nhập: @${cleanUname}
 • Mật khẩu: ${pass}
 • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}
-• Link đăng nhập: ${loginUrl}
+• Trạng thái: ${user.status === 'locked' ? 'Đang khóa' : 'Đang hoạt động'}
+• Link truy cập: ${loginUrl}
 ---------------------------------------------
 Quản trị viên hỗ trợ: ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus.edu.vn)`;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(textToCopy).then(() => {
+    navigator.clipboard.writeText(textToCopy).catch(() => {});
+  }
+
+  Swal.fire({
+    title: 'Sao Chép Thông Tin Tài Khoản',
+    html: `
+      <div class="text-left text-xs space-y-3 mt-1">
+        <p class="text-slate-600">Thông tin tài khoản đã sẵn sàng để gửi cho Cán bộ / Giảng viên qua Zalo hoặc Email:</p>
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 font-sans">
+          <div class="flex items-center space-x-2 pb-2 border-b border-slate-200">
+            <span class="text-2xl">${user.avatar || '👤'}</span>
+            <div>
+              <div class="font-bold text-slate-800 text-sm">${user.name}</div>
+              <div class="text-slate-500 font-mono text-[11px]">${roleName} • ID: ${user.id}</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+            <div><span class="text-slate-500">Tên đăng nhập:</span> <strong class="font-mono text-blue-600 font-bold block">@${cleanUname}</strong></div>
+            <div><span class="text-slate-500">Mật khẩu:</span> <strong class="font-mono text-emerald-600 font-bold block">${pass}</strong></div>
+            <div><span class="text-slate-500">Email:</span> <span class="font-mono text-slate-700 block truncate">${user.email || 'Chưa cập nhật'}</span></div>
+            <div><span class="text-slate-500">Trạng thái:</span> <span class="${user.status === 'locked' ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold'} block">${user.status === 'locked' ? 'Đã khóa' : 'Hoạt động'}</span></div>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nội dung chi tiết (Copy & Paste):</label>
+          <textarea id="copy-user-raw-text" readonly class="w-full h-28 p-2 bg-slate-100 border border-slate-300 rounded-lg font-mono text-[11px] text-slate-700 focus:outline-none resize-none">${textToCopy}</textarea>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-regular fa-copy mr-1.5"></i>Sao chép toàn bộ',
+    cancelButtonText: 'Đóng',
+    confirmButtonColor: '#0284c7',
+    cancelButtonColor: '#64748b',
+    width: '520px',
+    didOpen: () => {
+      const textarea = document.getElementById('copy-user-raw-text');
+      if (textarea) textarea.select();
+    }
+  }).then(res => {
+    if (res.isConfirmed) {
+      const textarea = document.getElementById('copy-user-raw-text');
+      if (textarea) {
+        textarea.select();
+        try { document.execCommand('copy'); } catch (e) {}
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).catch(() => {});
+      }
       Swal.fire({
         toast: true,
         position: 'top-end',
         icon: 'success',
-        title: 'Đã sao chép thông tin!',
-        html: `<span class="text-xs text-slate-600">Đã sao chép thông tin của <b>${user.name}</b> (@${user.username}) để gửi qua Zalo/Email</span>`,
+        title: 'Đã sao chép vào bộ nhớ tạm!',
+        text: `Đã sao chép thông tin tài khoản của ${user.name}`,
         showConfirmButton: false,
-        timer: 3000
+        timer: 2000
       });
-    }).catch(() => {
-      prompt('Sao chép thông tin tài khoản dưới đây:', textToCopy);
-    });
-  } else {
-    prompt('Sao chép thông tin tài khoản dưới đây:', textToCopy);
-  }
+    }
+  });
 };
 
 // Hàm tự động gợi ý Username từ Họ và tên theo chuẩn TNUS
@@ -2066,7 +2108,12 @@ window.showEditUserModal = function(userId) {
       user.phone = val.phone;
       user.status = val.status;
       if (val.newPass) {
-        user.passwordHash = typeof hashPassword === 'function' ? hashPassword(val.newPass) : 'hashed_' + val.newPass;
+        user.initialPassword = val.newPass;
+        user.passwordHash = typeof hashPassword === 'function' ? hashPassword(val.newPass, user.salt || 'TNUS_KHOA_TOAN_TIN_2026') : 'hashed_' + val.newPass;
+        user.failedLogins = 0;
+      }
+      if (user.status === 'active') {
+        user.failedLogins = 0;
       }
 
       if (window.appState.currentUser?.id === user.id) {
@@ -2075,14 +2122,14 @@ window.showEditUserModal = function(userId) {
       }
 
       window.saveStateToLocalStorage();
-      window.logUserActivity('Sửa tài khoản', `Cập nhật thông tin tài khoản ${user.name} (@${user.username})`);
+      window.logUserActivity('Sửa tài khoản', `Cập nhật thông tin tài khoản ${user.name} (@${user.username})`, 'users', 'SUCCESS');
       window.renderUserAccountsTable();
       window.updateUserKPIs();
 
       Swal.fire({
         icon: 'success',
         title: 'Đã lưu thay đổi!',
-        text: `Thông tin tài khoản ${user.name} đã được cập nhật thành công.`,
+        text: `Thông tin tài khoản ${user.name} (@${user.username}) đã được cập nhật thành công.`,
         timer: 1500,
         showConfirmButton: false
       });
@@ -2123,24 +2170,28 @@ window.toggleUserStatus = function(userId) {
 
   Swal.fire({
     title: `${actionText} tài khoản này?`,
-    html: `Bạn có chắc muốn ${actionText.toLowerCase()} tài khoản <strong>${user.name}</strong> (@${user.username})?`,
+    html: `Bạn có chắc muốn ${actionText.toLowerCase()} tài khoản <strong>${user.name}</strong> (@${(user.username || '').replace(/^@+/, '')})?<br>${!isLocked ? '<span class="text-xs text-rose-500 mt-1 block">Tài khoản sau khi khóa sẽ không thể đăng nhập hoặc thao tác trên hệ thống.</span>' : '<span class="text-xs text-emerald-600 mt-1 block">Tài khoản sẽ được mở khóa và có thể đăng nhập bình thường.</span>'}`,
     icon: isLocked ? 'info' : 'warning',
     showCancelButton: true,
-    confirmButtonText: actionText,
+    confirmButtonText: `<i class="fa-solid ${isLocked ? 'fa-lock-open' : 'fa-lock'} mr-1"></i>${actionText}`,
     cancelButtonText: 'Hủy',
     confirmButtonColor: isLocked ? '#10b981' : '#ef4444'
   }).then(res => {
     if (res.isConfirmed) {
       user.status = newStatus;
+      if (newStatus === 'active') {
+        user.failedLogins = 0;
+      }
       window.saveStateToLocalStorage();
-      window.logUserActivity(`${actionText} tài khoản`, `${actionText} tài khoản ${user.name} (@${user.username})`);
+      window.logUserActivity(`${actionText} tài khoản`, `${actionText} tài khoản ${user.name} (@${user.username})`, 'users', newStatus === 'active' ? 'SUCCESS' : 'WARNING');
       window.renderUserAccountsTable();
       window.updateUserKPIs();
 
       Swal.fire({
         icon: 'success',
         title: `Đã ${actionText.toLowerCase()} thành công!`,
-        timer: 1500,
+        text: `Tài khoản ${user.name} hiện ${newStatus === 'active' ? 'đã được mở khóa và có thể đăng nhập bình thường' : 'đã bị khóa an toàn'}.`,
+        timer: 1800,
         showConfirmButton: false
       });
     }
@@ -2176,24 +2227,25 @@ window.deleteUser = function(userId) {
 
   Swal.fire({
     title: 'Xóa vĩnh viễn tài khoản?',
-    html: `Bạn có chắc chắn muốn xóa tài khoản <strong>${user.name}</strong> (@${user.username})? Hành động này không thể hoàn tác.`,
+    html: `Bạn có chắc chắn muốn xóa tài khoản <strong>${user.name}</strong> (@${(user.username || '').replace(/^@+/, '')} - ${user.roleName})?<br><span class="text-xs text-rose-500 mt-1 block">Tài khoản này sẽ bị xóa khỏi danh sách và không thể đăng nhập vào hệ thống nữa. Hành động này không thể hoàn tác.</span>`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: 'Đồng ý xóa',
+    confirmButtonText: '<i class="fa-regular fa-trash-can mr-1"></i>Đồng ý xóa',
     cancelButtonText: 'Hủy',
     confirmButtonColor: '#ef4444'
   }).then(res => {
     if (res.isConfirmed) {
       window.appState.users = window.appState.users.filter(u => u.id !== userId);
       window.saveStateToLocalStorage();
-      window.logUserActivity('Xóa tài khoản', `Xóa tài khoản ${user.name} (@${user.username}) khỏi hệ thống`);
+      window.logUserActivity('Xóa tài khoản', `Xóa tài khoản ${user.name} (@${user.username}) khỏi hệ thống`, 'users', 'WARNING');
       window.renderUserAccountsTable();
       window.updateUserKPIs();
 
       Swal.fire({
         icon: 'success',
         title: 'Đã xóa tài khoản!',
-        timer: 1500,
+        text: `Tài khoản ${user.name} (@${user.username}) đã được xóa khỏi hệ thống.`,
+        timer: 1800,
         showConfirmButton: false
       });
     }
@@ -7159,7 +7211,8 @@ window.openChangePasswordModal = function() {
  */
 window.resetUserPassword = function(userId) {
   const current = window.appState.currentUser;
-  if (!current || current.role !== 'admin') {
+  const curRole = window.normalizeRole ? window.normalizeRole(current?.role) : (current?.role || 'student');
+  if (curRole !== 'admin') {
     Swal.fire('Từ chối truy cập', 'Chỉ Quản trị viên (Admin) mới có quyền đặt lại mật khẩu của người dùng khác!', 'error');
     return;
   }
@@ -7167,13 +7220,16 @@ window.resetUserPassword = function(userId) {
   const target = (window.appState.users || []).find(u => u.id === userId);
   if (!target) return;
 
+  const defaultPass = (target.role === 'admin') ? 'Tnus@Admin2026' : 'Tnus@2026';
+  const cleanUname = (target.username || '').replace(/^@+/, '');
+
   Swal.fire({
     title: 'Đặt lại mật khẩu?',
     html: `
       <div class="text-xs text-slate-600 text-left space-y-2">
-        <p>Bạn đang yêu cầu đặt lại mật khẩu cho tài khoản: <strong>${target.name}</strong> (@${target.username}).</p>
-        <p>Mật khẩu sẽ được khôi phục về mặc định an toàn: <strong class="text-blue-600 font-mono">tnus@2026</strong></p>
-        <p class="text-slate-500">Tài khoản nếu đang bị khóa sẽ tự động được mở khóa.</p>
+        <p>Bạn đang yêu cầu đặt lại mật khẩu cho tài khoản: <strong>${target.name}</strong> (@${cleanUname}).</p>
+        <p>Mật khẩu sẽ được khôi phục về mặc định an toàn: <strong class="text-blue-600 font-mono font-bold">${defaultPass}</strong></p>
+        <p class="text-slate-500">Tài khoản nếu đang bị khóa sẽ tự động được mở khóa và xóa số lần nhập sai.</p>
       </div>
     `,
     icon: 'warning',
@@ -7183,14 +7239,15 @@ window.resetUserPassword = function(userId) {
     confirmButtonColor: '#7c3aed'
   }).then(res => {
     if (res.isConfirmed) {
+      target.initialPassword = defaultPass;
       target.passwordHash = (typeof hashPassword === 'function')
-        ? hashPassword('tnus@2026', target.salt || 'TNUS_KHOA_TOAN_TIN_2026')
-        : 'tnus@2026';
+        ? hashPassword(defaultPass, target.salt || 'TNUS_KHOA_TOAN_TIN_2026')
+        : defaultPass;
       target.failedLogins = 0;
       target.status = 'active';
 
       window.saveStateToLocalStorage();
-      window.logUserActivity('Reset mật khẩu', `Quản trị viên ${current.name} đã đặt lại mật khẩu cho ${target.name} (@${target.username})`, 'users', 'SUCCESS');
+      window.logUserActivity('Reset mật khẩu', `Quản trị viên ${current.name} đã đặt lại mật khẩu cho ${target.name} (@${cleanUname})`, 'users', 'SUCCESS');
 
       if (window.renderUserAccountsTable) window.renderUserAccountsTable();
       if (window.updateUserKPIs) window.updateUserKPIs();
@@ -7199,12 +7256,20 @@ window.resetUserPassword = function(userId) {
         icon: 'success',
         title: 'Đã đặt lại mật khẩu!',
         html: `
-          <div class="text-xs text-slate-600 text-left space-y-1">
-            <p>Tài khoản: <strong>${target.name}</strong> (@${target.username})</p>
-            <p>Mật khẩu mới: <strong class="text-blue-600 font-mono font-bold text-sm">tnus@2026</strong></p>
-            <p class="text-emerald-600 font-semibold mt-1">Trạng thái: Đã mở khóa & sẵn sàng sử dụng.</p>
+          <div class="text-xs text-slate-600 text-left space-y-2 mt-1">
+            <p>Tài khoản: <strong>${target.name}</strong> (@${cleanUname})</p>
+            <p>Mật khẩu mới: <strong class="text-blue-600 font-mono font-bold text-sm">${defaultPass}</strong></p>
+            <p class="text-emerald-600 font-semibold">Trạng thái: Đã mở khóa & sẵn sàng sử dụng.</p>
           </div>
-        `
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-regular fa-copy mr-1"></i>Sao chép thông tin tài khoản',
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#2563eb'
+      }).then(cRes => {
+        if (cRes.isConfirmed) {
+          window.copyUserCredentials(target.id);
+        }
       });
     }
   });
