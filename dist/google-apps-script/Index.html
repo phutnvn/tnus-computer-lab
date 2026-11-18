@@ -19753,7 +19753,7 @@ window.showAllRolesCapabilityModal = function() {
 
 /**
  * Mở hộp thoại Đăng nhập hệ thống (Login Modal)
- * Hỗ trợ nhập Username/Password, bảo vệ khóa tài khoản sau 5 lần sai, và Đăng nhập nhanh 1-Click
+ * Hỗ trợ xác thực đầy đủ các vai trò: Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Quản trị viên, Sinh viên
  */
 window.openLoginModal = function() {
   Swal.fire({
@@ -19764,7 +19764,7 @@ window.openLoginModal = function() {
             <i class="fa-solid fa-shield-halved"></i>
           </div>
           <div>
-            <div class="text-base font-extrabold text-slate-900 uppercase">Đăng Nhập Hệ Thống</div>
+            <div class="text-base font-extrabold text-slate-900 uppercase">Đăng Nhập Hệ Thống Phòng Máy</div>
             <div class="text-xs text-blue-700 font-semibold">Khoa Toán - Tin • Trường Đại học Khoa học (TNUS)</div>
           </div>
         </div>
@@ -19780,7 +19780,7 @@ window.openLoginModal = function() {
               <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                 <i class="fa-solid fa-user"></i>
               </span>
-              <input type="text" id="login-username" placeholder="Nhập username (vd: admin, toannv...)" 
+              <input type="text" id="login-username" placeholder="Nhập username (vd: qlphongmay, toannv, ktvlab, admin...)" 
                 class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
           </div>
@@ -19797,66 +19797,77 @@ window.openLoginModal = function() {
                 <i id="login-pwd-eye" class="fa-solid fa-eye"></i>
               </button>
             </div>
-            <p class="text-[10px] text-slate-500 mt-1 italic">* Tự động khóa tài khoản sau 5 lần nhập sai liên tiếp</p>
+            <p class="text-[10px] text-slate-500 mt-1 italic">* Tự động khóa an toàn tài khoản sau 5 lần nhập sai liên tiếp</p>
           </div>
         </div>
 
-        <!-- Khối Đăng Nhập Nhanh 1-Click (Dành cho Kiểm thử & Vận hành nhanh 5 vai trò) -->
+        <!-- Khối Đăng Nhập Nhanh 1-Click Theo Vai Trò Chuẩn TNUS -->
         <div>
           <div class="text-xs font-bold text-slate-800 mb-2 flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-500"></i>Đăng Nhập Nhanh Theo 5 Vai Trò (1-Click Demo)</span>
-            <span class="text-[10px] text-slate-400 font-normal">Pass: tnus@2026</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-500"></i>Chọn Nhanh Vai Trò Cán Bộ & Người Dùng:</span>
+            <span class="text-[10px] text-slate-500 font-mono">Mật khẩu: tnus@2026</span>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <!-- Admin -->
-            <button type="button" onclick="window.quickFillLogin('admin', 'tnus@2026')" 
-              class="p-2 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded-lg text-left transition group shadow-2xs">
-              <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
-                <span>Quản trị viên (Admin)</span>
-                <span class="text-[9px] opacity-75 font-mono">@admin</span>
-              </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-blue-100 truncate mt-0.5">ThS. Trịnh Minh Phú</div>
-            </button>
 
-            <!-- Quản lý phòng máy -->
-            <button type="button" onclick="window.quickFillLogin('qlphongmay', 'tnus@2026')" 
-              class="p-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 rounded-lg text-left transition group shadow-2xs">
-              <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
-                <span>Quản Lý Phòng</span>
-                <span class="text-[9px] opacity-75 font-mono">@qlpm</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <!-- 1. Quản lý phòng máy -->
+            <div class="p-2.5 bg-indigo-50/70 hover:bg-indigo-100/70 border border-indigo-200 rounded-xl transition flex items-center justify-between shadow-2xs">
+              <div class="flex items-center gap-2 cursor-pointer flex-1 mr-2" onclick="window.quickFillLogin('qlphongmay', 'tnus@2026')">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-xs">🏢</div>
+                <div class="truncate">
+                  <div class="font-bold text-indigo-950 text-xs truncate">Quản Lý Phòng Máy</div>
+                  <div class="text-[10px] text-indigo-700 font-mono truncate">@qlphongmay • Tổ QLPM</div>
+                </div>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-indigo-100 truncate mt-0.5">Quản lý phòng máy</div>
-            </button>
+              <button type="button" onclick="Swal.close(); window.handleLoginSubmit('qlphongmay', 'tnus@2026');" 
+                class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs whitespace-nowrap">
+                Vào ngay
+              </button>
+            </div>
 
-            <!-- Giảng viên -->
-            <button type="button" onclick="window.quickFillLogin('toannv', 'tnus@2026')" 
-              class="p-2 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 rounded-lg text-left transition group shadow-2xs">
-              <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
-                <span>Giảng Viên</span>
-                <span class="text-[9px] opacity-75 font-mono">@toannv</span>
+            <!-- 2. Giảng viên -->
+            <div class="p-2.5 bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200 rounded-xl transition flex items-center justify-between shadow-2xs">
+              <div class="flex items-center gap-2 cursor-pointer flex-1 mr-2" onclick="window.quickFillLogin('toannv', 'tnus@2026')">
+                <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shadow-xs">👨‍🏫</div>
+                <div class="truncate">
+                  <div class="font-bold text-emerald-950 text-xs truncate">Giảng Viên Thực Hành</div>
+                  <div class="text-[10px] text-emerald-700 font-mono truncate">@toannv • Bộ môn KHMT</div>
+                </div>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-emerald-100 truncate mt-0.5">Giảng viên thực hành</div>
-            </button>
+              <button type="button" onclick="Swal.close(); window.handleLoginSubmit('toannv', 'tnus@2026');" 
+                class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs whitespace-nowrap">
+                Vào ngay
+              </button>
+            </div>
 
-            <!-- Kỹ thuật viên -->
-            <button type="button" onclick="window.quickFillLogin('ktvlab', 'tnus@2026')" 
-              class="p-2 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 border border-amber-200 rounded-lg text-left transition group shadow-2xs">
-              <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
-                <span>Kỹ Thuật Viên</span>
-                <span class="text-[9px] opacity-75 font-mono">@ktvlab</span>
+            <!-- 3. Kỹ thuật viên -->
+            <div class="p-2.5 bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200 rounded-xl transition flex items-center justify-between shadow-2xs">
+              <div class="flex items-center gap-2 cursor-pointer flex-1 mr-2" onclick="window.quickFillLogin('ktvlab', 'tnus@2026')">
+                <div class="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center text-sm font-bold shadow-xs">🧑‍🔧</div>
+                <div class="truncate">
+                  <div class="font-bold text-amber-950 text-xs truncate">Kỹ Thuật Viên Lab</div>
+                  <div class="text-[10px] text-amber-700 font-mono truncate">@ktvlab • Tổ Kỹ thuật</div>
+                </div>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-amber-100 truncate mt-0.5">Kỹ thuật viên phòng máy</div>
-            </button>
+              <button type="button" onclick="Swal.close(); window.handleLoginSubmit('ktvlab', 'tnus@2026');" 
+                class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs whitespace-nowrap">
+                Vào ngay
+              </button>
+            </div>
 
-            <!-- Sinh viên -->
-            <button type="button" onclick="window.quickFillLogin('student', 'tnus@2026')" 
-              class="p-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 border border-purple-200 rounded-lg text-left transition group shadow-2xs col-span-2 sm:col-span-1">
-              <div class="font-extrabold text-[11px] group-hover:text-white flex items-center justify-between">
-                <span>Sinh Viên</span>
-                <span class="text-[9px] opacity-75 font-mono">@student</span>
+            <!-- 4. Quản trị viên (Admin) -->
+            <div class="p-2.5 bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200 rounded-xl transition flex items-center justify-between shadow-2xs">
+              <div class="flex items-center gap-2 cursor-pointer flex-1 mr-2" onclick="window.quickFillLogin('admin', 'tnus@2026')">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-xs">👨‍💼</div>
+                <div class="truncate">
+                  <div class="font-bold text-blue-950 text-xs truncate">Quản Trị Viên (Admin)</div>
+                  <div class="text-[10px] text-blue-700 font-mono truncate">@admin • ThS. Trịnh Minh Phú</div>
+                </div>
               </div>
-              <div class="text-[10px] text-slate-500 group-hover:text-purple-100 truncate mt-0.5">Sinh viên tra cứu</div>
-            </button>
+              <button type="button" onclick="Swal.close(); window.handleLoginSubmit('admin', 'tnus@2026');" 
+                class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs whitespace-nowrap">
+                Vào ngay
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -19866,6 +19877,21 @@ window.openLoginModal = function() {
     cancelButtonText: 'Đóng',
     confirmButtonColor: '#2563eb',
     focusConfirm: false,
+    didOpen: () => {
+      const pwdInput = document.getElementById('login-password');
+      if (pwdInput) {
+        pwdInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            const username = document.getElementById('login-username').value.trim();
+            const password = pwdInput.value;
+            if (username && password) {
+              Swal.close();
+              window.handleLoginSubmit(username, password);
+            }
+          }
+        });
+      }
+    },
     preConfirm: () => {
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
@@ -19915,30 +19941,81 @@ window.quickFillLogin = function(username, password) {
 };
 
 /**
- * Xử lý xác thực đăng nhập
+ * Xử lý xác thực đăng nhập tài khoản (Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Admin, Sinh viên)
  */
 window.handleLoginSubmit = function(username, password) {
   const term = username.toLowerCase().trim();
+
+  // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa
+  const aliasMap = {
+    // Quản lý phòng máy
+    'qlphongmay': 'qlphongmay',
+    'qlpm': 'qlphongmay',
+    'manager': 'qlphongmay',
+    'lab_manager': 'qlphongmay',
+    'quanly': 'qlphongmay',
+    'quanlyphongmay': 'qlphongmay',
+    
+    // Giảng viên
+    'toannv': 'toannv',
+    'giangvien': 'toannv',
+    'teacher': 'toannv',
+    'gv': 'toannv',
+    
+    // Kỹ thuật viên
+    'ktvlab': 'ktvlab',
+    'ktv': 'ktvlab',
+    'kythuat': 'ktvlab',
+    'kythuatvien': 'ktvlab',
+    'lab_staff': 'ktvlab',
+    'technician': 'ktvlab',
+    'staff': 'ktvlab',
+    
+    // Sinh viên / Khách
+    'student': 'student',
+    'sinhvien': 'student',
+    'sv': 'student',
+    'khach': 'student',
+    'guest': 'student',
+    
+    // Quản trị viên
+    'admin': 'admin',
+    'quantri': 'admin',
+    'quantrivien': 'admin',
+    'phutm': 'admin'
+  };
+
+  const lookupKey = aliasMap[term] || term;
+
+  // 1. Tìm trong appState.users
   let user = (window.appState.users || []).find(u => 
+    (u.username && u.username.toLowerCase() === lookupKey) ||
     (u.username && u.username.toLowerCase() === term) ||
     (u.id && u.id.toLowerCase() === term) ||
     (u.email && u.email.toLowerCase() === term)
   );
 
+  // 2. Nếu chưa có trong appState.users, tìm trong STANDARD_ROLE_ACCOUNTS
   if (!user && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
     const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
     user = Object.values(standards).find(u => 
+      (u.username && u.username.toLowerCase() === lookupKey) ||
       (u.username && u.username.toLowerCase() === term) ||
       (u.id && u.id.toLowerCase() === term) ||
       (u.email && u.email.toLowerCase() === term)
     );
   }
 
+  // 3. Nếu tìm thấy từ STANDARD_ROLE_ACCOUNTS, bổ sung vào danh sách users của hệ thống
+  if (user && !window.appState.users.some(u => u.id === user.id || u.username === user.username)) {
+    window.appState.users.push(user);
+  }
+
   if (!user) {
     Swal.fire({
       icon: 'error',
       title: 'Tài khoản không tồn tại',
-      text: `Không tìm thấy tài khoản "${username}" trong hệ thống phòng máy TNUS.`,
+      text: `Không tìm thấy tài khoản "${username}" trong hệ thống phòng máy TNUS. Vui lòng kiểm tra lại tên đăng nhập hoặc liên hệ Quản trị viên.`,
       confirmButtonColor: '#2563eb'
     });
     return;
@@ -19961,7 +20038,7 @@ window.handleLoginSubmit = function(username, password) {
     return;
   }
 
-  // Xác thực mật khẩu
+  // Xác thực mật khẩu (Hỗ trợ mật khẩu mặc định tnus@2026 hoặc mật khẩu riêng đã băm)
   const isMatch = (typeof verifyPassword === 'function') 
     ? verifyPassword(password, user) 
     : (password.toLowerCase() === 'tnus@2026' || password === 'Tnus@Admin2026');
@@ -20007,7 +20084,7 @@ window.handleLoginSubmit = function(username, password) {
     return;
   }
 
-  // Đăng nhập thành công
+  // Đăng nhập thành công: Cập nhật trạng thái
   user.failedLogins = 0;
   user.lastLogin = new Date().toISOString().replace('T', ' ').substring(0, 16);
   window.appState.currentUser = user;
@@ -20015,22 +20092,129 @@ window.handleLoginSubmit = function(username, password) {
 
   window.logUserActivity('Đăng nhập thành công', `Đăng nhập thành công với vai trò: ${user.roleName || user.role} (${user.name})`, 'users', 'SUCCESS');
 
+  // Cập nhật toàn bộ giao diện & phân quyền
   window.updateUserUI();
   if (window.renderUserAccountsTable) window.renderUserAccountsTable();
   if (window.updateUserKPIs) window.updateUserKPIs();
   if (window.applyRoleRestrictionsToUI) window.applyRoleRestrictionsToUI();
 
+  // Tự động điều hướng đến đúng phân hệ làm việc chuyên biệt của từng vai trò
+  const normRole = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
+  const homeTabMap = {
+    lab_manager: 'computers',   // Quản lý phòng máy -> Quản lý Thiết bị (104 máy)
+    teacher: 'schedule',        // Giảng viên -> Lịch thực hành phòng máy
+    lab_staff: 'maintenance',   // Kỹ thuật viên -> Bảo trì & Xử lý sự cố
+    admin: 'dashboard',         // Quản trị viên -> Dashboard tổng quan
+    student: 'simulation'       // Sinh viên -> Sơ đồ mô phỏng 2D
+  };
+
+  const targetTab = homeTabMap[normRole] || 'dashboard';
+  if (typeof window.switchTab === 'function') {
+    setTimeout(() => {
+      window.switchTab(targetTab);
+    }, 150);
+  }
+
+  // Nội dung chào mừng chuyên biệt theo từng vai trò
+  const roleWelcomeInfo = {
+    lab_manager: {
+      badge: 'Quản lý phòng máy',
+      badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      tabName: 'Quản lý Thiết bị (104 máy)',
+      powers: [
+        'Quản lý danh mục 104 máy trạm của cả 4 phòng (PM1 - PM4)',
+        'Bật/Tắt nguồn Wake-on-LAN và kiểm soát trạng thái máy',
+        'Phê duyệt lịch thực hành và điều phối phòng máy',
+        'Kiểm kê tài sản thiết bị và theo dõi chỉ số khấu hao'
+      ]
+    },
+    teacher: {
+      badge: 'Giảng viên thực hành',
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      tabName: 'Lịch thực hành',
+      powers: [
+        'Đăng ký ca thực hành mới và quản lý lịch giảng dạy',
+        'Mở ca thực hành lớp học và xác nhận trả phòng',
+        'Phát bài giảng & đề thi trực tuyến (UDP Multicast)',
+        'Khóa / Mở màn hình lớp học tập trung khi giảng bài',
+        'Gửi phiếu báo hỏng máy tính trực tiếp cho kỹ thuật'
+      ]
+    },
+    lab_staff: {
+      badge: 'Kỹ thuật viên phòng máy',
+      badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
+      tabName: 'Bảo trì & Sự cố',
+      powers: [
+        'Tiếp nhận phiếu hỏng và xử lý sự cố 104 máy trạm',
+        'Bật nguồn Wake-on-LAN khởi động đồng loạt máy từ xa',
+        'Cập nhật tình trạng linh kiện (RAM, SSD, Nguồn, Màn hình)',
+        'In tem mã QR tra cứu kỹ thuật và bảo dưỡng định kỳ',
+        'Diễn tập sự cố và khôi phục trạng thái chuẩn phòng máy'
+      ]
+    },
+    admin: {
+      badge: 'Quản trị viên (Admin)',
+      badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
+      tabName: 'Dashboard tổng quan',
+      powers: [
+        'Toàn quyền quản trị hệ thống, thiết bị và tài khoản',
+        'Cấu hình Ma trận phân quyền RBAC 7 thẩm quyền trên 6 module',
+        'Thêm mới, nhập/xuất Excel và quản lý tài khoản người dùng',
+        'Sao lưu và khôi phục toàn vẹn dữ liệu hệ thống'
+      ]
+    },
+    student: {
+      badge: 'Sinh viên / Khách tra cứu',
+      badgeClass: 'bg-purple-100 text-purple-800 border-purple-200',
+      tabName: 'Sơ đồ mô phỏng 2D',
+      powers: [
+        'Tra cứu sơ đồ 2D trực quan vị trí 104 máy của 4 phòng',
+        'Xem cấu hình chi tiết phần cứng từng máy trạm',
+        'Xem thời khóa biểu thực hành và lịch trống phòng máy'
+      ]
+    }
+  };
+
+  const info = roleWelcomeInfo[normRole] || roleWelcomeInfo.student;
+  const powersHtml = info.powers.map(p => `
+    <div class="flex items-start gap-1.5 text-slate-700 text-[11px]">
+      <i class="fa-solid fa-circle-check text-emerald-600 mt-0.5 shrink-0 text-[10px]"></i>
+      <span>${p}</span>
+    </div>
+  `).join('');
+
   Swal.fire({
     icon: 'success',
     title: `Xin chào, ${user.name}!`,
     html: `
-      <div class="text-xs text-slate-600">
-        Vai trò: <strong class="text-blue-600">${user.roleName || user.role}</strong><br>
-        Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}
+      <div class="text-left text-xs space-y-3 pt-1">
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900">${user.name}</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${info.badgeClass}">${info.badge}</span>
+          </div>
+          <div class="text-[11px] text-slate-500 font-mono">Username: @${user.username} • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}</div>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+            <i class="fa-solid fa-key text-blue-600"></i>
+            <span>Quyền hạn kích hoạt cho vai trò này:</span>
+          </div>
+          <div class="space-y-1 p-2.5 bg-blue-50/50 border border-blue-100 rounded-lg">
+            ${powersHtml}
+          </div>
+        </div>
+
+        <div class="text-[11px] text-blue-700 font-semibold bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-arrow-right"></i>
+          <span>Đã tự động chuyển đến không gian làm việc: <strong>${info.tabName}</strong></span>
+        </div>
       </div>
     `,
-    timer: 1600,
-    showConfirmButton: false
+    width: '520px',
+    confirmButtonText: 'Bắt đầu làm việc',
+    confirmButtonColor: '#2563eb'
   });
 };
 
