@@ -8,13 +8,16 @@ console.log('============================================================\n');
 
 // 1. Kiểm tra cú pháp JavaScript
 console.log('[1/4] Kiểm tra cú pháp tất cả các tệp JavaScript...');
-try {
-  execSync('node -c js/data.js js/app.js js/schedule.js js/maintenance.js js/lab-simulation.js js/chart-manager.js', { stdio: 'pipe' });
-  console.log('  --> OK: Cú pháp JavaScript chính xác 100%.');
-} catch (e) {
-  console.error('  --> LỖI: Phát hiện lỗi cú pháp trong tệp JS!', e.message);
-  process.exit(1);
-}
+const jsFiles = ['js/data.js', 'js/app.js', 'js/schedule.js', 'js/maintenance.js', 'js/lab-simulation.js', 'js/chart-manager.js'];
+jsFiles.forEach(f => {
+  try {
+    execSync(`node -c "${f}"`, { stdio: 'pipe' });
+  } catch (e) {
+    console.error(`  --> LỖI: Phát hiện lỗi cú pháp trong tệp ${f}!`, e.message);
+    process.exit(1);
+  }
+});
+console.log('  --> OK: Cú pháp JavaScript chính xác 100% trên tất cả 6 tệp.');
 
 // 2. Kiểm tra chuẩn hóa nhận diện thương hiệu
 console.log('[2/4] Kiểm tra chuẩn hóa tên trường & đơn vị...');
