@@ -155,7 +155,7 @@
         <!-- Phân quyền nhanh & Thông tin tài khoản -->
         <div class="flex items-center space-x-3">
           <!-- Các nút sao lưu & khôi phục dữ liệu -->
-          <div class="hidden md:flex items-center space-x-1">
+          <div id="header-backup-controls" class="hidden md:flex items-center space-x-1">
             <button id="btn-export-json" title="Xuất file JSON sao lưu dữ liệu" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg text-xs font-medium transition flex items-center space-x-1">
               <i class="fa-solid fa-download"></i>
               <span class="hidden lg:inline">Sao lưu</span>
@@ -166,7 +166,7 @@
             </button>
           </div>
 
-          <div class="h-6 w-px bg-slate-200 hidden md:block"></div>
+          <div id="header-backup-divider" class="h-6 w-px bg-slate-200 hidden md:block"></div>
 
           <!-- Chuyển đổi vai trò người dùng (Chỉ Quản trị viên mới được phép chuyển đổi) -->
           <div id="header-role-switcher-container" class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
@@ -186,13 +186,13 @@
           </div>
 
           <!-- Nút Mở bảng so sánh chức năng 5 vai trò -->
-          <button onclick="window.showAllRolesCapabilityModal()" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group whitespace-nowrap shrink-0" title="Xem bảng so sánh chức năng và phân quyền của 5 loại tài khoản">
+          <button id="btn-header-roles-comparison" onclick="window.showAllRolesCapabilityModal()" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group whitespace-nowrap shrink-0" title="Xem bảng so sánh chức năng và phân quyền của 5 loại tài khoản">
             <i class="fa-solid fa-circle-question text-indigo-600 group-hover:text-white"></i>
             <span class="hidden md:inline">Chức năng 5 vai trò</span>
           </button>
 
           <!-- Nút Đổi mật khẩu nhanh trên Header -->
-          <button onclick="window.openChangePasswordModal()" class="px-2.5 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs whitespace-nowrap shrink-0" title="Đổi mật khẩu tài khoản hiện tại">
+          <button id="btn-header-change-password" onclick="window.openChangePasswordModal()" class="px-2.5 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs whitespace-nowrap shrink-0" title="Đổi mật khẩu tài khoản hiện tại">
             <i class="fa-solid fa-key text-blue-600"></i>
             <span class="hidden xl:inline">Đổi MK</span>
           </button>

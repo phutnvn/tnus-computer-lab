@@ -4471,6 +4471,54 @@ window.applyRoleRestrictionsToUI = function() {
     }
   }
 
+  // 0.1. ĐIỀU KHIỂN CÁC NÚT LỆNH TRÊN HEADER:
+  // Với tài khoản Sinh viên / Khách:
+  // - BỎ nút "Chức năng 5 vai trò"
+  // - Ẩn nút "Sao lưu" & "Reset mẫu" (chỉ dành cho Quản trị viên)
+  // - Ẩn nút "Đổi MK" (khách không có mật khẩu cá nhân)
+  // - Hiển thị nút "Đăng nhập cán bộ" rõ ràng, nổi bật
+  const isStudent = (role === 'student');
+  const rolesComparisonBtn = document.getElementById('btn-header-roles-comparison');
+  if (rolesComparisonBtn) {
+    if (isStudent) {
+      rolesComparisonBtn.classList.add('hidden');
+    } else {
+      rolesComparisonBtn.classList.remove('hidden');
+    }
+  }
+
+  const backupControls = document.getElementById('header-backup-controls');
+  const backupDivider = document.getElementById('header-backup-divider');
+  if (backupControls) {
+    if (isStudent) {
+      backupControls.classList.add('hidden');
+      if (backupDivider) backupDivider.classList.add('hidden');
+    } else {
+      backupControls.classList.remove('hidden');
+      if (backupDivider) backupDivider.classList.remove('hidden');
+    }
+  }
+
+  const changePwdBtn = document.getElementById('btn-header-change-password');
+  if (changePwdBtn) {
+    if (isStudent) {
+      changePwdBtn.classList.add('hidden');
+    } else {
+      changePwdBtn.classList.remove('hidden');
+    }
+  }
+
+  const headerLoginBtn = document.getElementById('btn-header-login');
+  if (headerLoginBtn) {
+    if (isStudent) {
+      headerLoginBtn.classList.remove('hidden');
+      headerLoginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i><span>Đăng nhập cán bộ</span>';
+      headerLoginBtn.className = 'px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 whitespace-nowrap shrink-0';
+    } else {
+      headerLoginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i><span class="hidden sm:inline">Đăng nhập</span>';
+    }
+  }
+
   // 1. BANNER ĐÃ ĐƯỢC ẨN HOÀN TOÀN ĐỂ GIAO DIỆN TỐI GIẢN, THOÁNG ĐÃNG
   if (bannerContainer) {
     bannerContainer.innerHTML = '';
@@ -4564,12 +4612,69 @@ window.applyRoleRestrictionsToUI = function() {
     }
   };
 
-  // Nút trong Tab 2 (Simulation)
-  applyBtnState(document.getElementById('btn-scenario-wol'), canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền điều khiển nguồn Wake-on-LAN');
-  applyBtnState(document.getElementById('btn-scenario-broadcast'), canBroadcast, 'Phát bài giảng & đề thi (UDP Multicast)', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mới có quyền phát bài giảng');
-  applyBtnState(document.getElementById('btn-scenario-lock'), canLockScreen, 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mở ca mới có quyền khóa màn hình');
-  applyBtnState(document.getElementById('btn-scenario-fault'), canFaultInject, 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
-  applyBtnState(document.getElementById('btn-scenario-reset'), canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền khôi phục');
+  // Nút trong Tab 2 (Simulation):
+  // Xử lý hiển thị rõ ràng các nút lệnh cho Sinh viên / Khách:
+  const wolBtn = document.getElementById('btn-scenario-wol');
+  const broadcastBtn = document.getElementById('btn-scenario-broadcast');
+  const lockBtn = document.getElementById('btn-scenario-lock');
+  const faultBtn = document.getElementById('btn-scenario-fault');
+  const pingBtn = document.getElementById('btn-scenario-ping');
+  const resetBtn = document.getElementById('btn-scenario-reset');
+  const findAvailBtn = document.getElementById('btn-student-find-available');
+  const reportFaultBtn = document.getElementById('btn-student-report-fault');
+  const scenarioLabel = document.getElementById('sim-scenario-label');
+
+  if (isStudent) {
+    // Với tài khoản Sinh viên:
+    // Ẩn hoàn toàn các nút thao tác nghiệp vụ của cán bộ (tránh nút mờ opacity-40 khó nhìn)
+    if (wolBtn) wolBtn.classList.add('hidden');
+    if (broadcastBtn) broadcastBtn.classList.add('hidden');
+    if (lockBtn) lockBtn.classList.add('hidden');
+    if (faultBtn) faultBtn.classList.add('hidden');
+
+    // Hiển thị các nút lệnh tra cứu của sinh viên RÕ RÀNG & NỔI BẬT:
+    if (scenarioLabel) {
+      scenarioLabel.textContent = 'Tiện ích tra cứu:';
+      scenarioLabel.classList.remove('hidden');
+    }
+    if (pingBtn) {
+      pingBtn.classList.remove('hidden', 'opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+      pingBtn.className = 'px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs';
+      pingBtn.title = 'Kiểm tra độ trễ và kết nối mạng ICMP toàn phòng';
+    }
+    if (findAvailBtn) {
+      findAvailBtn.classList.remove('hidden');
+      findAvailBtn.className = 'px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs';
+    }
+    if (reportFaultBtn) {
+      reportFaultBtn.classList.remove('hidden');
+      reportFaultBtn.className = 'px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs';
+    }
+    if (resetBtn) {
+      resetBtn.classList.remove('hidden', 'opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+      resetBtn.className = 'px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs';
+      const resetText = document.getElementById('btn-scenario-reset-text');
+      if (resetText) resetText.classList.remove('hidden');
+    }
+  } else {
+    // Với Admin / Cán bộ / Giảng viên / Kỹ thuật viên:
+    if (scenarioLabel) scenarioLabel.textContent = 'Thực nghiệm:';
+    if (findAvailBtn) findAvailBtn.classList.add('hidden');
+    if (reportFaultBtn) reportFaultBtn.classList.add('hidden');
+    const resetText = document.getElementById('btn-scenario-reset-text');
+    if (resetText) resetText.classList.add('hidden');
+
+    if (wolBtn) wolBtn.classList.remove('hidden');
+    if (broadcastBtn) broadcastBtn.classList.remove('hidden');
+    if (lockBtn) lockBtn.classList.remove('hidden');
+    if (faultBtn) faultBtn.classList.remove('hidden');
+
+    applyBtnState(wolBtn, canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền điều khiển nguồn Wake-on-LAN');
+    applyBtnState(broadcastBtn, canBroadcast, 'Phát bài giảng & đề thi (UDP Multicast)', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mới có quyền phát bài giảng');
+    applyBtnState(lockBtn, canLockScreen, 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mở ca mới có quyền khóa màn hình');
+    applyBtnState(faultBtn, canFaultInject, 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
+    applyBtnState(resetBtn, canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền khôi phục');
+  }
 
   // Nút thao tác nhanh trên Banner Dashboard (Tab 1)
   const dashBtnReport = document.getElementById('dash-btn-report');
@@ -6554,6 +6659,120 @@ window.resetUserPassword = function(userId) {
             <p class="text-emerald-600 font-semibold mt-1">Trạng thái: Đã mở khóa & sẵn sàng sử dụng.</p>
           </div>
         `
+      });
+    }
+  });
+};
+
+/**
+ * Tiện ích cho Sinh viên tra cứu: Lọc nhanh và làm nổi bật các máy tính trống / hoạt động tốt
+ */
+window.findAvailableComputersForStudent = function() {
+  if (window.labSimulation) {
+    const statusSelect = document.getElementById('sim-status-filter');
+    if (statusSelect) {
+      statusSelect.value = 'good';
+      window.labSimulation.statusFilter = 'good';
+      window.labSimulation.applyFilters();
+    }
+    const goodCount = (window.appState.computers || []).filter(c => c.labId === window.labSimulation.currentLabId && c.status === 'good').length;
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: `Đang làm nổi bật ${goodCount} máy tính sẵn sàng sử dụng tại ${window.labSimulation.currentLabId}`,
+      timer: 2200,
+      showConfirmButton: false
+    });
+  }
+};
+
+/**
+ * Tiện ích cho Sinh viên tra cứu: Mở biểu mẫu báo hỏng máy tính trực quan
+ */
+window.openStudentReportFaultModal = function() {
+  const currentLab = window.labSimulation ? window.labSimulation.currentLabId : 'PM1';
+  const labComputers = (window.appState?.computers || []).filter(c => c.labId === currentLab);
+
+  Swal.fire({
+    width: '420px',
+    padding: '1.25rem',
+    title: `
+      <div class="text-left flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-base shadow-xs shrink-0">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <div class="text-sm font-extrabold text-slate-900 uppercase">Báo Hỏng Máy Tính</div>
+          <div class="text-[11px] text-slate-500 font-medium">Gửi phiếu báo sự cố đến Kỹ thuật viên</div>
+        </div>
+      </div>
+    `,
+    html: `
+      <div class="text-left text-xs space-y-3 mt-3">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Chọn máy tính gặp sự cố (${currentLab}):</label>
+          <select id="swal-student-comp-id" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+            ${labComputers.map(c => `<option value="${c.id}">${c.name} (${c.id}) - [${c.brand || 'PC'}]</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Mô tả hiện tượng sự cố:</label>
+          <textarea id="swal-student-issue-desc" rows="3" placeholder="Ví dụ: Máy không lên nguồn, màn hình bị nhấp nháy, chuột không nhận, mất mạng..." 
+            class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+        <div class="p-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-[11px] flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-info text-blue-600 shrink-0"></i>
+          <span>Kỹ thuật viên sẽ tiếp nhận và tiến hành xử lý kỹ thuật.</span>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-paper-plane mr-1"></i>Gửi Báo Hỏng',
+    cancelButtonText: 'Hủy',
+    confirmButtonColor: '#d97706',
+    preConfirm: () => {
+      const compId = document.getElementById('swal-student-comp-id')?.value;
+      const desc = document.getElementById('swal-student-issue-desc')?.value.trim();
+      if (!desc) {
+        Swal.showValidationMessage('Vui lòng mô tả ngắn gọn sự cố gặp phải!');
+        return false;
+      }
+      return { compId, desc };
+    }
+  }).then(res => {
+    if (res.isConfirmed && res.value) {
+      const { compId, desc } = res.value;
+      const comp = (window.appState.computers || []).find(c => c.id === compId);
+      if (comp) {
+        comp.status = 'warning';
+        comp.issue = desc;
+      }
+      const ticketId = 'INC-' + String((window.appState.maintenance || []).length + 1).padStart(3, '0');
+      const newTicket = {
+        id: ticketId,
+        computerId: compId,
+        labId: currentLab,
+        computerName: comp ? comp.name : compId,
+        issue: desc,
+        reportedBy: 'Sinh viên TNUS',
+        reporterRole: 'student',
+        reportedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        status: 'pending',
+        priority: 'medium',
+        type: 'hardware'
+      };
+      if (!window.appState.maintenance) window.appState.maintenance = [];
+      window.appState.maintenance.unshift(newTicket);
+      window.saveStateToLocalStorage();
+      if (window.labSimulation && typeof window.labSimulation.renderRoom === 'function') {
+        window.labSimulation.renderRoom();
+      }
+      Swal.fire({
+        icon: 'success',
+        title: 'Đã gửi báo hỏng thành công',
+        text: `Mã phiếu ${ticketId} đã được chuyển đến Kỹ thuật viên phòng máy.`,
+        confirmButtonColor: '#2563eb'
       });
     }
   });
