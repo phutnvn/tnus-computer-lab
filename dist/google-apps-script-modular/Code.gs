@@ -244,12 +244,10 @@ function setupGoogleSheets() {
   var sheetUsers = getOrCreateSheet(ss, SHEET_CONFIG.USERS);
   sheetUsers.clear();
   sheetUsers.appendRow(['Mã', 'Tên đăng nhập', 'Họ và tên', 'Vai trò', 'Email', 'Điện thoại', 'Đơn vị', 'Mật khẩu băm (SHA-256)', 'Trạng thái', 'Đăng nhập cuối', 'Ngày tạo']);
-  sheetUsers.appendRow(['USR-01', 'admin', 'ThS. Trịnh Minh Phú', 'super_admin', 'phutm@tnus.edu.vn', '0975.090.666', 'Khoa Toán - Tin, TNUS', serverHashPassword('Tnus@Admin2026'), 'active', '2026-11-14 08:30', '2026-10-15']);
-  sheetUsers.appendRow(['USR-02', 'admin_cntt', 'KS. Trần Văn Hải', 'admin', 'haitv@tnus.edu.vn', '0983.123.456', 'Khoa Toán - Tin, TNUS', serverHashPassword('Tnus@Admin2026'), 'active', '2026-11-14 08:15', '2026-10-16']);
-  sheetUsers.appendRow(['USR-03', 'qlphongmay', 'ThS. Lê Hoàng Nam', 'lab_manager', 'namlh@tnus.edu.vn', '0978.889.991', 'Tổ Quản trị Phòng máy - Khoa Toán - Tin', serverHashPassword('Tnus@Manager2026'), 'active', '2026-11-14 07:45', '2026-10-18']);
-  sheetUsers.appendRow(['USR-04', 'toannv', 'ThS. Nguyễn Văn Toàn', 'teacher', 'toannv@tnus.edu.vn', '0912.345.678', 'Bộ môn Khoa học Máy tính', serverHashPassword('Tnus@Teacher2026'), 'active', '2026-11-14 07:15', '2026-10-20']);
-  sheetUsers.appendRow(['USR-05', 'ktvlab', 'KTV. Chu Tuấn Hưng', 'lab_staff', 'hungct@tnus.edu.vn', '0988.776.655', 'Tổ Kỹ thuật - Khoa Toán - Tin', serverHashPassword('Tnus@Staff2026'), 'active', '2026-11-14 08:00', '2026-10-25']);
-  sheetUsers.appendRow(['USR-06', 'student', 'Sinh viên TNUS (Khách)', 'student', 'sinhvien@tnus.edu.vn', '0208.3855.564', 'Khoa Toán - Tin, TNUS', serverHashPassword('Tnus@Student2026'), 'active', '2026-11-14 09:10', '2026-11-01']);
+  sheetUsers.appendRow(['USR-01', 'admin', 'ThS. Trịnh Minh Phú', 'admin', 'phutm@tnus.edu.vn', '0975.090.666', 'Khoa Toán - Tin, TNUS', serverHashPassword('Tnus@Admin2026'), 'active', '2026-11-18 08:30', '2026-10-15']);
+  sheetUsers.appendRow(['USR-02', 'linhtt', 'Trịnh Thị Linh', 'lab_manager', 'linhtt@tnus.edu.vn', '0978.889.991', 'Tổ Quản trị Phòng máy - Khoa Toán - Tin', serverHashPassword('Tnus@2026'), 'active', '2026-11-18 08:00', '2026-10-15']);
+  sheetUsers.appendRow(['USR-03', 'thuta', 'Trịnh Anh Thư', 'teacher', 'thuta@tnus.edu.vn', '0912.345.678', 'Bộ môn Tin học - Khoa Toán - Tin, TNUS', serverHashPassword('Tnus@2026'), 'active', '2026-11-18 07:50', '2026-10-15']);
+  sheetUsers.appendRow(['USR-04', 'student', 'Sinh viên / Khách tra cứu', 'student', 'sinhvien@tnus.edu.vn', '0208.3855.564', 'Khoa Toán - Tin, TNUS', serverHashPassword('Tnus@2026'), 'active', '2026-11-18 08:15', '2026-10-15']);
   formatHeaderRow(sheetUsers);
 
   // 2. Tạo Sheet Roles

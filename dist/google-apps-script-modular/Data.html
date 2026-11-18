@@ -4616,7 +4616,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_01 (ToánV1 24) N1",
     "studentCount": 24,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -4692,7 +4692,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_01 (ToánV1 24) N2",
     "studentCount": 23,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -4749,7 +4749,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_19 (NNTQ5 24) N2",
     "studentCount": 20,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -4996,7 +4996,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_19 (NNTQ5 24) N1",
     "studentCount": 20,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -5015,7 +5015,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_06 (Luật1 24) N1",
     "studentCount": 23,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -5091,7 +5091,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_03 (TTGV 24, TTUD 24) N1",
     "studentCount": 22,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -5414,7 +5414,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_01 (ToánV1 24) N4",
     "studentCount": 23,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -5832,7 +5832,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_25 (ToánV3 24) N1",
     "studentCount": 24,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -5889,7 +5889,7 @@ const INITIAL_SCHEDULES = [
     "subject": "Tin học đại cương",
     "className": "Tin học đại cương_25 (ToánV3 24) N2",
     "studentCount": 23,
-    "lecturer": "Giảng viên thực hành",
+    "lecturer": "Trịnh Anh Thư",
     "type": "Thực hành chính khóa",
     "status": "Đã hoàn thành",
     "creator": "admin@dhkhoahoc.edu.vn",
@@ -6698,7 +6698,7 @@ const STANDARD_ROLE_ACCOUNTS = {
   lab_manager: {
     id: 'USR-02',
     username: 'linhtt',
-    name: 'ThS. Trần Thị Linh',
+    name: 'Trịnh Thị Linh',
     role: 'lab_manager',
     roleName: 'Quản lý phòng máy',
     email: 'linhtt@tnus.edu.vn',
@@ -6710,10 +6710,23 @@ const STANDARD_ROLE_ACCOUNTS = {
     passwordHash: hashPassword('Tnus@2026'),
     salt: 'TNUS_KHOA_TOAN_TIN_2026'
   },
-  // Không có tài khoản Giảng viên mặc định - Chỉ cho phép các tài khoản Giảng viên do Admin khởi tạo
-  teacher: null,
-  student: {
+  teacher: {
     id: 'USR-03',
+    username: 'thuta',
+    name: 'Trịnh Anh Thư',
+    role: 'teacher',
+    roleName: 'Giảng viên',
+    email: 'thuta@tnus.edu.vn',
+    phone: '0912.345.678',
+    department: 'Bộ môn Tin học - Khoa Toán - Tin, TNUS',
+    avatar: '👨‍🏫',
+    status: 'active',
+    initialPassword: 'Tnus@2026',
+    passwordHash: hashPassword('Tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026'
+  },
+  student: {
+    id: 'USR-04',
     username: 'student',
     name: 'Sinh viên / Khách tra cứu',
     role: 'student',
@@ -6729,7 +6742,7 @@ const STANDARD_ROLE_ACCOUNTS = {
   }
 };
 
-// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (CHỈ GỒM ADMIN, QUẢN LÝ PHÒNG MÁY, SINH VIÊN; GIẢNG VIÊN DO ADMIN TẠO)
+// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (4 VAI TRÒ CHUẨN ĐỒNG BỘ TOÀN DIỆN TNUS)
 const INITIAL_USERS = [
   {
     id: 'USR-01',
@@ -6752,7 +6765,7 @@ const INITIAL_USERS = [
   {
     id: 'USR-02',
     username: 'linhtt',
-    name: 'ThS. Trần Thị Linh',
+    name: 'Trịnh Thị Linh',
     role: 'lab_manager',
     roleName: 'Quản lý phòng máy',
     email: 'linhtt@tnus.edu.vn',
@@ -6769,6 +6782,24 @@ const INITIAL_USERS = [
   },
   {
     id: 'USR-03',
+    username: 'thuta',
+    name: 'Trịnh Anh Thư',
+    role: 'teacher',
+    roleName: 'Giảng viên',
+    email: 'thuta@tnus.edu.vn',
+    phone: '0912.345.678',
+    department: 'Bộ môn Tin học - Khoa Toán - Tin, TNUS',
+    avatar: '👨‍🏫',
+    status: 'active',
+    initialPassword: 'Tnus@2026',
+    passwordHash: hashPassword('Tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026',
+    failedLogins: 0,
+    createdAt: '2026-10-15',
+    lastLogin: '2026-11-18 07:50'
+  },
+  {
+    id: 'USR-04',
     username: 'student',
     name: 'Sinh viên / Khách tra cứu',
     role: 'student',
