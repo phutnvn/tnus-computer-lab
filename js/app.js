@@ -159,14 +159,14 @@ function loadState() {
             };
             window.appState.users.push(teacherUser);
           } else {
-            // Chuẩn hóa tên đăng nhập và chức danh
-            teacherUser.username = 'anhnt';
-            teacherUser.name = 'ThS. Nguyễn Tuấn Anh';
+            // Chuẩn hóa tên đăng nhập và vai trò nếu thiếu, bảo toàn họ tên do Admin cập nhật
+            if (!teacherUser.username) teacherUser.username = 'anhnt';
+            if (!teacherUser.name) teacherUser.name = 'ThS. Nguyễn Tuấn Anh';
             teacherUser.role = 'teacher';
             teacherUser.roleName = 'Giảng viên';
-            teacherUser.status = 'active';
-            teacherUser.email = 'anhnt@tnus.edu.vn';
-            teacherUser.department = 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS';
+            if (!teacherUser.status) teacherUser.status = 'active';
+            if (!teacherUser.email) teacherUser.email = 'anhnt@tnus.edu.vn';
+            if (!teacherUser.department) teacherUser.department = 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS';
             if (!teacherUser.initialPassword) teacherUser.initialPassword = 'Tnus@2026';
           }
         }
@@ -997,34 +997,30 @@ window.updateUserUI = function() {
   // - Sinh viên: BỎ HOÀN TOÀN nút lệnh / hộp chọn vai trò (ẩn roleContainer)
   // - Admin: Hiển thị dropdown chuyển đổi vai trò
   // - Quản lý phòng máy, Giảng viên: Hiển thị huy hiệu vai trò tĩnh cố định
-  if (roleContainer) {
-    if (isStudent) {
-      roleContainer.style.display = 'none';
-    } else {
-      roleContainer.style.display = '';
-    }
+  if (roleContainer && roleContainer.style) {
+    roleContainer.style.display = isStudent ? 'none' : '';
   }
 
-  if (select) {
+  if (select && select.style) {
     select.value = role;
     if (isAdmin) {
       select.style.display = '';
       select.removeAttribute('disabled');
-      if (staticBadge) staticBadge.style.display = 'none';
-      if (roleLabel) roleLabel.style.display = '';
+      if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
+      if (roleLabel && roleLabel.style) roleLabel.style.display = '';
     } else if (isStudent) {
       select.style.display = 'none';
       select.setAttribute('disabled', 'true');
-      if (staticBadge) staticBadge.style.display = 'none';
-      if (roleLabel) roleLabel.style.display = 'none';
+      if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
+      if (roleLabel && roleLabel.style) roleLabel.style.display = 'none';
     } else {
       select.style.display = 'none';
       select.setAttribute('disabled', 'true');
-      if (staticBadge) {
+      if (staticBadge && staticBadge.style) {
         staticBadge.style.display = '';
         if (staticName) staticName.textContent = u.roleName || role;
       }
-      if (roleLabel) roleLabel.style.display = '';
+      if (roleLabel && roleLabel.style) roleLabel.style.display = '';
     }
   }
 
@@ -1236,6 +1232,27 @@ window.initUserModule = function() {
   window.renderActivityLogs();
 };
 
+// Làm mới bộ lọc và nạp lại danh sách tài khoản
+window.resetUserFilters = function() {
+  const searchInput = document.getElementById('user-search-input');
+  const roleFilter = document.getElementById('user-role-filter');
+  const statusFilter = document.getElementById('user-status-filter');
+  if (searchInput) searchInput.value = '';
+  if (roleFilter) roleFilter.value = 'all';
+  if (statusFilter) statusFilter.value = 'all';
+  if (window.userPagination) window.userPagination.page = 1;
+  window.renderUserAccountsTable();
+  window.updateUserKPIs();
+  Swal.fire({
+    toast: true,
+    position: 'top-end',
+    icon: 'success',
+    title: 'Đã làm mới danh sách tài khoản!',
+    showConfirmButton: false,
+    timer: 1500
+  });
+};
+
 // Kết xuất bảng tài khoản người dùng
 window.renderUserAccountsTable = function() {
   const tbody = document.getElementById('user-accounts-table-body');
@@ -1319,31 +1336,31 @@ window.renderUserAccountsTable = function() {
 
     return `
       <tr class="hover:bg-slate-50/90 transition border-b border-slate-100 ${isCurrent ? 'bg-blue-50/40 font-medium' : ''}">
-        <!-- Cột Mã (Chống gãy dòng & Ghim cố định khi cuộn) -->
-        <td class="py-3 px-3 text-center whitespace-nowrap sticky left-0 ${isCurrent ? 'bg-blue-50/95' : 'bg-white'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
-          <span class="font-mono font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs shadow-2xs">${user.id}</span>
+        <!-- Cột Mã (Hiển thị rõ nét, không gãy dòng) -->
+        <td class="py-3 px-3 text-center whitespace-nowrap">
+          <span class="font-mono font-extrabold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200 text-xs shadow-2xs">${user.id}</span>
         </td>
 
-        <!-- Cột Thông tin người dùng (Ghim cố định khi cuộn) -->
-        <td class="py-3 px-4 min-w-[210px] whitespace-nowrap sticky left-16 ${isCurrent ? 'bg-blue-50/95' : 'bg-white'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+        <!-- Cột Thông tin người dùng -->
+        <td class="py-3 px-4 min-w-[210px]">
           <div class="flex items-center space-x-2.5">
             <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-lg shadow-xs shrink-0">
               ${user.avatar || '👤'}
             </div>
-            <div>
-              <div class="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                <span>${user.name}</span>
-                ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-blue-600 text-white font-extrabold uppercase shadow-2xs">Bạn</span>' : ''}
+            <div class="min-w-0">
+              <div class="font-bold text-slate-900 text-xs flex items-center gap-1.5 flex-wrap">
+                <span class="truncate">${user.name}</span>
+                ${isCurrent ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-blue-600 text-white font-extrabold uppercase shadow-2xs">Bạn</span>' : ''}
               </div>
-              <div class="text-[11px] text-slate-500 font-mono">@${user.username}</div>
+              <div class="text-[11px] text-slate-500 font-mono">@${(user.username || '').replace(/^@+/, '')}</div>
             </div>
           </div>
         </td>
 
         <!-- Cột Vai trò phân quyền (Hiển thị rõ chức năng & quyền hạn) -->
-        <td class="py-3 px-4 min-w-[210px] whitespace-nowrap">
+        <td class="py-3 px-3 min-w-[150px]">
           <div class="flex flex-col items-start gap-1">
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${roleCfg.bg}">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border shadow-2xs ${roleCfg.bg}">
               ${roleCfg.label}
             </span>
             <div class="text-[10px] text-slate-500 font-medium leading-tight">
@@ -1351,89 +1368,89 @@ window.renderUserAccountsTable = function() {
             </div>
             <button onclick="window.viewRoleDetailModal('${user.role}')" class="text-[10px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold transition" title="Xem danh sách quyền hạn chi tiết của vai trò này">
               <i class="fa-solid fa-shield-halved text-[9px]"></i>
-              <span>Xem quyền & chức năng</span>
+              <span>Xem quyền hạn</span>
             </button>
           </div>
         </td>
 
         <!-- Cột Đơn vị & Liên hệ -->
-        <td class="py-3 px-4 min-w-[220px] whitespace-nowrap text-xs">
-          <div class="text-slate-800 font-semibold">${user.department || 'Khoa Toán - Tin, TNUS'}</div>
-          <div class="text-slate-500 font-mono text-[11px] flex items-center gap-3 mt-1">
-            <span class="flex items-center gap-1 text-slate-600"><i class="fa-regular fa-envelope text-slate-400"></i>${user.email || 'chua_co@tnus.edu.vn'}</span>
+        <td class="py-3 px-3 min-w-[190px] text-xs">
+          <div class="text-slate-800 font-semibold truncate max-w-[220px]" title="${user.department || 'Khoa Toán - Tin, TNUS'}">${user.department || 'Khoa Toán - Tin, TNUS'}</div>
+          <div class="text-slate-500 font-mono text-[11px] flex flex-col gap-0.5 mt-1">
+            <span class="flex items-center gap-1 text-slate-600 truncate max-w-[220px]" title="${user.email || 'Chưa có email'}"><i class="fa-regular fa-envelope text-slate-400"></i>${user.email || 'chua_co@tnus.edu.vn'}</span>
             ${user.phone ? `<span class="flex items-center gap-1 text-blue-700 font-bold"><i class="fa-solid fa-phone text-blue-500"></i>${user.phone}</span>` : ''}
           </div>
         </td>
 
-        <!-- Cột Trạng thái (chống gãy chữ Hoạt / động) -->
-        <td class="py-3 px-4 text-center whitespace-nowrap">
+        <!-- Cột Trạng thái -->
+        <td class="py-3 px-3 text-center whitespace-nowrap">
           ${isLocked ? `
             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs">
-              <i class="fa-solid fa-lock mr-1.5"></i>Đã khóa
+              <i class="fa-solid fa-lock mr-1 text-[10px]"></i>Đã khóa
             </span>
           ` : `
             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-2xs">
-              <i class="fa-solid fa-circle-check mr-1.5 text-emerald-600"></i>Hoạt động
+              <i class="fa-solid fa-circle-check mr-1 text-[10px] text-emerald-600"></i>Hoạt động
             </span>
           `}
         </td>
 
-        <!-- Cột Đăng nhập cuối (chống gãy dòng ngày giờ) -->
-        <td class="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
-          ${user.lastLogin || '2026-11-14 08:00'}
+        <!-- Cột Đăng nhập cuối -->
+        <td class="py-3 px-3 text-center font-mono text-[11px] text-slate-500 whitespace-nowrap">
+          ${user.lastLogin || 'Chưa đăng nhập'}
         </td>
 
-        <!-- Cột Thao tác: Thiết kế nút bấm đầy đủ, màu sắc nổi bật, chống mờ -->
+        <!-- Cột Thao tác: Nhóm 6 nút thao tác chuẩn TNUS -->
         <td class="py-3 px-4 text-center whitespace-nowrap">
-          <div class="flex items-center justify-center space-x-1.5">
+          <div class="flex items-center justify-center gap-1.5 flex-nowrap">
             <!-- Nút Kích hoạt / Đang dùng -->
             ${isCurrent ? `
-              <span class="px-2.5 py-1 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-default">
+              <span class="px-2 py-1 bg-slate-100 text-slate-500 border border-slate-200 rounded-md text-[11px] font-bold inline-flex items-center gap-1 cursor-default">
                 <i class="fa-solid fa-check text-blue-600"></i>Đang dùng
               </span>
             ` : `
-              <button onclick="window.switchToUser('${user.id}')" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1" title="Kích hoạt phiên làm việc của tài khoản này">
+              <button onclick="window.switchToUser('${user.id}')" class="px-2 py-1 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded-md text-[11px] font-bold transition shadow-2xs inline-flex items-center gap-1" title="Kích hoạt phiên làm việc của tài khoản này">
                 <i class="fa-solid fa-right-to-bracket"></i>Kích hoạt
               </button>
             `}
 
             <!-- Nút Sao chép thông tin tài khoản (Gửi Zalo / Email) -->
-            <button onclick="window.copyUserCredentials('${user.id}')" class="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-600 hover:text-white text-cyan-700 border border-cyan-300 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1" title="Sao chép thông tin đăng nhập để gửi cho Cán bộ / Giảng viên">
+            <button onclick="window.copyUserCredentials('${user.id}')" class="px-2 py-1 bg-cyan-50 hover:bg-cyan-600 hover:text-white text-cyan-700 border border-cyan-200 rounded-md text-[11px] font-bold transition shadow-2xs inline-flex items-center gap-1" title="Sao chép thông tin đăng nhập để gửi cho Cán bộ / Giảng viên">
               <i class="fa-regular fa-copy"></i>
               <span>Sao chép</span>
             </button>
 
-            <!-- Nút Sửa (Màu vàng cam nổi bật) -->
-            <button onclick="window.showEditUserModal('${user.id}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 border border-amber-300 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1" title="Chỉnh sửa thông tin tài khoản">
+            <!-- Nút Sửa -->
+            <button onclick="window.showEditUserModal('${user.id}')" class="px-2 py-1 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 border border-amber-200 rounded-md text-[11px] font-bold transition shadow-2xs inline-flex items-center gap-1" title="Chỉnh sửa thông tin tài khoản">
               <i class="fa-solid fa-pen-to-square"></i>
               <span>Sửa</span>
             </button>
 
-            <!-- Nút Đặt lại Mật khẩu (Reset Password) -->
-            <button onclick="window.resetUserPassword('${user.id}')" class="px-2.5 py-1 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition shadow-2xs flex items-center gap-1" title="Đặt lại mật khẩu về mặc định (tnus@2026)">
+            <!-- Nút Reset MK -->
+            <button onclick="window.resetUserPassword('${user.id}')" class="px-2 py-1 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 border border-purple-200 rounded-md text-[11px] font-bold transition shadow-2xs inline-flex items-center gap-1" title="Đặt lại mật khẩu về mặc định (Tnus@2026)">
               <i class="fa-solid fa-key"></i>
               <span>Reset MK</span>
             </button>
 
             <!-- Nút Khóa / Mở khóa -->
             ${isRootAdmin ? `
-              <button disabled class="px-2 py-1 bg-slate-50 text-slate-300 border border-slate-200 rounded-lg text-xs cursor-not-allowed" title="Tài khoản Quản trị viên mặc định không thể bị khóa">
+              <button disabled class="px-2 py-1 bg-slate-50 text-slate-300 border border-slate-200 rounded-md text-[11px] cursor-not-allowed" title="Tài khoản Quản trị viên gốc không thể bị khóa">
                 <i class="fa-solid fa-shield"></i>
               </button>
             ` : `
-              <button onclick="window.toggleUserStatus('${user.id}')" class="px-2.5 py-1 ${isLocked ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white' : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-600 hover:text-white'} rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1" title="${isLocked ? 'Mở khóa tài khoản này' : 'Khóa tài khoản này'}">
+              <button onclick="window.toggleUserStatus('${user.id}')" class="px-2 py-1 ${isLocked ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white' : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-600 hover:text-white'} rounded-md text-[11px] font-bold transition shadow-2xs inline-flex items-center gap-1" title="${isLocked ? 'Mở khóa tài khoản này' : 'Khóa tài khoản này'}">
                 <i class="fa-solid ${isLocked ? 'fa-lock-open' : 'fa-lock'}"></i>
                 <span>${isLocked ? 'Mở' : 'Khóa'}</span>
               </button>
             `}
 
-            <!-- Nút Xóa (Màu đỏ cảnh báo) -->
+            <!-- Nút Xóa -->
             ${isRootAdmin ? `
-              <button disabled class="px-2.5 py-1 bg-slate-50 text-slate-300 border border-slate-200 rounded-lg text-xs cursor-not-allowed" title="Tài khoản Quản trị viên mặc định không thể xóa">
+              <button disabled class="px-2 py-1 bg-slate-50 text-slate-300 border border-slate-200 rounded-md text-[11px] cursor-not-allowed" title="Tài khoản Quản trị viên gốc không thể xóa">
                 <i class="fa-solid fa-lock"></i>
               </button>
             ` : `
-              <button onclick="window.deleteUser('${user.id}')" class="px-2.5 py-1 bg-slate-50 hover:bg-rose-600 hover:text-white text-slate-600 hover:border-rose-600 border border-slate-300 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1" title="Xóa tài khoản này">
+              <button onclick="window.deleteUser('${user.id}')" class="px-2 py-1 bg-slate-50 hover:bg-rose-600 hover:text-white text-slate-600 hover:border-rose-600 border border-slate-300 rounded-md text-[11px] font-bold transition shadow-2xs inline-flex items-center gap-1" title="Xóa tài khoản này">
                 <i class="fa-regular fa-trash-can"></i>
                 <span>Xóa</span>
               </button>
@@ -2056,8 +2073,11 @@ window.showEditUserModal = function(userId) {
             <input type="text" value="${user.id}" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded font-mono font-bold text-slate-600 text-xs">
           </div>
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Tên Đăng Nhập (Username)</label>
-            <input type="text" value="${user.username}" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded font-mono text-slate-600 text-xs">
+            <label class="block font-bold text-slate-700 mb-1">Tên Đăng Nhập (Username) ${user.id === 'USR-01' ? '' : '<span class="text-rose-500">*</span>'}</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-mono text-xs font-bold pointer-events-none">@</span>
+              <input type="text" id="edit-user-username" value="${(user.username || '').replace(/^@+/, '')}" ${user.id === 'USR-01' ? 'readonly class="w-full pl-7 pr-2 py-2 bg-slate-100 border border-slate-300 rounded font-mono text-slate-600 text-xs cursor-not-allowed"' : 'class="w-full pl-7 pr-2 py-2 border border-slate-300 rounded font-mono text-xs font-bold text-slate-800 focus:ring-1 focus:ring-blue-500 focus:outline-none"'}>
+            </div>
           </div>
         </div>
 
@@ -2153,14 +2173,34 @@ window.showEditUserModal = function(userId) {
         return false;
       }
 
+      const newUname = (document.getElementById('edit-user-username')?.value || '').trim().toLowerCase().replace(/^@+/, '');
+      if (user.id !== 'USR-01') {
+        if (!newUname || newUname.length < 3) {
+          Swal.showValidationMessage('Tên đăng nhập phải có ít nhất 3 ký tự!');
+          return false;
+        }
+        if (!/^[a-z0-9_.-]+$/.test(newUname)) {
+          Swal.showValidationMessage('Tên đăng nhập chỉ được chứa chữ thường, số và dấu (_ . -)!');
+          return false;
+        }
+        const duplicate = (window.appState.users || []).find(u => u.id !== user.id && (u.username || '').toLowerCase().replace(/^@+/, '') === newUname);
+        if (duplicate) {
+          Swal.showValidationMessage(`Tên đăng nhập "@${newUname}" đã được sử dụng bởi ${duplicate.name}!`);
+          return false;
+        }
+      }
+
       const newPass = document.getElementById('edit-user-newpass')?.value?.trim();
-      return { name, role, dept, avatar, email, phone, status, newPass };
+      return { name, username: newUname, role, dept, avatar, email, phone, status, newPass };
     }
   }).then(result => {
     if (result.isConfirmed && result.value) {
       const val = result.value;
       const roleObj = (window.appState.roles || SYSTEM_ROLES).find(r => r.id === val.role);
       user.name = val.name;
+      if (user.id !== 'USR-01' && val.username) {
+        user.username = val.username;
+      }
       user.role = val.role;
       user.roleName = roleObj ? roleObj.name : val.role;
       user.department = val.dept;
@@ -2577,13 +2617,13 @@ window.downloadUserExcelTemplate = function() {
     {
       'STT': 3,
       'Mã tài khoản': 'USR-03',
-      'Tên đăng nhập': 'toannv',
-      'Họ và tên': 'TS. Nguyễn Văn Toán',
+      'Tên đăng nhập': 'anhnt',
+      'Họ và tên': 'ThS. Nguyễn Tuấn Anh',
       'Mã vai trò (RBAC)': 'teacher',
       'Vai trò hệ thống': 'Giảng viên',
-      'Đơn vị công tác': 'Bộ môn Khoa học Máy tính - TNUS',
-      'Email': 'toannv@tnus.edu.vn',
-      'Số điện thoại': '0912.345.678',
+      'Đơn vị công tác': 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
+      'Email': 'anhnt@tnus.edu.vn',
+      'Số điện thoại': '0983.123.456',
       'Trạng thái': 'Đang hoạt động'
     },
     {
@@ -2782,6 +2822,7 @@ window.handleUserExcelImport = function(event) {
             email: (r['Email'] || r['email'] || `${username}@tnus.edu.vn`).toString().trim(),
             phone: (r['Số điện thoại'] || r['phone'] || r['SĐT'] || '').toString().trim(),
             status: ((r['Trạng thái'] || r['status'] || '').toString().toLowerCase().includes('khóa') || (r['Trạng thái'] || '').toString().toLowerCase().includes('locked')) ? 'locked' : 'active',
+            initialPassword: defaultPass,
             passwordHash: typeof hashPassword === 'function' ? hashPassword(defaultPass, salt) : 'hashed_' + defaultPass,
             salt: salt,
             failedLogins: 0,

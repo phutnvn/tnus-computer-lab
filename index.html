@@ -1025,28 +1025,33 @@
                 </button>
                 <input type="file" id="input-import-users" class="hidden" accept=".xlsx, .xls, .csv" onchange="window.handleUserExcelImport(event)">
 
+                <button onclick="window.resetUserFilters()" 
+                  class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition border border-slate-200 shadow-2xs" title="Làm mới bộ lọc & Tải lại danh sách">
+                  <i class="fa-solid fa-arrow-rotate-right text-xs"></i>
+                </button>
+
                 <button onclick="window.resetUsersToDefault()" 
-                  class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Khôi phục danh sách tài khoản gốc">
-                  <i class="fa-solid fa-arrow-rotate-left text-xs"></i>
+                  class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 shadow-2xs" title="Khôi phục danh sách tài khoản mặc định ban đầu">
+                  <i class="fa-solid fa-history text-xs"></i>
                 </button>
               </div>
             </div>
 
             <!-- Table -->
-            <div class="overflow-x-auto relative shadow-inner">
-              <table class="w-full text-left text-xs min-w-[980px]">
-                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px] whitespace-nowrap sticky top-0 z-10">
+            <div class="overflow-x-auto relative rounded-xl border border-slate-200">
+              <table class="w-full text-left text-xs min-w-[960px]">
+                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px] whitespace-nowrap">
                   <tr>
-                    <th class="py-3 px-3 text-center w-16 sticky left-0 bg-slate-100 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Mã</th>
-                    <th class="py-3 px-4 min-w-[210px] sticky left-16 bg-slate-100 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Thông Tin Người Dùng</th>
-                    <th class="py-3 px-3 min-w-[130px]">Vai Trò Phân Quyền</th>
-                    <th class="py-3 px-3 min-w-[210px]">Đơn Vị & Liên Hệ</th>
-                    <th class="py-3 px-3 text-center min-w-[100px]">Trạng Thái</th>
-                    <th class="py-3 px-3 min-w-[120px]">Đăng Nhập Cuối</th>
-                    <th class="py-3 px-3 text-center min-w-[190px]">Thao Tác</th>
+                    <th class="py-3 px-3 text-center w-16">Mã</th>
+                    <th class="py-3 px-4 min-w-[210px]">Thông Tin Người Dùng</th>
+                    <th class="py-3 px-3 min-w-[150px]">Vai Trò Phân Quyền</th>
+                    <th class="py-3 px-3 min-w-[190px]">Đơn Vị & Liên Hệ</th>
+                    <th class="py-3 px-3 text-center min-w-[110px]">Trạng Thái</th>
+                    <th class="py-3 px-3 text-center min-w-[125px]">Đăng Nhập Cuối</th>
+                    <th class="py-3 px-4 text-center min-w-[290px]">Thao Tác</th>
                   </tr>
                 </thead>
-                <tbody id="user-accounts-table-body" class="divide-y divide-slate-100 text-slate-700">
+                <tbody id="user-accounts-table-body" class="divide-y divide-slate-100 text-slate-700 bg-white">
                   <!-- Nạp động qua JS -->
                 </tbody>
               </table>
