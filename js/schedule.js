@@ -1473,6 +1473,12 @@ class ScheduleManager {
     const defaultDate = prefillDate || (this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate);
     const defaultLecturer = (curUser && curUser.role === 'teacher') ? (curUser.name || 'Giảng viên') : (curUser?.name || 'ThS. Trịnh Minh Phú');
 
+    const teacherUsers = (window.appState?.users || []).filter(u => {
+      const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+      return r === 'teacher';
+    });
+    const teacherDatalistHtml = teacherUsers.map(t => `<option value="${t.name}">@${t.username} - ${t.department || 'Khoa Toán - Tin'}</option>`).join('');
+
     Swal.fire({
       title: `
         <div class="flex items-center space-x-2 text-left">
@@ -1541,7 +1547,10 @@ class ScheduleManager {
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Giảng viên giảng dạy *</label>
-              <input type="text" id="modal-sch-lecturer" value="${defaultLecturer}" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
+              <input type="text" id="modal-sch-lecturer" list="teachers-datalist" value="${defaultLecturer}" placeholder="Chọn hoặc nhập tên giảng viên..." class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
+              <datalist id="teachers-datalist">
+                ${teacherDatalistHtml}
+              </datalist>
             </div>
           </div>
 
@@ -1692,6 +1701,12 @@ class ScheduleManager {
       }
     }
 
+    const teacherEditUsers = (window.appState?.users || []).filter(u => {
+      const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+      return r === 'teacher';
+    });
+    const teacherEditDatalistHtml = teacherEditUsers.map(t => `<option value="${t.name}">@${t.username} - ${t.department || 'Khoa Toán - Tin'}</option>`).join('');
+
     Swal.fire({
       title: `
         <div class="flex items-center space-x-2 text-left">
@@ -1760,7 +1775,10 @@ class ScheduleManager {
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Giảng viên giảng dạy</label>
-              <input type="text" id="edit-sch-lecturer" value="${item.lecturer}" class="w-full p-2 bg-white border border-slate-300 rounded">
+              <input type="text" id="edit-sch-lecturer" list="teachers-datalist-edit" value="${item.lecturer}" placeholder="Chọn hoặc nhập tên giảng viên..." class="w-full p-2 bg-white border border-slate-300 rounded">
+              <datalist id="teachers-datalist-edit">
+                ${teacherEditDatalistHtml}
+              </datalist>
             </div>
           </div>
 

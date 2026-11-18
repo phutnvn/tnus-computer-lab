@@ -153,17 +153,11 @@ function loadState() {
           });
         }
 
-        // Đồng bộ chuẩn hóa tài khoản Giảng viên (Trịnh Anh Thư - @thuta)
+        // Đồng bộ chuẩn hóa tài khoản Giảng viên chuẩn (Trịnh Anh Thư - @thuta)
         let teacherUser = window.appState.users.find(u => u.username === 'thuta' || (u.role === 'teacher' && u.name && u.name.includes('Anh Thư')));
         if (!teacherUser) {
-          // Nếu hệ thống chưa có giảng viên nào hoặc chưa có tài khoản thuta chuẩn, bổ sung Trịnh Anh Thư
-          const hasAnyTeacher = window.appState.users.some(u => {
-            const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
-            return r === 'teacher';
-          });
-          if (!hasAnyTeacher) {
-            window.appState.users.push({ ...INITIAL_USERS[2] });
-          }
+          // Bổ sung tài khoản Giảng viên chuẩn thuta nếu chưa có trong danh sách
+          window.appState.users.push({ ...INITIAL_USERS[2] });
         } else {
           teacherUser.username = 'thuta';
           teacherUser.name = 'Trịnh Anh Thư';
@@ -835,7 +829,7 @@ window.normalizeRole = function(r) {
   const str = String(r).toLowerCase().trim().replace(/^@+/, '');
   if (str === 'manager' || str === 'qlpm' || str === 'qlphong' || str === 'lab_manager' || str === 'quanly' || str === 'quanlyphongmay' || str === 'linhtt') return 'lab_manager';
   if (str === 'staff' || str === 'ktv' || str === 'kythuat' || str === 'lab_staff' || str === 'technician') return 'lab_manager';
-  if (str === 'teacher' || str === 'giangvien' || str === 'gv') return 'teacher';
+  if (str === 'teacher' || str === 'giangvien' || str === 'gv' || str === 'thuta') return 'teacher';
   if (str === 'student' || str === 'sinhvien' || str === 'khach' || str === 'guest' || str === 'sv') return 'student';
   if (str === 'admin' || str === 'administrator' || str === 'quantri' || str === 'quantrivien' || str === 'phutm') return 'admin';
   
@@ -1161,6 +1155,9 @@ window.switchToUser = function(userId) {
   window.appState.currentUser = targetUser;
   window.saveStateToLocalStorage();
   window.updateUserUI();
+  if (typeof window.applyRoleRestrictionsToUI === 'function') {
+    window.applyRoleRestrictionsToUI();
+  }
   window.logUserActivity('Đổi phiên đăng nhập', `Quản trị viên chuyển sang làm việc dưới danh nghĩa ${targetUser.name} (${targetUser.roleName})`, 'users', 'SUCCESS');
 
   if (window.renderUserAccountsTable) window.renderUserAccountsTable();
@@ -1175,11 +1172,11 @@ window.switchToUser = function(userId) {
     targetTab = 'schedule';
     tabName = 'Lịch thực hành';
   } else if (targetRole === 'lab_manager') {
-    targetTab = 'dashboard';
-    tabName = 'Dashboard & Điều hành 4 phòng máy';
+    targetTab = 'computers';
+    tabName = 'Quản lý Thiết bị (104 máy)';
   } else if (targetRole === 'admin') {
-    targetTab = 'users';
-    tabName = 'Phân quyền & Tài khoản';
+    targetTab = 'dashboard';
+    tabName = 'Dashboard Tổng quan';
   }
 
   if (typeof window.switchTab === 'function') {
@@ -1956,6 +1953,9 @@ window.showAddUserModal = function() {
       const roleObj = (window.appState.roles || SYSTEM_ROLES || []).find(r => r.id === role);
       const roleName = roleObj ? roleObj.name : (role === 'lab_manager' ? 'Quản lý phòng máy' : (role === 'teacher' ? 'Giảng viên' : (role === 'admin' ? 'Quản trị viên' : 'Sinh viên')));
       const salt = 'TNUS_KHOA_TOAN_TIN_2026';
+      const rolePerms = (typeof DEFAULT_ROLE_PERMISSIONS !== 'undefined' && DEFAULT_ROLE_PERMISSIONS[role]) 
+        ? [...DEFAULT_ROLE_PERMISSIONS[role]] 
+        : [];
 
       return {
         id: defaultId,
@@ -1963,7 +1963,7 @@ window.showAddUserModal = function() {
         name,
         role,
         roleName,
-        department: dept || 'Khoa Toán - Tin, TNUS',
+        department: dept || (role === 'lab_manager' ? 'Tổ Quản trị Phòng máy - Khoa Toán - Tin' : (role === 'teacher' ? 'Bộ môn Tin học - Khoa Toán - Tin, TNUS' : 'Khoa Toán - Tin, TNUS')),
         avatar,
         email: email || `${username}@tnus.edu.vn`,
         phone: phone || '',
@@ -1971,6 +1971,7 @@ window.showAddUserModal = function() {
         initialPassword: rawPass,
         passwordHash: typeof hashPassword === 'function' ? hashPassword(rawPass, salt) : 'sha256_' + rawPass,
         salt: salt,
+        permissions: rolePerms,
         failedLogins: 0,
         createdAt: new Date().toISOString().split('T')[0],
         lastLogin: 'Chưa đăng nhập'
@@ -2216,6 +2217,9 @@ window.showEditUserModal = function(userId) {
       }
       user.role = val.role;
       user.roleName = roleObj ? roleObj.name : val.role;
+      user.permissions = (typeof DEFAULT_ROLE_PERMISSIONS !== 'undefined' && DEFAULT_ROLE_PERMISSIONS[val.role]) 
+        ? [...DEFAULT_ROLE_PERMISSIONS[val.role]] 
+        : (user.permissions || []);
       user.department = val.dept;
       user.avatar = val.avatar;
       user.email = val.email;
@@ -2812,6 +2816,9 @@ window.handleUserExcelImport = function(event) {
           existing.name = (r['Họ và tên'] || r['name'] || r['Họ tên'] || existing.name).toString().trim();
           existing.role = role;
           existing.roleName = roleNames[role] || role;
+          existing.permissions = (typeof DEFAULT_ROLE_PERMISSIONS !== 'undefined' && DEFAULT_ROLE_PERMISSIONS[role]) 
+            ? [...DEFAULT_ROLE_PERMISSIONS[role]] 
+            : (existing.permissions || []);
           existing.department = (r['Đơn vị công tác'] || r['department'] || r['Bộ môn'] || existing.department).toString().trim();
           existing.email = (r['Email'] || r['email'] || existing.email).toString().trim();
           existing.phone = (r['Số điện thoại'] || r['phone'] || r['SĐT'] || existing.phone).toString().trim();
@@ -2822,15 +2829,18 @@ window.handleUserExcelImport = function(event) {
         } else {
           maxIdNum++;
           const nextId = 'USR-' + maxIdNum.toString().padStart(2, '0');
-          const defaultPass = 'Tnus@2026';
+          const defaultPass = (role === 'admin') ? 'Tnus@Admin2026' : 'Tnus@2026';
           const salt = 'TNUS_KHOA_TOAN_TIN_2026';
+          const rolePerms = (typeof DEFAULT_ROLE_PERMISSIONS !== 'undefined' && DEFAULT_ROLE_PERMISSIONS[role]) 
+            ? [...DEFAULT_ROLE_PERMISSIONS[role]] 
+            : [];
           window.appState.users.push({
             id: r['Mã tài khoản'] || nextId,
             username: username,
             name: (r['Họ và tên'] || r['name'] || r['Họ tên'] || username).toString().trim(),
             role: role,
             roleName: roleNames[role] || role,
-            department: (r['Đơn vị công tác'] || r['department'] || r['Bộ môn'] || 'Khoa Toán - Tin, TNUS').toString().trim(),
+            department: (r['Đơn vị công tác'] || r['department'] || r['Bộ môn'] || (role === 'lab_manager' ? 'Tổ Quản trị Phòng máy - Khoa Toán - Tin' : (role === 'teacher' ? 'Bộ môn Tin học - Khoa Toán - Tin, TNUS' : 'Khoa Toán - Tin, TNUS'))).toString().trim(),
             avatar: avatarMap[role] || '👤',
             email: (r['Email'] || r['email'] || `${username}@tnus.edu.vn`).toString().trim(),
             phone: (r['Số điện thoại'] || r['phone'] || r['SĐT'] || '').toString().trim(),
@@ -2838,6 +2848,7 @@ window.handleUserExcelImport = function(event) {
             initialPassword: defaultPass,
             passwordHash: typeof hashPassword === 'function' ? hashPassword(defaultPass, salt) : 'hashed_' + defaultPass,
             salt: salt,
+            permissions: rolePerms,
             failedLogins: 0,
             createdAt: new Date().toISOString().split('T')[0],
             lastLogin: 'Chưa đăng nhập'
@@ -6652,92 +6663,100 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
           return;
         }
 
-        // Cơ chế kiểm tra trực tiếp ngay trên modal: cho phép thử lại ngay mà không bị đóng modal
-        if (normRole === 'teacher') {
-          const cleanU = u.toLowerCase().replace(/^@+/, '');
-          let matchUser = (window.appState.users || []).find(user => 
-            (user.username && user.username.toLowerCase().replace(/^@+/, '') === cleanU) ||
-            (user.id && user.id.toLowerCase() === cleanU) ||
-            (user.email && user.email.toLowerCase() === cleanU) ||
-            (user.name && user.name.toLowerCase().trim() === cleanU)
-          );
+        // Cơ chế kiểm tra trực tiếp ngay trên modal: cho phép thử lại ngay mà không bị đóng modal (áp dụng đồng bộ mọi vai trò)
+        const cleanU = u.toLowerCase().replace(/^@+/, '');
+        let matchUser = (window.appState.users || []).find(user => 
+          (user.username && user.username.toLowerCase().replace(/^@+/, '') === cleanU) ||
+          (user.id && user.id.toLowerCase() === cleanU) ||
+          (user.email && user.email.toLowerCase() === cleanU) ||
+          (user.name && user.name.toLowerCase().trim() === cleanU)
+        );
 
-          // Nếu chưa có trong danh sách lưu cục bộ nhưng khớp với tài khoản Giảng viên chuẩn (@thuta)
-          if (!matchUser && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS.teacher) {
-            const stdT = STANDARD_ROLE_ACCOUNTS.teacher;
-            if (cleanU === (stdT.username || '').toLowerCase() || cleanU === (stdT.id || '').toLowerCase() || cleanU === (stdT.email || '').toLowerCase()) {
-              matchUser = { ...stdT };
-              if (!window.appState.users.some(u => u.username === matchUser.username || u.id === matchUser.id)) {
+        // Nếu chưa có trong danh sách lưu cục bộ nhưng khớp với tài khoản chuẩn hệ thống
+        if (!matchUser) {
+          const standards = (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined') ? STANDARD_ROLE_ACCOUNTS : (window.STANDARD_ROLE_ACCOUNTS || {});
+          if (standards && standards[normRole]) {
+            const stdAcc = standards[normRole];
+            if (cleanU === (stdAcc.username || '').toLowerCase() || cleanU === (stdAcc.id || '').toLowerCase() || cleanU === (stdAcc.email || '').toLowerCase()) {
+              matchUser = { ...stdAcc };
+              if (!window.appState.users.some(usr => usr.username === matchUser.username || usr.id === matchUser.id)) {
                 window.appState.users.push(matchUser);
                 if (typeof window.saveStateToLocalStorage === 'function') window.saveStateToLocalStorage();
               }
             }
           }
+        }
 
-          if (!matchUser) {
-            Swal.showValidationMessage(`Tên đăng nhập "${u}" không đúng hoặc chưa được Admin cấp! Vui lòng thử lại.`);
-            if (uInput) {
-              uInput.focus();
-              uInput.select();
-            }
-            return;
+        if (!matchUser) {
+          Swal.showValidationMessage(`Tên đăng nhập "${u}" không đúng hoặc chưa được Admin cấp! Vui lòng thử lại.`);
+          if (uInput) {
+            uInput.focus();
+            uInput.select();
           }
+          return;
+        }
 
-          const userNormRole = window.normalizeRole ? window.normalizeRole(matchUser.role) : matchUser.role;
-          if (userNormRole !== 'teacher') {
-            Swal.showValidationMessage(`Tài khoản @${matchUser.username} không thuộc vai trò Giảng viên!`);
-            if (uInput) {
-              uInput.focus();
-              uInput.select();
-            }
-            return;
+        const userNormRole = window.normalizeRole ? window.normalizeRole(matchUser.role) : matchUser.role;
+        if (userNormRole !== normRole) {
+          const roleLabels = {
+            admin: 'Quản trị viên',
+            lab_manager: 'Quản lý phòng máy',
+            teacher: 'Giảng viên',
+            student: 'Sinh viên'
+          };
+          Swal.showValidationMessage(`Tài khoản @${matchUser.username} thuộc vai trò ${roleLabels[userNormRole] || matchUser.roleName || userNormRole}, vui lòng đăng nhập tại phân hệ tương ứng!`);
+          if (uInput) {
+            uInput.focus();
+            uInput.select();
           }
+          return;
+        }
 
-          if (matchUser.status === 'locked') {
-            Swal.showValidationMessage(`Tài khoản @${matchUser.username} đang bị khóa an toàn! Vui lòng liên hệ Admin.`);
-            return;
-          }
+        if (matchUser.status === 'locked') {
+          Swal.showValidationMessage(`Tài khoản @${matchUser.username} đang bị khóa an toàn! Vui lòng liên hệ Admin.`);
+          return;
+        }
 
-          // Kiểm tra mật khẩu
-          const verifyFn = (typeof window.verifyPassword === 'function') ? window.verifyPassword : null;
-          const cleanP = (p || '').trim();
-          const isMatch = verifyFn 
-            ? verifyFn(cleanP, matchUser) 
-            : (cleanP.toLowerCase() === 'tnus@2026' || 
-               (matchUser.initialPassword && (cleanP === matchUser.initialPassword.trim()))
-              );
+        // Kiểm tra mật khẩu
+        const verifyFn = (typeof window.verifyPassword === 'function') ? window.verifyPassword : null;
+        const cleanP = (p || '').trim();
+        const isMatch = verifyFn 
+          ? verifyFn(cleanP, matchUser) 
+          : (cleanP.toLowerCase() === 'tnus@2026' || 
+             cleanP === 'Tnus@Admin2026' ||
+             (matchUser.initialPassword && (cleanP === matchUser.initialPassword.trim()))
+            );
 
-          if (!isMatch) {
-            matchUser.failedLogins = (matchUser.failedLogins || 0) + 1;
-            const remaining = 5 - matchUser.failedLogins;
+        if (!isMatch) {
+          matchUser.failedLogins = (matchUser.failedLogins || 0) + 1;
+          const remaining = 5 - matchUser.failedLogins;
+          window.saveStateToLocalStorage();
+
+          if (matchUser.failedLogins >= 5) {
+            matchUser.status = 'locked';
             window.saveStateToLocalStorage();
-
-            if (matchUser.failedLogins >= 5) {
-              matchUser.status = 'locked';
-              window.saveStateToLocalStorage();
-              window.logUserActivity('Khóa tài khoản tự động', `Tài khoản ${matchUser.name} (@${matchUser.username}) bị khóa do nhập sai mật khẩu 5 lần.`, 'users', 'BLOCKED');
-              Swal.fire({
-                icon: 'error',
-                title: 'TÀI KHOẢN ĐÃ BỊ TỰ ĐỘNG KHÓA',
-                html: `
-                  <div class="text-left text-xs space-y-2">
-                    <p class="text-rose-600 font-bold">Cảnh báo an ninh: Nhập sai mật khẩu quá 5 lần liên tiếp!</p>
-                    <p>Hệ thống đã tự động khóa tài khoản <strong>${matchUser.name}</strong> để bảo vệ dữ liệu.</p>
-                    <p class="text-slate-500">Liên hệ Quản trị viên ThS. Trịnh Minh Phú (0975.090.666) để mở khóa.</p>
-                  </div>
-                `,
-                confirmButtonColor: '#2563eb'
-              });
-              return;
-            }
-
-            Swal.showValidationMessage(`Mật khẩu không chính xác! Bạn còn ${remaining} lần thử trước khi tài khoản bị khóa.`);
-            if (pInput) {
-              pInput.value = '';
-              pInput.focus();
-            }
+            window.logUserActivity('Khóa tài khoản tự động', `Tài khoản ${matchUser.name} (@${matchUser.username}) bị khóa do nhập sai mật khẩu 5 lần.`, 'users', 'BLOCKED');
+            Swal.fire({
+              icon: 'error',
+              title: 'TÀI KHOẢN ĐÃ BỊ TỰ ĐỘNG KHÓA',
+              html: `
+                <div class="text-left text-xs space-y-2">
+                  <p class="text-rose-600 font-bold">Cảnh báo an ninh: Nhập sai mật khẩu quá 5 lần liên tiếp!</p>
+                  <p>Hệ thống đã tự động khóa tài khoản <strong>${matchUser.name}</strong> để bảo vệ dữ liệu.</p>
+                  <p class="text-slate-500">Liên hệ Quản trị viên ThS. Trịnh Minh Phú (0975.090.666) để mở khóa.</p>
+                </div>
+              `,
+              confirmButtonColor: '#2563eb'
+            });
             return;
           }
+
+          Swal.showValidationMessage(`Mật khẩu không chính xác! Bạn còn ${remaining} lần thử trước khi tài khoản bị khóa.`);
+          if (pInput) {
+            pInput.value = '';
+            pInput.focus();
+          }
+          return;
         }
 
         roleLoginSubmitted = true;
