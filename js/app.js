@@ -889,15 +889,40 @@ window.updateUserUI = function() {
   if (!u) return;
 
   const role = window.normalizeRole ? window.normalizeRole(u.role) : (u.role || 'student');
+  const isAdmin = (role === 'admin');
   const select = document.getElementById('user-role-select');
+  const staticBadge = document.getElementById('header-role-static-badge');
+  const staticName = document.getElementById('header-role-static-name');
+  const roleLabel = document.getElementById('header-role-label');
   const userDisplay = document.getElementById('current-user-display');
   const roleDisplay = document.getElementById('current-role-display');
   const badgeAvatar = document.getElementById('user-header-badge-avatar');
 
   if (userDisplay) userDisplay.textContent = u.name;
   if (roleDisplay) roleDisplay.textContent = `${u.roleName || role} • Khoa Toán - Tin`;
-  if (select) select.value = role;
   if (badgeAvatar) badgeAvatar.textContent = u.avatar || '👤';
+
+  // KIỂM SOÁT BẢO MẬT NGHIÊM NGẶT:
+  // Tuyệt đối không cho phép chuyển đổi vai trò/tài khoản đối với:
+  // Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Sinh viên.
+  // Chỉ duy nhất Quản trị viên (Admin) mới có quyền sử dụng dropdown chuyển đổi vai trò.
+  if (select) {
+    select.value = role;
+    if (isAdmin) {
+      select.classList.remove('hidden');
+      select.removeAttribute('disabled');
+      if (staticBadge) staticBadge.classList.add('hidden');
+      if (roleLabel) roleLabel.classList.remove('hidden');
+    } else {
+      select.classList.add('hidden');
+      select.setAttribute('disabled', 'true');
+      if (staticBadge) {
+        staticBadge.classList.remove('hidden');
+        if (staticName) staticName.textContent = u.roleName || role;
+      }
+      if (roleLabel) roleLabel.classList.remove('hidden');
+    }
+  }
 
   // Cập nhật thẻ profile trên Tab 6
   const headerAvatar = document.getElementById('user-header-avatar');
@@ -917,7 +942,7 @@ window.updateUserUI = function() {
   }
 };
 
-// Chuyển đổi vai trò người dùng (Role Switcher trên Header)
+// Chuyển đổi vai trò người dùng (Role Switcher trên Header - CHỈ DÀNH CHO ADMIN)
 function initUserRoleSwitcher() {
   const select = document.getElementById('user-role-select');
 
@@ -925,6 +950,24 @@ function initUserRoleSwitcher() {
 
   if (select) {
     select.addEventListener('change', (e) => {
+      const curUser = window.appState.currentUser;
+      const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : (curUser?.role || 'student');
+
+      // Chặn ngay lập tức nếu vai trò hiện hành không phải Admin
+      if (curRole !== 'admin') {
+        e.preventDefault();
+        e.stopPropagation();
+        select.value = curRole;
+        window.updateUserUI();
+        Swal.fire({
+          icon: 'warning',
+          title: 'Không được phép chuyển đổi vai trò',
+          text: 'Chức năng chuyển đổi vai trò chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên, Kỹ thuật viên và Sinh viên không được phép tự ý chuyển đổi.',
+          confirmButtonColor: '#2563eb'
+        });
+        return false;
+      }
+
       const selectedRole = e.target.value;
       const targetUser = window.getRoleUser(selectedRole);
       if (targetUser) {
@@ -957,8 +1000,20 @@ function initUserRoleSwitcher() {
   }
 }
 
-// Chuyển phiên làm việc sang một tài khoản cụ thể
+// Chuyển phiên làm việc sang một tài khoản cụ thể (CHỈ DÀNH CHO ADMIN)
 window.switchToUser = function(userId) {
+  const curUser = window.appState.currentUser;
+  const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : (curUser?.role || 'student');
+  if (curRole !== 'admin') {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Không có quyền chuyển đổi tài khoản',
+      text: 'Chức năng chuyển đổi tài khoản chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên, Kỹ thuật viên và Sinh viên không được phép thực hiện.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
   const targetUser = window.appState.users.find(u => u.id === userId);
   if (!targetUser) return;
 
@@ -3892,7 +3947,13 @@ function applyUrlParameters(params) {
   console.log('[RBAC Router] Áp dụng tham số URL:', params);
 
   // 1. Tự động đăng nhập / chuyển quyền theo tham số ?user= hoặc ?role=
-  if (userParam) {
+  const curUser = window.appState.currentUser;
+  const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
+  const isCurrentlyNonAdmin = curUser && curRole && curRole !== 'admin';
+
+  if ((userParam || roleParam) && isCurrentlyNonAdmin) {
+    console.warn('[RBAC Router] Bỏ qua chuyển vai trò qua tham số URL vì tài khoản hiện hành là: ' + curRole);
+  } else if (userParam) {
     let foundUser = (window.appState.users || []).find(u => 
       (u.username && u.username.toLowerCase() === userParam.toLowerCase()) || 
       (u.id && u.id.toLowerCase() === userParam.toLowerCase())
@@ -4039,6 +4100,29 @@ window.applyRoleRestrictionsToUI = function() {
   const roleName = u.roleName || role;
   const isAdmin = (role === 'admin');
   const bannerContainer = document.getElementById('dynamic-role-alert-banner');
+
+  // 0. BẢO MẬT CHUYỂN ĐỔI VAI TRÒ TRÊN HEADER:
+  // Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Sinh viên tuyệt đối không được phép chuyển đổi vai trò/tài khoản
+  const headerSelect = document.getElementById('user-role-select');
+  const staticBadge = document.getElementById('header-role-static-badge');
+  const staticName = document.getElementById('header-role-static-name');
+  const roleLabel = document.getElementById('header-role-label');
+  if (headerSelect) {
+    if (isAdmin) {
+      headerSelect.classList.remove('hidden');
+      headerSelect.removeAttribute('disabled');
+      if (staticBadge) staticBadge.classList.add('hidden');
+      if (roleLabel) roleLabel.classList.remove('hidden');
+    } else {
+      headerSelect.classList.add('hidden');
+      headerSelect.setAttribute('disabled', 'true');
+      if (staticBadge) {
+        staticBadge.classList.remove('hidden');
+        if (staticName) staticName.textContent = u.roleName || role;
+      }
+      if (roleLabel) roleLabel.classList.remove('hidden');
+    }
+  }
 
   // 1. BANNER ĐÃ ĐƯỢC ẨN HOÀN TOÀN ĐỂ GIAO DIỆN TỐI GIẢN, THOÁNG ĐÃNG
   if (bannerContainer) {
@@ -4216,8 +4300,20 @@ window.applyRoleRestrictionsToUI = function() {
   }
 };
 
-// Vào thẳng vai trò để thử nghiệm nhanh (1-Click Role Access)
+// Vào thẳng vai trò để thử nghiệm nhanh (1-Click Role Access - CHỈ DÀNH CHO ADMIN)
 window.directTestRole = function(role, defaultTab = 'dashboard') {
+  const curUser = window.appState.currentUser;
+  const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : (curUser?.role || 'student');
+  if (curRole !== 'admin') {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Không có quyền chuyển đổi vai trò',
+      text: 'Chức năng dùng thử vai trò chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên, Kỹ thuật viên và Sinh viên không được phép tự ý chuyển đổi vai trò.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
   const targetUser = window.getRoleUser(role);
   if (targetUser) {
     window.appState.currentUser = targetUser;
@@ -4993,6 +5089,10 @@ window.viewRoleDetailModal = function(roleId) {
 
 // Hiển thị Modal So sánh & Đối chiếu Năng lực 5 Loại Tài Khoản Toàn Hệ Thống
 window.showAllRolesCapabilityModal = function() {
+  const curUser = window.appState.currentUser || (window.appState.users && window.appState.users[0]);
+  const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : (curUser?.role || 'student');
+  const isAdmin = (curRole === 'admin');
+
   Swal.fire({
     title: `
       <div class="text-left flex items-center justify-between pb-2 border-b border-slate-200">
@@ -5009,8 +5109,10 @@ window.showAllRolesCapabilityModal = function() {
     `,
     html: `
       <div class="text-left text-xs space-y-4 pt-2 max-h-[75vh] overflow-y-auto pr-1">
-        <div class="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-slate-700 leading-relaxed text-[11px]">
-          Mỗi vai trò được thiết kế chuyên biệt theo quy trình vận hành giảng dạy thực tế tại 4 phòng máy A1-503, A1-504, A1-505, A1-506. Bạn có thể bấm vào bất kỳ vai trò nào bên dưới để chuyển thử nghiệm tức thì.
+        <div class="p-3 ${isAdmin ? 'bg-blue-50/80 border-blue-200 text-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600'} rounded-xl border leading-relaxed text-[11px]">
+          ${isAdmin 
+            ? 'Mỗi vai trò được thiết kế chuyên biệt theo quy trình vận hành giảng dạy thực tế tại 4 phòng máy A1-503, A1-504, A1-505, A1-506. Là Quản trị viên (Admin), bạn có thể bấm "Vào thử" để chuyển thử nghiệm tức thì.' 
+            : `Bảng đối chiếu thông tin phân quyền & năng lực của 5 loại tài khoản trên hệ thống phòng máy TNUS. Bạn đang đăng nhập với tài khoản <strong>${curUser ? curUser.name : ''}</strong> (${curUser ? curUser.roleName : ''}) - <span class="text-slate-500 font-semibold">Tài khoản này không được phép chuyển đổi sang vai trò khác.</span>`}
         </div>
 
         <!-- BẢNG SO SÁNH NHANH 5 VAI TRÒ -->
@@ -5103,14 +5205,20 @@ window.showAllRolesCapabilityModal = function() {
           </table>
         </div>
 
-        <!-- 5 THẺ VAI TRÒ NHANH KÈM NÚT DÙNG THỬ -->
+        <!-- 5 THẺ VAI TRÒ NHANH KÈM NÚT DÙNG THỬ HOẶC TRẠNG THÁI -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
           <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/40 flex items-center justify-between">
             <div>
               <div class="font-bold text-blue-900 text-xs">⚙️ Admin (ThS. Trịnh Minh Phú)</div>
               <div class="text-[10px] text-slate-600">Toàn quyền 42/42 thẩm quyền, quản trị 104 máy trạm & RBAC</div>
             </div>
-            <button onclick="Swal.close(); window.directTestRole('admin');" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ${isAdmin ? `
+              <button onclick="Swal.close(); window.directTestRole('admin');" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ` : (curRole === 'admin' ? `
+              <span class="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-lg text-[11px] font-bold border border-blue-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-circle-check"></i> Đang dùng</span>
+            ` : `
+              <span class="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium border border-slate-200 cursor-not-allowed flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Khóa chuyển</span>
+            `)}
           </div>
 
           <div class="p-3 rounded-xl border border-indigo-200 bg-indigo-50/40 flex items-center justify-between">
@@ -5118,7 +5226,13 @@ window.showAllRolesCapabilityModal = function() {
               <div class="font-bold text-indigo-900 text-xs">🏢 Quản lý phòng máy</div>
               <div class="text-[10px] text-slate-600">Điều phối 4 phòng, duyệt lịch thực hành, kiểm kê tài sản</div>
             </div>
-            <button onclick="Swal.close(); window.directTestRole('lab_manager');" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ${isAdmin ? `
+              <button onclick="Swal.close(); window.directTestRole('lab_manager');" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ` : (curRole === 'lab_manager' ? `
+              <span class="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-[11px] font-bold border border-indigo-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-circle-check"></i> Đang dùng</span>
+            ` : `
+              <span class="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium border border-slate-200 cursor-not-allowed flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Khóa chuyển</span>
+            `)}
           </div>
 
           <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
@@ -5126,7 +5240,13 @@ window.showAllRolesCapabilityModal = function() {
               <div class="font-bold text-emerald-900 text-xs">👨‍🏫 Giảng viên thực hành</div>
               <div class="text-[10px] text-slate-600">Đăng ký ca dạy, mở ca thực hành & báo hỏng thiết bị</div>
             </div>
-            <button onclick="Swal.close(); window.directTestRole('teacher');" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ${isAdmin ? `
+              <button onclick="Swal.close(); window.directTestRole('teacher');" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ` : (curRole === 'teacher' ? `
+              <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-bold border border-emerald-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-circle-check"></i> Đang dùng</span>
+            ` : `
+              <span class="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium border border-slate-200 cursor-not-allowed flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Khóa chuyển</span>
+            `)}
           </div>
 
           <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/40 flex items-center justify-between">
@@ -5134,7 +5254,13 @@ window.showAllRolesCapabilityModal = function() {
               <div class="font-bold text-amber-900 text-xs">🧑‍🔧 Kỹ thuật viên phòng máy</div>
               <div class="text-[10px] text-slate-600">Bật nguồn Wake-on-LAN, bảo trì, sửa chữa & in tem QR</div>
             </div>
-            <button onclick="Swal.close(); window.directTestRole('lab_staff');" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ${isAdmin ? `
+              <button onclick="Swal.close(); window.directTestRole('lab_staff');" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ` : (curRole === 'lab_staff' ? `
+              <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-circle-check"></i> Đang dùng</span>
+            ` : `
+              <span class="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium border border-slate-200 cursor-not-allowed flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Khóa chuyển</span>
+            `)}
           </div>
 
           <div class="p-3 rounded-xl border border-purple-200 bg-purple-50/40 flex items-center justify-between md:col-span-2">
@@ -5142,7 +5268,13 @@ window.showAllRolesCapabilityModal = function() {
               <div class="font-bold text-purple-900 text-xs">👨‍🎓 Sinh Viên / Khách (Read-only)</div>
               <div class="text-[10px] text-slate-600">Tra cứu sơ đồ 2D trực quan, cấu hình máy & thời khóa biểu tuần các phòng máy</div>
             </div>
-            <button onclick="Swal.close(); window.directTestRole('student');" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ${isAdmin ? `
+              <button onclick="Swal.close(); window.directTestRole('student');" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
+            ` : (curRole === 'student' ? `
+              <span class="px-2.5 py-1 bg-purple-100 text-purple-800 rounded-lg text-[11px] font-bold border border-purple-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-circle-check"></i> Đang dùng</span>
+            ` : `
+              <span class="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium border border-slate-200 cursor-not-allowed flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Khóa chuyển</span>
+            `)}
           </div>
         </div>
       </div>

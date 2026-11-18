@@ -168,16 +168,21 @@
 
           <div class="h-6 w-px bg-slate-200 hidden md:block"></div>
 
-          <!-- Chuyển đổi vai trò người dùng (Role Switcher) -->
-          <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-            <span class="text-xs text-slate-500 font-medium hidden sm:inline">Vai trò:</span>
-            <select id="user-role-select" class="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer">
+          <!-- Chuyển đổi vai trò người dùng (Chỉ Quản trị viên mới được phép chuyển đổi) -->
+          <div id="header-role-switcher-container" class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span id="header-role-label" class="text-xs text-slate-500 font-medium hidden sm:inline">Vai trò:</span>
+            <select id="user-role-select" class="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer" title="Chuyển đổi vai trò để kiểm tra chức năng (Dành riêng cho Admin)">
               <option value="admin">Admin (Quản trị viên)</option>
               <option value="lab_manager">Quản lý phòng máy</option>
               <option value="teacher">Giảng viên (Teacher)</option>
               <option value="lab_staff">Kỹ thuật viên (Lab Staff)</option>
               <option value="student">Sinh viên / Khách (Student)</option>
             </select>
+            <!-- Thẻ hiển thị tĩnh cho tài khoản không phải Admin (Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Sinh viên) -->
+            <div id="header-role-static-badge" class="hidden text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-default" title="Tài khoản cố định, không được phép chuyển vai trò">
+              <i class="fa-solid fa-user-shield text-blue-600"></i>
+              <span id="header-role-static-name" class="text-blue-700 font-extrabold">--</span>
+            </div>
           </div>
 
           <!-- Nút Mở bảng so sánh chức năng 5 vai trò -->
