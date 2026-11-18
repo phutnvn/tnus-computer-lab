@@ -1655,10 +1655,10 @@ class ScheduleManager {
     const lClean = unaccent(cleanILect);
     if (lClean === uClean || lClean.includes(uClean) || uClean.includes(lClean)) return true;
 
-    // 4. So khớp theo Username chuẩn
+    // 4. So khớp theo Username hoặc Email của giảng viên
     const uname = (curUser.username || '').toLowerCase().replace(/^@+/, '');
-    if (uname === 'toannv' && lClean.includes('toan')) return true;
-    if ((uname === 'anhnt' || uname === 'anhnth') && (lClean.includes('tuan anh') || lClean.includes('anh'))) return true;
+    if (uname && (lClean.includes(uname) || cleanILect.toLowerCase().includes(uname))) return true;
+    if (curUser.email && (item.creator === curUser.email || (item.lecturer && item.lecturer.toLowerCase().includes(curUser.email.toLowerCase())))) return true;
 
     return false;
   }

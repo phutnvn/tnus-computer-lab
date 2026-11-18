@@ -122,53 +122,22 @@ function loadState() {
           rootAdmin.status = 'active';
         }
 
-        // Loại bỏ tài khoản giảng viên mặc định cũ (toannv), đảm bảo tài khoản Giảng viên do Admin khởi tạo (ThS. Nguyễn Tuấn Anh - anhnt)
+        // Xóa bỏ vĩnh viễn các tài khoản giảng viên mặc định cũ (toannv, anhnt / anhnth ThS. Nguyễn Tuấn Anh)
+        // Hệ thống chỉ sử dụng các tài khoản do Quản trị viên (Admin) tạo mới
         if (Array.isArray(window.appState.users)) {
           window.appState.users = window.appState.users.filter(u => {
             if (!u) return false;
             if (u.role === 'lab_staff' || u.username === 'ktvlab') return false;
-            // Bỏ tài khoản giảng viên mặc định cũ toannv
+            // Xóa bỏ hoàn toàn tài khoản toannv
             if (u.username === 'toannv') return false;
+            // Xóa bỏ vĩnh viễn tài khoản mặc định ThS. Nguyễn Tuấn Anh (anhnt / anhnth)
+            if (u.username === 'anhnt' || u.username === 'anhnth') {
+              if (u.name === 'ThS. Nguyễn Tuấn Anh' || (u.phone && u.phone.includes('0983.123.456')) || (u.email && u.email.includes('anhnt@tnus.edu.vn'))) {
+                return false;
+              }
+            }
             return true;
           });
-
-          // Đảm bảo luôn có tài khoản Giảng viên ThS. Nguyễn Tuấn Anh (@anhnt) do Admin khởi tạo
-          let teacherUser = window.appState.users.find(u => 
-            u.username === 'anhnt' || 
-            u.username === 'anhnth' || 
-            (u.role === 'teacher' && u.name && u.name.includes('Tuấn Anh'))
-          );
-          if (!teacherUser) {
-            teacherUser = {
-              id: 'USR-03',
-              username: 'anhnt',
-              name: 'ThS. Nguyễn Tuấn Anh',
-              role: 'teacher',
-              roleName: 'Giảng viên',
-              email: 'anhnt@tnus.edu.vn',
-              phone: '0983.123.456',
-              department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-              avatar: '👨‍🏫',
-              status: 'active',
-              initialPassword: 'Tnus@2026',
-              passwordHash: (typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : ''),
-              salt: 'TNUS_KHOA_TOAN_TIN_2026',
-              failedLogins: 0,
-              createdAt: '2026-10-15',
-              lastLogin: '2026-11-18 07:50'
-            };
-            window.appState.users.push(teacherUser);
-          } else {
-            // Chuẩn hóa tên đăng nhập và vai trò nếu thiếu, bảo toàn họ tên do Admin cập nhật
-            if (!teacherUser.username) teacherUser.username = 'anhnt';
-            if (!teacherUser.name) teacherUser.name = 'ThS. Nguyễn Tuấn Anh';
-            teacherUser.role = 'teacher';
-            teacherUser.roleName = 'Giảng viên';
-            if (!teacherUser.status) teacherUser.status = 'active';
-            if (!teacherUser.email) teacherUser.email = 'anhnt@tnus.edu.vn';
-            if (!teacherUser.department) teacherUser.department = 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS';
-            if (!teacherUser.initialPassword) teacherUser.initialPassword = 'Tnus@2026';
-          }
         }
 
         // Chuẩn hóa mật khẩu khởi tạo cho các tài khoản hiện có
@@ -178,9 +147,12 @@ function loadState() {
           }
         });
 
-        // Nếu người dùng hiện hành là toannv, đưa về tài khoản quản trị/khách
-        if (window.appState.currentUser && window.appState.currentUser.username === 'toannv') {
-          window.appState.currentUser = window.appState.users[0] || null;
+        // Nếu người dùng hiện hành là toannv hoặc anhnt mặc định vừa bị xóa, đưa về tài khoản quản trị
+        if (window.appState.currentUser) {
+          const curUname = (window.appState.currentUser.username || '').toLowerCase();
+          if (curUname === 'toannv' || (curUname === 'anhnt' && window.appState.currentUser.name === 'ThS. Nguyễn Tuấn Anh')) {
+            window.appState.currentUser = window.appState.users[0] || null;
+          }
         }
         if (typeof window.saveStateToLocalStorage === 'function') {
           window.saveStateToLocalStorage();
@@ -822,7 +794,7 @@ window.normalizeRole = function(r) {
   const str = String(r).toLowerCase().trim().replace(/^@+/, '');
   if (str === 'manager' || str === 'qlpm' || str === 'qlphong' || str === 'lab_manager' || str === 'quanly' || str === 'quanlyphongmay' || str === 'linhtt') return 'lab_manager';
   if (str === 'staff' || str === 'ktv' || str === 'kythuat' || str === 'lab_staff' || str === 'technician') return 'lab_manager';
-  if (str === 'teacher' || str === 'giangvien' || str === 'gv' || str === 'anhnt' || str === 'anhnth') return 'teacher';
+  if (str === 'teacher' || str === 'giangvien' || str === 'gv') return 'teacher';
   if (str === 'student' || str === 'sinhvien' || str === 'khach' || str === 'guest' || str === 'sv') return 'student';
   if (str === 'admin' || str === 'administrator' || str === 'quantri' || str === 'quantrivien' || str === 'phutm') return 'admin';
   
@@ -847,6 +819,11 @@ window.getRoleUser = function(roleParam) {
     u && u.role && window.normalizeRole(u.role) === norm && (u.status || 'active') === 'active'
   );
   if (found) return found;
+
+  // Đối với vai trò Giảng viên: Không có tài khoản mặc định, chỉ tồn tại khi Admin tạo mới
+  if (norm === 'teacher') {
+    return null;
+  }
 
   // 2. Nếu chưa khởi tạo trong bảng danh sách, dùng tài khoản đại diện chuẩn của vai trò đó
   const standard = (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS);
@@ -2617,13 +2594,13 @@ window.downloadUserExcelTemplate = function() {
     {
       'STT': 3,
       'Mã tài khoản': 'USR-03',
-      'Tên đăng nhập': 'anhnt',
-      'Họ và tên': 'ThS. Nguyễn Tuấn Anh',
+      'Tên đăng nhập': 'giangvien_mau',
+      'Họ và tên': 'Nguyễn Văn Giảng Viên',
       'Mã vai trò (RBAC)': 'teacher',
       'Vai trò hệ thống': 'Giảng viên',
       'Đơn vị công tác': 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-      'Email': 'anhnt@tnus.edu.vn',
-      'Số điện thoại': '0983.123.456',
+      'Email': 'giangvien@tnus.edu.vn',
+      'Số điện thoại': '0912.345.678',
       'Trạng thái': 'Đang hoạt động'
     },
     {
@@ -6382,8 +6359,6 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
     'teacher': 'teacher',
     'giangvien': 'teacher',
     'gv': 'teacher',
-    'anhnt': 'teacher',
-    'anhnth': 'teacher',
     'staff': 'lab_manager',
     'lab_staff': 'lab_manager',
     'technician': 'lab_manager',
@@ -6646,8 +6621,6 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
           const cleanU = u.toLowerCase().replace(/^@+/, '');
           const matchUser = (window.appState.users || []).find(user => 
             (user.username && user.username.toLowerCase().replace(/^@+/, '') === cleanU) ||
-            (cleanU === 'anhnth' && user.username && (user.username.toLowerCase().replace(/^@+/, '') === 'anhnt' || user.username.toLowerCase().replace(/^@+/, '') === 'anhnth')) ||
-            (cleanU === 'anhnt' && user.username && (user.username.toLowerCase().replace(/^@+/, '') === 'anhnt' || user.username.toLowerCase().replace(/^@+/, '') === 'anhnth')) ||
             (user.id && user.id.toLowerCase() === cleanU) ||
             (user.email && user.email.toLowerCase() === cleanU) ||
             (user.name && user.name.toLowerCase().trim() === cleanU)
@@ -6975,13 +6948,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     'admin': 'admin',
     'quantri': 'admin',
     'quantrivien': 'admin',
-    'phutm': 'admin',
-
-    // Giảng viên do Admin tạo
-    'anhnt': 'anhnt',
-    'anhnth': 'anhnt',
-    'tuananh': 'anhnt',
-    'nguyentuananh': 'anhnt'
+    'phutm': 'admin'
   };
 
   const lookupKey = aliasMap[cleanTerm];
@@ -6989,8 +6956,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
   // 1. Tìm chính xác trong appState.users (ưu tiên hàng đầu tài khoản do Admin tạo mới!)
   let user = (window.appState.users || []).find(u => 
     (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
-    (cleanTerm === 'anhnth' && u.username && (u.username.toLowerCase().replace(/^@+/, '') === 'anhnt' || u.username.toLowerCase().replace(/^@+/, '') === 'anhnth')) ||
-    (cleanTerm === 'anhnt' && u.username && (u.username.toLowerCase().replace(/^@+/, '') === 'anhnt' || u.username.toLowerCase().replace(/^@+/, '') === 'anhnth')) ||
     (u.id && u.id.toLowerCase() === cleanTerm) ||
     (u.email && u.email.toLowerCase() === cleanTerm) ||
     (u.name && u.name.toLowerCase().trim() === cleanTerm)
@@ -7023,7 +6988,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     user = (window.appState.users || []).find(u => {
       const uClean = (u.username || '').toLowerCase().replace(/^@+/, '');
       if (uClean === lookupKey) return true;
-      if (lookupKey === 'anhnt' && (uClean === 'anhnt' || uClean === 'anhnth')) return true;
       if (lookupKey === 'linhtt' && (uClean === 'linhtt' || uClean === 'qlphongmay')) return true;
       if (lookupKey === 'admin' && (uClean === 'admin' || u.role === 'admin')) return true;
       if (lookupKey === 'student' && (uClean === 'student' || u.role === 'student')) return true;
