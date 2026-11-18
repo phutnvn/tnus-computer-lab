@@ -20187,7 +20187,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
     allowOutsideClick: false,
     allowEscapeKey: false,
     showConfirmButton: false,
-    showCloseButton: true,
+    showCloseButton: false,
     html: `
       <div class="text-left select-none">
         <!-- Header gọn gàng, tinh tế -->
@@ -20236,7 +20236,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
             </label>
             <div class="relative">
               <input type="password" id="role-login-password" value="" placeholder="Nhập mật khẩu do Quản trị viên cấp..." autocomplete="off"
-                class="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
+              class="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
               <button type="button" onclick="window.toggleRoleLoginPasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                 <i id="role-login-pwd-eye" class="fa-solid fa-eye"></i>
               </button>
@@ -20250,14 +20250,11 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
           </div>
         </div>
 
-        <!-- Các nút hành động chính -->
-        <div class="mt-4 pt-2 border-t border-slate-100 flex items-center gap-2">
-          <button type="button" id="btn-role-login-submit" class="flex-1 py-2 px-3 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5" style="background: ${ui.themeColor};">
+        <!-- Nút hành động chính: Đăng nhập toàn chiều rộng -->
+        <div class="mt-4 pt-2 border-t border-slate-100">
+          <button type="button" id="btn-role-login-submit" class="w-full py-2.5 px-4 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 hover:opacity-95" style="background: ${ui.themeColor};">
             <i class="fa-solid fa-right-to-bracket"></i>
             <span>Đăng Nhập</span>
-          </button>
-          <button type="button" id="btn-role-login-close" class="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition border border-slate-200 flex items-center justify-center gap-1" title="Đóng và quay về giao diện khách tra cứu">
-            <span>Đóng</span>
           </button>
         </div>
 
@@ -20309,15 +20306,11 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
         });
       }
 
-      // Xử lý nút Đóng & nút Quay về khách:
-      // "Khi kích vào đóng thì quay về giao diện tài khoản khách"
+      // Xử lý nút Quay về khách:
       const handleCloseToGuest = () => {
         Swal.close();
         window.returnToGuestView(true);
       };
-
-      const btnClose = document.getElementById('btn-role-login-close');
-      if (btnClose) btnClose.addEventListener('click', handleCloseToGuest);
 
       const btnGuest = document.getElementById('btn-role-login-guest');
       if (btnGuest) btnGuest.addEventListener('click', handleCloseToGuest);
@@ -20345,7 +20338,7 @@ window.openLoginModal = function() {
     allowOutsideClick: false,
     allowEscapeKey: false,
     showConfirmButton: false,
-    showCloseButton: true,
+    showCloseButton: false,
     html: `
       <div class="text-left select-none text-xs">
         <div class="flex items-center space-x-3 pb-3 border-b border-slate-100">
@@ -20392,13 +20385,11 @@ window.openLoginModal = function() {
           </div>
         </div>
 
-        <div class="mt-4 pt-2 border-t border-slate-100 flex items-center gap-2">
-          <button type="button" id="btn-login-submit" class="flex-1 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5">
+        <!-- Nút hành động chính: Đăng nhập toàn chiều rộng -->
+        <div class="mt-4 pt-2 border-t border-slate-100">
+          <button type="button" id="btn-login-submit" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-right-to-bracket"></i>
             <span>Đăng Nhập</span>
-          </button>
-          <button type="button" id="btn-login-close" class="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition border border-slate-200 flex items-center justify-center gap-1" title="Đóng và quay về giao diện khách tra cứu">
-            <span>Đóng</span>
           </button>
         </div>
 
@@ -20453,9 +20444,6 @@ window.openLoginModal = function() {
         Swal.close();
         window.returnToGuestView(true);
       };
-
-      const btnClose = document.getElementById('btn-login-close');
-      if (btnClose) btnClose.addEventListener('click', handleCloseToGuest);
 
       const btnGuest = document.getElementById('btn-login-guest');
       if (btnGuest) btnGuest.addEventListener('click', handleCloseToGuest);
