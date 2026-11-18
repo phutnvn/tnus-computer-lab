@@ -122,25 +122,35 @@ function loadState() {
           rootAdmin.status = 'active';
         }
 
-        // Chuẩn hóa đồng bộ vai trò và mật khẩu các tài khoản Cán bộ / Giảng viên
+        // Loại bỏ các tài khoản giảng viên mặc định cũ (chỉ giữ lại giảng viên do Admin khởi tạo)
+        if (Array.isArray(window.appState.users)) {
+          window.appState.users = window.appState.users.filter(u => {
+            if (!u) return false;
+            if (u.role === 'lab_staff' || u.username === 'ktvlab') return false;
+            // Bỏ các tài khoản giảng viên mặc định cũ USR-03 (toannv) và USR-04 (anhnt/anhnth)
+            if ((u.username === 'toannv' && u.id === 'USR-03') ||
+                ((u.username === 'anhnt' || u.username === 'anhnth') && u.id === 'USR-04')) {
+              return false;
+            }
+            return true;
+          });
+        }
+
+        // Chuẩn hóa mật khẩu khởi tạo cho các tài khoản hiện có
         window.appState.users.forEach(u => {
-          if (u.username === 'anhnth' || u.username === 'anhnt') {
-            u.role = 'teacher';
-            u.roleName = 'Giảng viên';
-            if (!u.initialPassword) u.initialPassword = 'Tnus@2026';
-          }
-          if (u.username === 'toannv') {
-            u.role = 'teacher';
-            u.roleName = 'Giảng viên';
-            if (!u.initialPassword) u.initialPassword = 'Tnus@2026';
-          }
           if (!u.initialPassword) {
             u.initialPassword = (u.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
           }
         });
 
-        // Chỉ loại bỏ tài khoản kỹ thuật viên (lab_staff / ktvlab) nếu còn tồn đọng từ bộ nhớ đệm cũ
-        window.appState.users = window.appState.users.filter(u => u.role !== 'lab_staff' && u.username !== 'ktvlab');
+        // Nếu người dùng hiện hành là giảng viên mặc định vừa bị loại bỏ, đưa về tài khoản quản trị/khách
+        if (window.appState.currentUser) {
+          const curU = window.appState.currentUser;
+          if ((curU.username === 'toannv' && curU.id === 'USR-03') ||
+              ((curU.username === 'anhnt' || curU.username === 'anhnth') && curU.id === 'USR-04')) {
+            window.appState.currentUser = window.appState.users[0] || null;
+          }
+        }
         if (typeof window.saveStateToLocalStorage === 'function') {
           window.saveStateToLocalStorage();
         }
@@ -801,11 +811,16 @@ window.normalizeRole = function(r) {
 // Tìm tài khoản người dùng theo vai trò, nếu chưa có trong danh sách thì dùng tài khoản chuẩn của vai trò đó
 window.getRoleUser = function(roleParam) {
   const norm = window.normalizeRole(roleParam);
-  // 1. Tìm trong danh sách tài khoản đã cấp phát trong appState.users
+  // 1. Tìm trong danh sách tài khoản đã cấp phát trong appState.users (ưu tiên tài khoản do Admin tạo)
   const found = (window.appState?.users || []).find(u => 
     u && u.role && window.normalizeRole(u.role) === norm && (u.status || 'active') === 'active'
   );
   if (found) return found;
+
+  // Đối với vai trò Giảng viên: Không có tài khoản mặc định, chỉ tồn tại khi Admin tạo mới
+  if (norm === 'teacher') {
+    return null;
+  }
 
   // 2. Nếu chưa khởi tạo trong bảng danh sách, dùng tài khoản đại diện chuẩn của vai trò đó
   const standard = (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS);
@@ -5259,6 +5274,37 @@ window.applyRoleRestrictionsToUI = function() {
 
 // Vào thẳng vai trò để thử nghiệm nhanh (Mở Giao diện Đăng Nhập cho vai trò)
 window.directTestRole = function(role, defaultTab = 'dashboard') {
+  if (role === 'teacher') {
+    const hasTeacher = (window.appState.users || []).some(u => {
+      const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+      return r === 'teacher';
+    });
+    if (!hasTeacher) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Chưa có tài khoản Giảng viên',
+        html: `
+          <div class="text-xs text-slate-600 text-left space-y-2">
+            <p>Hệ thống hiện tại chưa có tài khoản Giảng viên nào.</p>
+            <p>Toàn bộ tài khoản Giảng viên mặc định đã được loại bỏ. Quản trị viên vui lòng vào mục <strong>Phân quyền & Tài khoản</strong> &gt; bấm <strong>"Thêm tài khoản"</strong> để tạo tài khoản Giảng viên mới.</p>
+          </div>
+        `,
+        confirmButtonText: '<i class="fa-solid fa-user-plus mr-1"></i>Tạo tài khoản Giảng viên ngay',
+        showCancelButton: true,
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#059669'
+      }).then(res => {
+        if (res.isConfirmed) {
+          if (typeof window.switchTab === 'function') window.switchTab('users');
+          setTimeout(() => {
+            if (typeof window.showAddUserModal === 'function') window.showAddUserModal();
+          }, 200);
+        }
+      });
+      return;
+    }
+  }
+
   if (typeof window.openRoleLoginModal === 'function') {
     window.openRoleLoginModal(role, defaultTab);
   } else {
@@ -6349,8 +6395,8 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
     return r === normRole;
   });
 
-  // Tự động đảm bảo luôn có tài khoản chuẩn của vai trò nếu danh sách tạm thời rỗng
-  if (roleUsers.length === 0 && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS[normRole]) {
+  // Tự động đảm bảo luôn có tài khoản chuẩn của vai trò nếu danh sách tạm thời rỗng (chỉ dành cho QL Phòng máy, Sinh viên; KHÔNG tạo Giảng viên mặc định)
+  if (normRole !== 'teacher' && roleUsers.length === 0 && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS[normRole]) {
     const stdAcc = { ...STANDARD_ROLE_ACCOUNTS[normRole] };
     if (!window.appState.users.some(u => u.username === stdAcc.username || u.id === stdAcc.id)) {
       window.appState.users.push(stdAcc);
@@ -6755,18 +6801,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     'quanly': 'linhtt',
     'quanlyphongmay': 'linhtt',
     
-    // Giảng viên
-    'toannv': 'toannv',
-    'toan': 'toannv',
-    'nguyenvantoan': 'toannv',
-    'anhnt': 'anhnt',
-    'anhnth': 'anhnt',
-    'tuananh': 'anhnt',
-    'nguyentuananh': 'anhnt',
-    'teacher': 'toannv',
-    'giangvien': 'toannv',
-    'gv': 'toannv',
-    
     // Sinh viên / Khách
     'student': 'student',
     'sinhvien': 'student',
@@ -6786,8 +6820,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
   // 1. Tìm chính xác trong appState.users (ưu tiên hàng đầu tài khoản do Admin tạo mới!)
   let user = (window.appState.users || []).find(u => 
     (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
-    (cleanTerm === 'anhnth' && u.username && u.username.toLowerCase().replace(/^@+/, '') === 'anhnt') ||
-    (cleanTerm === 'anhnt' && u.username && u.username.toLowerCase().replace(/^@+/, '') === 'anhnth') ||
     (u.id && u.id.toLowerCase() === cleanTerm) ||
     (u.email && u.email.toLowerCase() === cleanTerm) ||
     (u.name && u.name.toLowerCase().trim() === cleanTerm)
@@ -6807,13 +6839,19 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     });
   }
 
+  // 1.2 Nếu người dùng nhập từ khóa chung "teacher" / "giangvien" / "gv", tìm tài khoản Giảng viên do Admin tạo trong appState.users
+  if (!user && (cleanTerm === 'teacher' || cleanTerm === 'giangvien' || cleanTerm === 'gv')) {
+    user = (window.appState.users || []).find(u => {
+      const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+      return r === 'teacher' && (u.status || 'active') === 'active';
+    });
+  }
+
   // 2. Nếu chưa thấy, thử tìm theo bí danh trong appState.users
   if (!user && lookupKey) {
     user = (window.appState.users || []).find(u => {
       const uClean = (u.username || '').toLowerCase().replace(/^@+/, '');
       if (uClean === lookupKey) return true;
-      if (lookupKey === 'anhnt' && (uClean === 'anhnt' || uClean === 'anhnth')) return true;
-      if (lookupKey === 'toannv' && uClean === 'toannv') return true;
       if (lookupKey === 'linhtt' && (uClean === 'linhtt' || uClean === 'qlphongmay')) return true;
       if (lookupKey === 'admin' && (uClean === 'admin' || u.role === 'admin')) return true;
       if (lookupKey === 'student' && (uClean === 'student' || u.role === 'student')) return true;
@@ -6821,23 +6859,28 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     });
   }
 
-  // 3. Nếu chưa có trong appState.users, kiểm tra tài khoản đại diện chuẩn của hệ thống
+  // 3. Nếu chưa có trong appState.users, kiểm tra tài khoản đại diện chuẩn của hệ thống (Quản trị viên, QL Phòng, Sinh viên)
+  // TUYỆT ĐỐI KHÔNG áp dụng cho Giảng viên (Giảng viên bắt buộc phải do Admin khởi tạo)
   if (!user && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
     const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
-    user = Object.values(standards).find(u => 
-      (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
-      (u.id && u.id.toLowerCase() === cleanTerm) ||
-      (u.email && u.email.toLowerCase() === cleanTerm) ||
-      (lookupKey && u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey)
-    );
-    if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh' || cleanTerm === 'qlphongmay' || cleanTerm === 'manager' || cleanTerm === 'qlpm' || cleanTerm === 'quanly')) {
-      user = standards.lab_manager;
-    }
-    if (user) {
-      user = { ...user };
-      if (!window.appState.users.some(u => u.id === user.id || u.username === user.username)) {
-        window.appState.users.push(user);
-        window.saveStateToLocalStorage();
+    if (requiredRole !== 'teacher' && cleanTerm !== 'teacher' && cleanTerm !== 'giangvien' && cleanTerm !== 'gv') {
+      user = Object.values(standards).filter(Boolean).find(u => 
+        u && u.role !== 'teacher' && (
+          (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
+          (u.id && u.id.toLowerCase() === cleanTerm) ||
+          (u.email && u.email.toLowerCase() === cleanTerm) ||
+          (lookupKey && u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey)
+        )
+      );
+      if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh' || cleanTerm === 'qlphongmay' || cleanTerm === 'manager' || cleanTerm === 'qlpm' || cleanTerm === 'quanly')) {
+        user = standards.lab_manager;
+      }
+      if (user) {
+        user = { ...user };
+        if (!window.appState.users.some(u => u.id === user.id || u.username === user.username)) {
+          window.appState.users.push(user);
+          window.saveStateToLocalStorage();
+        }
       }
     }
   }

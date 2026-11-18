@@ -6710,23 +6710,10 @@ const STANDARD_ROLE_ACCOUNTS = {
     passwordHash: hashPassword('Tnus@2026'),
     salt: 'TNUS_KHOA_TOAN_TIN_2026'
   },
-  teacher: {
-    id: 'USR-03',
-    username: 'toannv',
-    name: 'TS. Nguyễn Văn Toàn',
-    role: 'teacher',
-    roleName: 'Giảng viên',
-    email: 'toannv@tnus.edu.vn',
-    phone: '0912.345.678',
-    department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-    avatar: '👨‍🏫',
-    status: 'active',
-    initialPassword: 'Tnus@2026',
-    passwordHash: hashPassword('Tnus@2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026'
-  },
+  // Không có tài khoản Giảng viên mặc định - Chỉ cho phép đăng nhập các tài khoản Giảng viên do Admin khởi tạo
+  teacher: null,
   student: {
-    id: 'USR-05',
+    id: 'USR-03',
     username: 'student',
     name: 'Sinh viên / Khách tra cứu',
     role: 'student',
@@ -6742,7 +6729,7 @@ const STANDARD_ROLE_ACCOUNTS = {
   }
 };
 
-// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (4 VAI TRÒ CHUẨN TNUS)
+// 6. DANH SÁCH TÀI KHOẢN MẪU BAN ĐẦU (CHỈ GỒM ADMIN, QUẢN LÝ PHÒNG MÁY, SINH VIÊN; GIẢNG VIÊN DO ADMIN TẠO)
 const INITIAL_USERS = [
   {
     id: 'USR-01',
@@ -6782,42 +6769,6 @@ const INITIAL_USERS = [
   },
   {
     id: 'USR-03',
-    username: 'toannv',
-    name: 'TS. Nguyễn Văn Toàn',
-    role: 'teacher',
-    roleName: 'Giảng viên',
-    email: 'toannv@tnus.edu.vn',
-    phone: '0912.345.678',
-    department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-    avatar: '👨‍🏫',
-    status: 'active',
-    initialPassword: 'Tnus@2026',
-    passwordHash: hashPassword('Tnus@2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-15',
-    lastLogin: '2026-11-18 07:45'
-  },
-  {
-    id: 'USR-04',
-    username: 'anhnt',
-    name: 'ThS. Nguyễn Tuấn Anh',
-    role: 'teacher',
-    roleName: 'Giảng viên',
-    email: 'anhnt@tnus.edu.vn',
-    phone: '0983.123.456',
-    department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-    avatar: '👨‍🏫',
-    status: 'active',
-    initialPassword: 'Tnus@2026',
-    passwordHash: hashPassword('Tnus@2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026',
-    failedLogins: 0,
-    createdAt: '2026-10-15',
-    lastLogin: '2026-11-18 07:50'
-  },
-  {
-    id: 'USR-05',
     username: 'student',
     name: 'Sinh viên / Khách tra cứu',
     role: 'student',
