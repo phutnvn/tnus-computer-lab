@@ -121,6 +121,17 @@ function loadState() {
           rootAdmin.department = 'Khoa Toán - Tin, TNUS';
           rootAdmin.status = 'active';
         }
+
+        // Đảm bảo luôn có tài khoản Quản lý phòng máy (ThS. Trần Thị Linh - @linhtt)
+        let labManager = window.appState.users.find(u => u.username === 'linhtt' || u.role === 'lab_manager');
+        if (!labManager && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS.lab_manager) {
+          window.appState.users.push({ ...STANDARD_ROLE_ACCOUNTS.lab_manager });
+        } else if (labManager && labManager.username === 'qlphongmay') {
+          labManager.username = 'linhtt';
+          labManager.name = 'ThS. Trần Thị Linh';
+          labManager.email = 'linhtt@tnus.edu.vn';
+        }
+
         // Chỉ loại bỏ tài khoản kỹ thuật viên (lab_staff / ktvlab) nếu còn tồn đọng từ bộ nhớ đệm cũ
         window.appState.users = window.appState.users.filter(u => u.role !== 'lab_staff' && u.username !== 'ktvlab');
         if (typeof window.saveStateToLocalStorage === 'function') {
@@ -6120,6 +6131,44 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
   const ui = roleUiConfig[normRole] || roleUiConfig['lab_manager'];
   let roleLoginSubmitted = false;
 
+  // Lấy danh sách tài khoản thuộc vai trò này hiện có trong hệ thống (bao gồm tài khoản do Admin tạo mới)
+  const roleUsers = (window.appState.users || []).filter(u => {
+    const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+    return r === normRole;
+  });
+
+  let defaultUser = roleUsers[0];
+  if (!defaultUser && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS[normRole]) {
+    defaultUser = STANDARD_ROLE_ACCOUNTS[normRole];
+  }
+  const defaultUsername = defaultUser ? (defaultUser.username || '') : (normRole === 'lab_manager' ? 'linhtt' : '');
+  const defaultPass = (defaultUser && defaultUser.initialPassword) ? defaultUser.initialPassword : 'Tnus@2026';
+
+  let userChipsHtml = '';
+  if (roleUsers.length > 0) {
+    const chips = roleUsers.map(u => {
+      const uname = (u.username || '').replace(/^@+/, '');
+      const uPass = u.initialPassword || 'Tnus@2026';
+      return `<button type="button" class="btn-role-quick-user px-2 py-1 bg-white hover:bg-slate-100 text-slate-800 font-mono text-[11px] font-bold rounded-lg border border-slate-300 transition shadow-2xs inline-flex items-center gap-1.5 cursor-pointer" data-uname="${uname}" data-pass="${uPass}" title="Bấm để chọn tài khoản ${u.name}">
+        <span>${u.avatar || '👤'}</span>
+        <span class="text-indigo-600 font-bold">@${uname}</span>
+        <span class="text-[10px] text-slate-500 font-sans font-normal truncate max-w-[120px]">(${u.name})</span>
+      </button>`;
+    }).join('');
+
+    userChipsHtml = `
+      <div class="mt-2.5 p-2 bg-slate-50 border border-slate-200 rounded-lg text-left">
+        <div class="text-[10px] font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+          <span><i class="fa-solid fa-users text-indigo-600 mr-1"></i>Tài khoản ${ui.roleTitle} khả dụng:</span>
+          <span class="text-[10px] text-indigo-600 font-normal">Nhấp để điền nhanh</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          ${chips}
+        </div>
+      </div>
+    `;
+  }
+
   Swal.fire({
     width: '420px',
     padding: '1.25rem',
@@ -6154,6 +6203,8 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
           </span>
         </div>
 
+        ${userChipsHtml}
+
         <!-- Form nhập liệu chuyên nghiệp, gọn gàng -->
         <div class="space-y-3 mt-3">
           <div>
@@ -6163,7 +6214,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
                 Do Admin cấp
               </span>
             </label>
-            <input type="text" id="role-login-username" value="" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." autocomplete="off"
+            <input type="text" id="role-login-username" value="${defaultUsername}" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." autocomplete="off"
               class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
           </div>
 
@@ -6175,7 +6226,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
               </span>
             </label>
             <div class="relative">
-              <input type="password" id="role-login-password" value="" placeholder="Nhập mật khẩu do Quản trị viên cấp..." autocomplete="off"
+              <input type="password" id="role-login-password" value="${defaultPass}" placeholder="Nhập mật khẩu do Quản trị viên cấp..." autocomplete="off"
               class="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
               <button type="button" onclick="window.toggleRoleLoginPasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                 <i id="role-login-pwd-eye" class="fa-solid fa-eye"></i>
@@ -6211,6 +6262,15 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
       const uInput = document.getElementById('role-login-username');
       const pInput = document.getElementById('role-login-password');
       if (uInput) uInput.focus();
+
+      // Kết nối các nút điền nhanh tài khoản khả dụng
+      document.querySelectorAll('.btn-role-quick-user').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (uInput) uInput.value = btn.dataset.uname;
+          if (pInput) pInput.value = btn.dataset.pass;
+          if (uInput) uInput.focus();
+        });
+      });
 
       const doSubmit = () => {
         if (roleLoginSubmitted) return;
@@ -6274,6 +6334,33 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
 window.openLoginModal = function() {
   let generalLoginSubmitted = false;
 
+  // Lấy các tài khoản cán bộ khả dụng (admin, lab_manager, teacher)
+  const staffUsers = (window.appState.users || []).filter(u => u.role === 'admin' || u.role === 'lab_manager' || u.role === 'teacher');
+  let staffChips = '';
+  if (staffUsers.length > 0) {
+    const chips = staffUsers.slice(0, 4).map(u => {
+      const uname = (u.username || '').replace(/^@+/, '');
+      const pass = u.initialPassword || (u.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
+      return `<button type="button" class="btn-gen-quick-user px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-700 font-mono text-[10px] font-bold rounded border border-slate-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" data-uname="${uname}" data-pass="${pass}">
+        <span>${u.avatar || '👤'}</span>
+        <span class="text-blue-600 font-bold">@${uname}</span>
+        <span class="text-[9px] text-slate-500 font-sans font-normal truncate max-w-[85px]">(${u.roleName || u.name})</span>
+      </button>`;
+    }).join('');
+
+    staffChips = `
+      <div class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-left mt-2">
+        <div class="text-[10px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+          <span><i class="fa-solid fa-users text-blue-600 mr-1"></i>Tài khoản cán bộ trong hệ thống:</span>
+          <span class="text-2xs text-blue-600 font-normal">Nhấp để điền nhanh</span>
+        </div>
+        <div class="flex flex-wrap gap-1">
+          ${chips}
+        </div>
+      </div>
+    `;
+  }
+
   Swal.fire({
     width: '420px',
     padding: '1.25rem',
@@ -6293,6 +6380,8 @@ window.openLoginModal = function() {
             <p class="text-[11px] text-blue-700 font-semibold truncate">Khoa Toán - Tin • Trường ĐH Khoa học (TNUS)</p>
           </div>
         </div>
+
+        ${staffChips}
 
         <div class="space-y-3 mt-3">
           <div>
@@ -6348,6 +6437,15 @@ window.openLoginModal = function() {
       const uInput = document.getElementById('login-username');
       const pInput = document.getElementById('login-password');
       if (uInput) uInput.focus();
+
+      // Kết nối các nút điền nhanh tài khoản cán bộ
+      document.querySelectorAll('.btn-gen-quick-user').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (uInput) uInput.value = btn.dataset.uname;
+          if (pInput) pInput.value = btn.dataset.pass;
+          if (uInput) uInput.focus();
+        });
+      });
 
       const doSubmit = () => {
         if (generalLoginSubmitted) return;
@@ -6448,12 +6546,14 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
   // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa
   const aliasMap = {
     // Quản lý phòng máy
-    'qlphongmay': 'qlphongmay',
-    'qlpm': 'qlphongmay',
-    'manager': 'qlphongmay',
-    'lab_manager': 'qlphongmay',
-    'quanly': 'qlphongmay',
-    'quanlyphongmay': 'qlphongmay',
+    'linhtt': 'linhtt',
+    'linh': 'linhtt',
+    'qlphongmay': 'linhtt',
+    'qlpm': 'linhtt',
+    'manager': 'linhtt',
+    'lab_manager': 'linhtt',
+    'quanly': 'linhtt',
+    'quanlyphongmay': 'linhtt',
     
     // Giảng viên
     'toannv': 'toannv',
@@ -6481,17 +6581,27 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
   let user = (window.appState.users || []).find(u => 
     (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
     (u.id && u.id.toLowerCase() === cleanTerm) ||
-    (u.email && u.email.toLowerCase() === cleanTerm)
+    (u.email && u.email.toLowerCase() === cleanTerm) ||
+    (u.name && u.name.toLowerCase().trim() === cleanTerm)
   );
 
-  // 2. Nếu chưa thấy, thử tìm theo bí danh trong appState.users (nếu có tài khoản mang tên bí danh đó)
+  // 2. Nếu chưa thấy, thử tìm theo bí danh trong appState.users
   if (!user && lookupKey) {
     user = (window.appState.users || []).find(u => 
-      u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey
+      (u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey) ||
+      (lookupKey === 'linhtt' && (u.role === 'lab_manager' || u.username === 'qlphongmay')) ||
+      (lookupKey === 'toannv' && u.role === 'teacher') ||
+      (lookupKey === 'student' && u.role === 'student') ||
+      (lookupKey === 'admin' && u.role === 'admin')
     );
   }
 
-  // 3. Nếu vẫn chưa thấy trong appState.users, tìm trong STANDARD_ROLE_ACCOUNTS mặc định của hệ thống
+  // 3. Nếu vẫn chưa thấy trong appState.users, tìm theo vai trò Quản lý phòng máy nếu từ khóa liên quan đến quản lý
+  if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh' || cleanTerm === 'qlphongmay' || cleanTerm === 'manager' || cleanTerm === 'qlpm' || cleanTerm === 'quanly' || cleanTerm === 'quanlyphongmay')) {
+    user = (window.appState.users || []).find(u => u.role === 'lab_manager');
+  }
+
+  // 4. Nếu vẫn chưa thấy trong appState.users, tìm trong STANDARD_ROLE_ACCOUNTS mặc định của hệ thống
   if (!user && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
     const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
     user = Object.values(standards).find(u => 
@@ -6500,12 +6610,41 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
       (u.email && u.email.toLowerCase() === cleanTerm) ||
       (lookupKey && u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey)
     );
+    if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh' || cleanTerm === 'qlphongmay' || cleanTerm === 'manager' || cleanTerm === 'qlpm' || cleanTerm === 'quanly')) {
+      user = standards.lab_manager;
+    }
     if (user) {
       user = { ...user };
       if (!window.appState.users.some(u => u.id === user.id || u.username === user.username)) {
         window.appState.users.push(user);
         window.saveStateToLocalStorage();
       }
+    }
+  }
+
+  // 5. Nếu từ khóa là linhtt (ThS. Trần Thị Linh) mà chưa có trong bộ nhớ, tự động đồng bộ ngay lập tức:
+  if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh')) {
+    user = {
+      id: 'USR-02',
+      username: 'linhtt',
+      name: 'ThS. Trần Thị Linh',
+      role: 'lab_manager',
+      roleName: 'Quản lý phòng máy',
+      email: 'linhtt@tnus.edu.vn',
+      phone: '0978.889.991',
+      department: 'Tổ Quản trị Phòng máy - Khoa Toán - Tin',
+      avatar: '🏢',
+      status: 'active',
+      initialPassword: 'Tnus@2026',
+      passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
+      salt: 'TNUS_KHOA_TOAN_TIN_2026',
+      failedLogins: 0,
+      createdAt: '2026-10-15',
+      lastLogin: '2026-11-18 08:00'
+    };
+    if (!window.appState.users.some(u => u.username === 'linhtt')) {
+      window.appState.users.push(user);
+      window.saveStateToLocalStorage();
     }
   }
 
