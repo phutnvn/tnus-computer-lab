@@ -19805,9 +19805,59 @@ window.toggleRoleLoginPasswordVisibility = function() {
 };
 
 /**
+ * Chuyển phiên làm việc về tài khoản khách (Sinh viên / Tra cứu)
+ * Kích hoạt khi người dùng bấm "Đóng" trên modal đăng nhập hoặc hủy xác thực
+ */
+window.returnToGuestView = function(showToast = true) {
+  const guestUser = (typeof window.getRoleUser === 'function')
+    ? window.getRoleUser('student')
+    : (window.STANDARD_ROLE_ACCOUNTS?.student || {
+        id: 'USR-05',
+        username: 'student',
+        name: 'Sinh viên / Khách tra cứu',
+        role: 'student',
+        roleName: 'Sinh viên',
+        avatar: '👨‍🎓',
+        department: 'Khoa Toán - Tin, TNUS',
+        status: 'active'
+      });
+
+  window.appState.currentUser = guestUser;
+  window.saveStateToLocalStorage();
+  window.updateUserUI();
+  if (typeof window.applyRoleRestrictionsToUI === 'function') {
+    window.applyRoleRestrictionsToUI();
+  }
+  if (typeof window.renderUserAccountsTable === 'function') {
+    window.renderUserAccountsTable();
+  }
+  if (typeof window.updateUserKPIs === 'function') {
+    window.updateUserKPIs();
+  }
+  if (typeof window.switchTab === 'function') {
+    window.switchTab('simulation');
+  }
+
+  if (showToast && typeof Swal !== 'undefined') {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true
+    });
+    Toast.fire({
+      icon: 'info',
+      title: 'Đang ở giao diện Khách tra cứu (Sinh viên)'
+    });
+  }
+};
+
+/**
  * Mở hộp thoại Đăng nhập chuyên biệt cho từng vai trò tài khoản
  * (Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Quản trị viên, Sinh viên)
- * Kích hoạt khi bấm vào link tài khoản hoặc nút [Vào] trên từng thẻ vai trò
+ * Giao diện tối giản, chuyên nghiệp, dễ nhìn, không rườm rà.
+ * Khi đóng sẽ tự động chuyển về giao diện tài khoản khách (Sinh viên).
  */
 window.openRoleLoginModal = function(roleParam, targetTab) {
   const rawRole = (roleParam || 'lab_manager').toString().toLowerCase().trim();
@@ -19841,90 +19891,49 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
 
   const normRole = aliasRoleMap[rawRole] || (window.normalizeRole ? window.normalizeRole(rawRole) : rawRole);
 
-  const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' 
-    ? STANDARD_ROLE_ACCOUNTS 
-    : (window.STANDARD_ROLE_ACCOUNTS || {});
-
-  let roleUser = standards[normRole] || standards[rawRole];
-  if (!roleUser && window.appState && window.appState.users) {
-    roleUser = window.appState.users.find(u => 
-      u.role === normRole || 
-      (u.username && u.username.toLowerCase() === rawRole) ||
-      (u.id && u.id.toLowerCase() === rawRole)
-    );
-  }
-
-  if (!roleUser) {
-    roleUser = {
-      username: normRole === 'teacher' ? 'toannv' : (normRole === 'lab_staff' ? 'ktvlab' : (normRole === 'admin' ? 'admin' : (normRole === 'student' ? 'student' : 'qlphongmay'))),
-      name: normRole === 'teacher' ? 'Giảng viên thực hành' : (normRole === 'lab_staff' ? 'Kỹ thuật viên phòng máy' : (normRole === 'admin' ? 'ThS. Trịnh Minh Phú' : (normRole === 'student' ? 'Sinh viên tra cứu' : 'Quản lý phòng máy'))),
-      role: normRole,
-      roleName: normRole === 'teacher' ? 'Giảng viên' : (normRole === 'lab_staff' ? 'Kỹ thuật viên' : (normRole === 'admin' ? 'Quản trị viên' : (normRole === 'student' ? 'Sinh viên' : 'Quản lý phòng máy'))),
-      department: normRole === 'teacher' ? 'Bộ môn Khoa học Máy tính - TNUS' : (normRole === 'lab_staff' ? 'Tổ Kỹ thuật - Khoa Toán - Tin' : (normRole === 'admin' ? 'Khoa Toán - Tin, TNUS' : (normRole === 'student' ? 'Khoa Toán - Tin, TNUS' : 'Tổ Quản trị Phòng máy - Khoa Toán - Tin'))),
-      avatar: normRole === 'teacher' ? '👨‍🏫' : (normRole === 'lab_staff' ? '🧑‍🔧' : (normRole === 'admin' ? '👨‍💼' : (normRole === 'student' ? '👨‍🎓' : '🏢'))),
-      phone: normRole === 'admin' ? '0975.090.666' : (normRole === 'lab_manager' ? '0978.889.991' : (normRole === 'teacher' ? '0912.345.678' : '0988.776.655')),
-      email: normRole === 'admin' ? 'phutm@tnus.edu.vn' : (normRole === 'lab_manager' ? 'qlpm@tnus.edu.vn' : (normRole === 'teacher' ? 'toannv@tnus.edu.vn' : 'ktvlab@tnus.edu.vn'))
-    };
-  }
-
   const roleUiConfig = {
     lab_manager: {
       roleTitle: 'QUẢN LÝ PHÒNG MÁY',
-      roleBadge: 'Quản lý PM (manager)',
+      roleBadge: 'Quản lý thiết bị',
       themeColor: '#4f46e5',
-      badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-      headerBg: 'from-indigo-600 to-slate-900',
-      avatarEmoji: '🏢',
+      badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       iconClass: 'fa-desktop',
-      summary: 'Quản trị thiết bị 4 phòng (104 máy), phê duyệt đăng ký ca dạy & lập báo cáo cơ sở vật chất.',
       destTab: targetTab || 'computers',
       destTabLabel: 'Quản lý Thiết bị (104 máy)'
     },
     teacher: {
       roleTitle: 'GIẢNG VIÊN THỰC HÀNH',
-      roleBadge: 'Giảng viên (teacher)',
+      roleBadge: 'Giảng dạy',
       themeColor: '#059669',
-      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-      headerBg: 'from-emerald-600 to-slate-900',
-      avatarEmoji: '👨‍🏫',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       iconClass: 'fa-chalkboard-user',
-      summary: 'Xem Thời khóa biểu các ca giảng dạy, mở ca thực hành cho sinh viên & lập phiếu báo hỏng máy.',
       destTab: targetTab || 'schedule',
       destTabLabel: 'Lịch Thực Hành Phòng Máy'
     },
     lab_staff: {
       roleTitle: 'KỸ THUẬT VIÊN LAB',
-      roleBadge: 'Kỹ thuật viên (staff)',
+      roleBadge: 'Bảo trì & WOL',
       themeColor: '#d97706',
-      badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
-      headerBg: 'from-amber-600 to-slate-900',
-      avatarEmoji: '🧑‍🔧',
+      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
       iconClass: 'fa-wrench',
-      summary: 'Tiếp nhận báo hỏng, sửa chữa máy trạm, kích hoạt Wake-on-LAN bật/tắt nguồn từ xa & in mã QR.',
       destTab: targetTab || 'maintenance',
       destTabLabel: 'Bảo Trì & Xử Lý Sự Cố'
     },
     admin: {
       roleTitle: 'QUẢN TRỊ VIÊN HỆ THỐNG',
-      roleBadge: 'Quản trị viên (admin)',
+      roleBadge: 'Toàn quyền',
       themeColor: '#2563eb',
-      badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
-      headerBg: 'from-blue-600 to-slate-900',
-      avatarEmoji: '👨‍💼',
+      badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
       iconClass: 'fa-shield-halved',
-      summary: 'Toàn quyền 42/42 thẩm quyền: Quản trị 104 máy trạm, phân quyền RBAC & an toàn dữ liệu.',
       destTab: targetTab || 'dashboard',
       destTabLabel: 'Dashboard Tổng Quan'
     },
     student: {
       roleTitle: 'SINH VIÊN / TRA CỨU',
-      roleBadge: 'Sinh viên (student)',
+      roleBadge: 'Khách',
       themeColor: '#7c3aed',
-      badgeClass: 'bg-purple-100 text-purple-800 border-purple-300',
-      headerBg: 'from-purple-600 to-slate-900',
-      avatarEmoji: '👨‍🎓',
+      badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
       iconClass: 'fa-graduation-cap',
-      summary: 'Tra cứu sơ đồ 2D trực quan 4 phòng, kiểm tra vị trí máy trống khả dụng & thời khóa biểu tuần.',
       destTab: targetTab || 'simulation',
       destTabLabel: 'Sơ Đồ 2D Trực Quan'
     }
@@ -19933,269 +19942,292 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
   const ui = roleUiConfig[normRole] || roleUiConfig['lab_manager'];
 
   Swal.fire({
-    title: `
-      <div class="text-left">
-        <div class="flex items-center space-x-3">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br ${ui.headerBg} text-white flex items-center justify-center text-xl shadow-md border border-white/20">
-            <span>${ui.avatarEmoji}</span>
-          </div>
-          <div>
-            <div class="text-base font-extrabold text-slate-900 tracking-tight uppercase">${ui.roleTitle}</div>
-            <div class="text-xs text-blue-700 font-semibold">Khoa Toán - Tin • Trường Đại học Khoa học (TNUS)</div>
-          </div>
-        </div>
-      </div>
-    `,
+    width: '420px',
+    padding: '1.25rem',
+    backdrop: 'rgba(15, 23, 42, 0.85)',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    showCloseButton: true,
     html: `
-      <div class="text-left space-y-3.5 text-xs mt-3">
-        <!-- Thẻ thông tin vai trò cán bộ -->
-        <div class="p-3.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/70 shadow-2xs space-y-2">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-              <span class="text-lg">${ui.avatarEmoji}</span>
-              <div>
-                <div class="font-bold text-slate-900 text-xs">${ui.roleTitle}</div>
-                <div class="text-[10px] text-amber-700 font-medium flex items-center gap-1">
-                  <i class="fa-solid fa-lock text-[9px]"></i>
-                  Yêu cầu tài khoản xác thực do Quản trị viên cấp
-                </div>
-              </div>
+      <div class="text-left select-none">
+        <!-- Header gọn gàng, tinh tế -->
+        <div class="flex items-center space-x-3 pb-3 border-b border-slate-100">
+          <div class="w-10 h-10 rounded-xl text-white flex items-center justify-center text-lg shadow-sm shrink-0" style="background: ${ui.themeColor};">
+            <i class="fa-solid ${ui.iconClass}"></i>
+          </div>
+          <div class="flex-1 min-w-0 pr-4">
+            <div class="flex items-center justify-between gap-1">
+              <h3 class="text-sm font-extrabold text-slate-900 tracking-tight uppercase">${ui.roleTitle}</h3>
             </div>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${ui.badgeClass}">${ui.roleBadge}</span>
-          </div>
-          <div class="text-[11px] text-slate-600 leading-relaxed border-t border-slate-200/80 pt-1.5 flex items-start gap-1">
-            <i class="fa-solid fa-circle-info text-blue-500 mt-0.5 text-[10px]"></i>
-            <span>${ui.summary}</span>
-          </div>
-          <div class="text-[10px] text-slate-500 pt-0.5 flex flex-wrap items-center gap-3">
-            <span><i class="fa-solid fa-building text-slate-400 mr-1"></i>${roleUser.department || 'Khoa Toán - Tin, TNUS'}</span>
-            <span><i class="fa-solid fa-user-shield text-blue-600 mr-1"></i>Quản trị viên: ThS. Trịnh Minh Phú (0975.090.666)</span>
+            <p class="text-[11px] text-blue-700 font-semibold truncate">Khoa Toán - Tin • Trường ĐH Khoa học (TNUS)</p>
           </div>
         </div>
 
-        <!-- Form đăng nhập (Tên đăng nhập & mật khẩu để trống theo yêu cầu bảo mật) -->
-        <div class="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span><i class="fa-solid fa-user text-slate-400 mr-1.5"></i>Tên đăng nhập (Username):</span>
-              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                <i class="fa-solid fa-key mr-1"></i>Do Admin cung cấp
-              </span>
-            </label>
-            <input type="text" id="role-login-username" value="" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." 
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-          </div>
-
-          <div>
-            <label class="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span><i class="fa-solid fa-lock text-slate-400 mr-1.5"></i>Mật khẩu xác thực:</span>
-              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                <i class="fa-solid fa-shield-halved mr-1"></i>Do Admin cung cấp
-              </span>
-            </label>
-            <div class="relative">
-              <input type="password" id="role-login-password" value="" placeholder="Nhập mật khẩu do Quản trị viên cấp..." 
-                class="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-              <button type="button" onclick="window.toggleRoleLoginPasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
-                <i id="role-login-pwd-eye" class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-            <div class="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-start gap-1.5 mt-2">
-              <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
-              <span><strong>Chính sách an toàn:</strong> Tên đăng nhập và mật khẩu để trống. Cán bộ chỉ đăng nhập được khi Quản trị viên (Admin ThS. Trịnh Minh Phú - 0975.090.666) cung cấp tài khoản. Hệ thống tự động khóa an toàn sau 5 lần nhập sai liên tiếp.</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Chỉ dẫn chuyển hướng phân hệ -->
-        <div class="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-900 text-[11px] flex items-center justify-between">
-          <span class="flex items-center gap-1.5 font-medium">
-            <i class="fa-solid fa-compass text-blue-600"></i>
-            Phân hệ đích khi đăng nhập:
+        <!-- Phân hệ đích -->
+        <div class="mt-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+          <span class="text-[11px] text-slate-600 font-medium flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-right-to-bracket text-indigo-600"></i>
+            Phân hệ đích:
           </span>
-          <span class="font-bold text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+          <span class="text-[11px] font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
             ${ui.destTabLabel}
           </span>
         </div>
 
-        <div class="flex items-center justify-between pt-1">
-          <button type="button" onclick="Swal.close(); window.openLoginModal();" class="text-blue-600 hover:text-blue-800 hover:underline text-[11px] font-semibold flex items-center gap-1">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            Đăng nhập tài khoản khác
+        <!-- Form nhập liệu chuyên nghiệp, gọn gàng -->
+        <div class="space-y-3 mt-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span><i class="fa-solid fa-user text-slate-400 mr-1.5"></i>Tên đăng nhập</span>
+              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                Do Admin cấp
+              </span>
+            </label>
+            <input type="text" id="role-login-username" value="" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." autocomplete="off"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span><i class="fa-solid fa-lock text-slate-400 mr-1.5"></i>Mật khẩu</span>
+              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                Do Admin cấp
+              </span>
+            </label>
+            <div class="relative">
+              <input type="password" id="role-login-password" value="" placeholder="Nhập mật khẩu do Quản trị viên cấp..." autocomplete="off"
+                class="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
+              <button type="button" onclick="window.toggleRoleLoginPasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                <i id="role-login-pwd-eye" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Ghi chú bảo mật & hỗ trợ 1 dòng -->
+          <div class="py-1.5 px-2.5 rounded-lg bg-amber-50/90 border border-amber-200/80 text-[11px] text-amber-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-shield-halved text-amber-600 shrink-0 text-xs"></i>
+            <span>Liên hệ Admin ThS. Trịnh Minh Phú (<strong>0975.090.666</strong>) để cấp tài khoản.</span>
+          </div>
+        </div>
+
+        <!-- Các nút hành động chính -->
+        <div class="mt-4 pt-2 border-t border-slate-100 flex items-center gap-2">
+          <button type="button" id="btn-role-login-submit" class="flex-1 py-2 px-3 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5" style="background: ${ui.themeColor};">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Đăng Nhập</span>
           </button>
-          <span class="text-[10px] text-slate-500 font-medium">Hotline hỗ trợ: <strong>0975.090.666</strong></span>
+          <button type="button" id="btn-role-login-close" class="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition border border-slate-200 flex items-center justify-center gap-1" title="Đóng và quay về giao diện khách tra cứu">
+            <span>Đóng</span>
+          </button>
+        </div>
+
+        <!-- Nút phụ quay về giao diện khách tra cứu -->
+        <div class="mt-2.5 text-center">
+          <button type="button" id="btn-role-login-guest" class="text-[11px] text-slate-500 hover:text-indigo-600 hover:underline font-semibold inline-flex items-center gap-1 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Quay về giao diện tài khoản khách (Sinh viên)</span>
+          </button>
         </div>
       </div>
     `,
-    backdrop: 'rgba(15, 23, 42, 0.88)',
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    showCancelButton: true,
-    confirmButtonText: `<i class="fa-solid fa-right-to-bracket mr-1.5"></i>Đăng Nhập Vào Phân Hệ`,
-    cancelButtonText: 'Đóng',
-    confirmButtonColor: ui.themeColor,
-    focusConfirm: false,
     didOpen: () => {
       const uInput = document.getElementById('role-login-username');
+      const pInput = document.getElementById('role-login-password');
       if (uInput) uInput.focus();
-      const pwdInput = document.getElementById('role-login-password');
-      if (pwdInput) {
-        pwdInput.addEventListener('keypress', (e) => {
+
+      let isSubmitting = false;
+      const doSubmit = () => {
+        if (isSubmitting) return;
+        const u = uInput ? uInput.value.trim() : '';
+        const p = pInput ? pInput.value : '';
+        if (!u) {
+          Swal.showValidationMessage('Vui lòng nhập tên đăng nhập!');
+          return;
+        }
+        if (!p) {
+          Swal.showValidationMessage('Vui lòng nhập mật khẩu!');
+          return;
+        }
+        isSubmitting = true;
+        Swal.close();
+        window.handleLoginSubmit(u, p, targetTab || ui.destTab);
+      };
+
+      const btnSubmit = document.getElementById('btn-role-login-submit');
+      if (btnSubmit) btnSubmit.addEventListener('click', doSubmit);
+
+      if (pInput) {
+        pInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') doSubmit();
+        });
+      }
+      if (uInput) {
+        uInput.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') {
-            const u = document.getElementById('role-login-username').value.trim();
-            const p = pwdInput.value;
-            if (u && p) {
-              Swal.close();
-              window.handleLoginSubmit(u, p, targetTab || ui.destTab);
-            }
+            if (pInput) pInput.focus();
           }
         });
       }
-    },
-    preConfirm: () => {
-      const u = document.getElementById('role-login-username').value.trim();
-      const p = document.getElementById('role-login-password').value;
-      if (!u) {
-        Swal.showValidationMessage('Vui lòng nhập tên đăng nhập do Quản trị viên cấp!');
-        return false;
-      }
-      if (!p) {
-        Swal.showValidationMessage('Vui lòng nhập mật khẩu do Quản trị viên cấp!');
-        return false;
-      }
-      return { username: u, password: p };
+
+      // Xử lý nút Đóng & nút Quay về khách:
+      // "Khi kích vào đóng thì quay về giao diện tài khoản khách"
+      const handleCloseToGuest = () => {
+        Swal.close();
+        window.returnToGuestView(true);
+      };
+
+      const btnClose = document.getElementById('btn-role-login-close');
+      if (btnClose) btnClose.addEventListener('click', handleCloseToGuest);
+
+      const btnGuest = document.getElementById('btn-role-login-guest');
+      if (btnGuest) btnGuest.addEventListener('click', handleCloseToGuest);
     }
   }).then(result => {
-    if (result.isConfirmed) {
-      window.handleLoginSubmit(result.value.username, result.value.password, targetTab || ui.destTab);
-    } else {
-      // Khi bấm Đóng/Hủy, không giữ màn hình ở phân hệ quản lý nếu chưa được cấp quyền
+    // Nếu modal bị đóng (bấm nút X, phím tắt hoặc cách khác) mà không phải submit đăng nhập
+    if (!result.isConfirmed) {
       const curRole = window.normalizeRole ? window.normalizeRole(window.appState.currentUser?.role) : (window.appState.currentUser?.role || 'student');
-      if (curRole !== normRole && (window.appState.currentTab === 'computers' || window.appState.currentTab === 'users')) {
-        window.switchTab('dashboard');
+      if (curRole !== normRole) {
+        window.returnToGuestView(true);
       }
     }
   });
 };
 
 /**
- * Mở hộp thoại Đăng nhập hệ thống (Login Modal)
- * Hỗ trợ xác thực đầy đủ các vai trò: Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Quản trị viên, Sinh viên
+ * Mở hộp thoại Đăng nhập hệ thống chung (Login Modal)
+ * Giao diện gọn gàng, tinh tế, đóng thì quay về giao diện tài khoản khách
  */
 window.openLoginModal = function() {
   Swal.fire({
-    title: `
-      <div class="text-left">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg shadow-md">
+    width: '420px',
+    padding: '1.25rem',
+    backdrop: 'rgba(15, 23, 42, 0.85)',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    showCloseButton: true,
+    html: `
+      <div class="text-left select-none text-xs">
+        <div class="flex items-center space-x-3 pb-3 border-b border-slate-100">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg shadow-sm shrink-0">
             <i class="fa-solid fa-shield-halved"></i>
           </div>
-          <div>
-            <div class="text-base font-extrabold text-slate-900 uppercase">Đăng Nhập Hệ Thống Phòng Máy</div>
-            <div class="text-xs text-blue-700 font-semibold">Khoa Toán - Tin • Trường Đại học Khoa học (TNUS)</div>
+          <div class="flex-1 min-w-0 pr-4">
+            <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-tight">Đăng Nhập Hệ Thống</h3>
+            <p class="text-[11px] text-blue-700 font-semibold truncate">Khoa Toán - Tin • Trường ĐH Khoa học (TNUS)</p>
           </div>
         </div>
-      </div>
-    `,
-    html: `
-      <div class="text-left space-y-4 text-xs mt-3">
-        <!-- Form đăng nhập chuẩn -->
-        <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+
+        <div class="space-y-3 mt-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span><i class="fa-solid fa-user text-slate-400 mr-1.5"></i>Tên đăng nhập (Username / Mã cán bộ)</span>
-              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                <i class="fa-solid fa-key mr-1"></i>Do Admin cấp
+            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span><i class="fa-solid fa-user text-slate-400 mr-1.5"></i>Tên đăng nhập</span>
+              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                Do Admin cấp
               </span>
             </label>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <i class="fa-solid fa-user"></i>
-              </span>
-              <input type="text" id="login-username" value="" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." 
-                class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
+            <input type="text" id="login-username" value="" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." autocomplete="off"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
           </div>
 
           <div>
-            <label class="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span><i class="fa-solid fa-lock text-slate-400 mr-1.5"></i>Mật khẩu xác thực</span>
-              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                <i class="fa-solid fa-shield-halved mr-1"></i>Do Admin cấp
+            <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span><i class="fa-solid fa-lock text-slate-400 mr-1.5"></i>Mật khẩu</span>
+              <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                Do Admin cấp
               </span>
             </label>
             <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <i class="fa-solid fa-lock"></i>
-              </span>
-              <input type="password" id="login-password" value="" placeholder="Nhập mật khẩu do Quản trị viên cấp..." 
-                class="w-full pl-9 pr-10 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <input type="password" id="login-password" value="" placeholder="Nhập mật khẩu do Quản trị viên cấp..." autocomplete="off"
+                class="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
               <button type="button" onclick="window.toggleLoginPasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                 <i id="login-pwd-eye" class="fa-solid fa-eye"></i>
               </button>
             </div>
-            <div class="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-start gap-1.5 mt-2">
-              <i class="fa-solid fa-shield-halved text-amber-600 mt-0.5"></i>
-              <span>Tài khoản và mật khẩu để trống. Cán bộ chỉ đăng nhập được khi Quản trị viên (Admin ThS. Trịnh Minh Phú - 0975.090.666) cung cấp thông tin. Hệ thống tự động khóa an toàn sau 5 lần nhập sai liên tiếp.</span>
-            </div>
+          </div>
+
+          <div class="py-1.5 px-2.5 rounded-lg bg-amber-50/90 border border-amber-200/80 text-[11px] text-amber-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-shield-halved text-amber-600 shrink-0 text-xs"></i>
+            <span>Liên hệ Admin ThS. Trịnh Minh Phú (<strong>0975.090.666</strong>) để cấp tài khoản.</span>
           </div>
         </div>
 
-        <!-- Thông báo chính sách an toàn tài khoản cán bộ -->
-        <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-1.5">
-          <div class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-            <i class="fa-solid fa-id-badge text-blue-600"></i>
-            Thông tin liên hệ cấp phát & khôi phục tài khoản:
-          </div>
-          <p class="text-[11px] text-slate-600 leading-relaxed">
-            Khoa Toán - Tin • Trường Đại học Khoa học (TNUS)<br>
-            Cán bộ phụ trách quản trị: <strong>ThS. Trịnh Minh Phú</strong><br>
-            Điện thoại / Zalo: <strong class="text-blue-700">0975.090.666</strong> • Email: <strong class="text-blue-700">phutm@tnus.edu.vn</strong>
-          </p>
+        <div class="mt-4 pt-2 border-t border-slate-100 flex items-center gap-2">
+          <button type="button" id="btn-login-submit" class="flex-1 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Đăng Nhập</span>
+          </button>
+          <button type="button" id="btn-login-close" class="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition border border-slate-200 flex items-center justify-center gap-1" title="Đóng và quay về giao diện khách tra cứu">
+            <span>Đóng</span>
+          </button>
+        </div>
+
+        <div class="mt-2.5 text-center">
+          <button type="button" id="btn-login-guest" class="text-[11px] text-slate-500 hover:text-blue-600 hover:underline font-semibold inline-flex items-center gap-1 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Quay về giao diện tài khoản khách (Sinh viên)</span>
+          </button>
         </div>
       </div>
     `,
-    backdrop: 'rgba(15, 23, 42, 0.88)',
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    showCancelButton: true,
-    confirmButtonText: '<i class="fa-solid fa-right-to-bracket mr-1.5"></i>Đăng Nhập',
-    cancelButtonText: 'Đóng',
-    confirmButtonColor: '#2563eb',
-    focusConfirm: false,
     didOpen: () => {
       const uInput = document.getElementById('login-username');
+      const pInput = document.getElementById('login-password');
       if (uInput) uInput.focus();
-      const pwdInput = document.getElementById('login-password');
-      if (pwdInput) {
-        pwdInput.addEventListener('keypress', (e) => {
+
+      let isSubmitting = false;
+      const doSubmit = () => {
+        if (isSubmitting) return;
+        const u = uInput ? uInput.value.trim() : '';
+        const p = pInput ? pInput.value : '';
+        if (!u) {
+          Swal.showValidationMessage('Vui lòng nhập tên đăng nhập!');
+          return;
+        }
+        if (!p) {
+          Swal.showValidationMessage('Vui lòng nhập mật khẩu!');
+          return;
+        }
+        isSubmitting = true;
+        Swal.close();
+        window.handleLoginSubmit(u, p);
+      };
+
+      const btnSubmit = document.getElementById('btn-login-submit');
+      if (btnSubmit) btnSubmit.addEventListener('click', doSubmit);
+
+      if (pInput) {
+        pInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') doSubmit();
+        });
+      }
+      if (uInput) {
+        uInput.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') {
-            const username = document.getElementById('login-username').value.trim();
-            const password = pwdInput.value;
-            if (username && password) {
-              Swal.close();
-              window.handleLoginSubmit(username, password);
-            }
+            if (pInput) pInput.focus();
           }
         });
       }
-    },
-    preConfirm: () => {
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
-      if (!username) {
-        Swal.showValidationMessage('Vui lòng nhập tên đăng nhập do Quản trị viên cấp!');
-        return false;
-      }
-      if (!password) {
-        Swal.showValidationMessage('Vui lòng nhập mật khẩu do Quản trị viên cấp!');
-        return false;
-      }
-      return { username, password };
+
+      const handleCloseToGuest = () => {
+        Swal.close();
+        window.returnToGuestView(true);
+      };
+
+      const btnClose = document.getElementById('btn-login-close');
+      if (btnClose) btnClose.addEventListener('click', handleCloseToGuest);
+
+      const btnGuest = document.getElementById('btn-login-guest');
+      if (btnGuest) btnGuest.addEventListener('click', handleCloseToGuest);
     }
   }).then(result => {
-    if (result.isConfirmed) {
-      window.handleLoginSubmit(result.value.username, result.value.password);
+    if (!result.isConfirmed) {
+      const curUser = window.appState.currentUser;
+      const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
+      if (!curUser || curRole !== 'admin') {
+        window.returnToGuestView(true);
+      }
     }
   });
 };
