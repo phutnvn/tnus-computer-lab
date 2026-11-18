@@ -14844,6 +14844,25 @@ function initApplication() {
   try { if (typeof startDashboardClock === 'function') startDashboardClock(); } catch (e) { console.warn('Lỗi startDashboardClock:', e); }
   try { if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs(); } catch (e) {}
   try { if (typeof initUrlParamsHandler === 'function') initUrlParamsHandler(); } catch (e) { console.warn('Lỗi initUrlParamsHandler:', e); }
+
+  // Hỗ trợ phím tắt Alt + L hoặc bấm vào tiêu đề trường để mở hộp thoại Đăng nhập khi ở giao diện Sinh viên
+  try {
+    window.addEventListener('keydown', (e) => {
+      if ((e.altKey && (e.key === 'l' || e.key === 'L')) || (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l'))) {
+        e.preventDefault();
+        if (typeof window.openLoginModal === 'function') window.openLoginModal();
+      }
+    });
+    const headerTitleEl = document.querySelector('header h1');
+    if (headerTitleEl) {
+      headerTitleEl.addEventListener('click', () => {
+        const curRole = window.appState.currentUser?.role;
+        if (!curRole || curRole === 'student') {
+          if (typeof window.openLoginModal === 'function') window.openLoginModal();
+        }
+      });
+    }
+  } catch (e) {}
 }
 
 // ============================================================================
@@ -18953,12 +18972,11 @@ window.applyRoleRestrictionsToUI = function() {
 
   const headerLogoutBtn = document.getElementById('btn-header-logout');
   if (headerLogoutBtn) {
-    headerLogoutBtn.style.display = '';
     if (isStudent) {
-      headerLogoutBtn.title = 'Đăng xuất khỏi tài khoản Sinh viên và mở giao diện Đăng nhập';
-      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket mr-1.5"></i><span class="font-bold">Đăng xuất</span>';
-      headerLogoutBtn.className = 'px-3.5 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer';
+      // Giao diện tài khoản Sinh viên: BỎ nút lệnh Đăng xuất theo yêu cầu
+      headerLogoutBtn.style.display = 'none';
     } else {
+      headerLogoutBtn.style.display = '';
       headerLogoutBtn.title = 'Đăng xuất khỏi phiên làm việc';
       headerLogoutBtn.innerHTML = '<i class="fa-solid fa-power-off mr-1.5"></i><span>Đăng xuất</span>';
       headerLogoutBtn.className = 'px-3 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer';
