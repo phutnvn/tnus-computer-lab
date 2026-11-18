@@ -20653,11 +20653,24 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
       const uInput = document.getElementById('role-login-username');
       const pInput = document.getElementById('role-login-password');
       if (uInput) {
-        uInput.value = '';
-        uInput.focus();
+        uInput.value = defaultUsername || '';
+        if (defaultUsername) {
+          if (pInput) {
+            pInput.value = '';
+            pInput.focus();
+          }
+        } else {
+          uInput.focus();
+        }
+        uInput.addEventListener('input', () => {
+          if (typeof Swal.resetValidationMessage === 'function') Swal.resetValidationMessage();
+        });
       }
       if (pInput) {
-        pInput.value = '';
+        if (!defaultUsername) pInput.value = '';
+        pInput.addEventListener('input', () => {
+          if (typeof Swal.resetValidationMessage === 'function') Swal.resetValidationMessage();
+        });
       }
 
       // Kết nối các nút điền nhanh tài khoản khả dụng
@@ -20666,6 +20679,7 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
           if (uInput) uInput.value = btn.dataset.uname;
           if (pInput) pInput.value = btn.dataset.pass;
           if (uInput) uInput.focus();
+          if (typeof Swal.resetValidationMessage === 'function') Swal.resetValidationMessage();
         });
       });
 
@@ -20675,12 +20689,91 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
         const p = pInput ? pInput.value : '';
         if (!u) {
           Swal.showValidationMessage('Vui lòng nhập tên đăng nhập!');
+          if (uInput) uInput.focus();
           return;
         }
         if (!p) {
           Swal.showValidationMessage('Vui lòng nhập mật khẩu!');
+          if (pInput) pInput.focus();
           return;
         }
+
+        // Cơ chế kiểm tra trực tiếp ngay trên modal: cho phép thử lại ngay mà không bị đóng modal
+        if (normRole === 'teacher') {
+          const cleanU = u.toLowerCase().replace(/^@+/, '');
+          const matchUser = (window.appState.users || []).find(user => 
+            (user.username && user.username.toLowerCase().replace(/^@+/, '') === cleanU) ||
+            (user.id && user.id.toLowerCase() === cleanU) ||
+            (user.email && user.email.toLowerCase() === cleanU) ||
+            (user.name && user.name.toLowerCase().trim() === cleanU)
+          );
+
+          if (!matchUser) {
+            Swal.showValidationMessage(`Tên đăng nhập "${u}" không đúng hoặc chưa được Admin cấp!`);
+            if (uInput) {
+              uInput.focus();
+              uInput.select();
+            }
+            return;
+          }
+
+          const userNormRole = window.normalizeRole ? window.normalizeRole(matchUser.role) : matchUser.role;
+          if (userNormRole !== 'teacher') {
+            Swal.showValidationMessage(`Tài khoản @${matchUser.username} không thuộc vai trò Giảng viên!`);
+            if (uInput) {
+              uInput.focus();
+              uInput.select();
+            }
+            return;
+          }
+
+          if (matchUser.status === 'locked') {
+            Swal.showValidationMessage(`Tài khoản @${matchUser.username} đang bị khóa an toàn! Vui lòng liên hệ Admin.`);
+            return;
+          }
+
+          // Kiểm tra mật khẩu
+          const verifyFn = (typeof window.verifyPassword === 'function') ? window.verifyPassword : null;
+          const cleanP = (p || '').trim();
+          const isMatch = verifyFn 
+            ? verifyFn(cleanP, matchUser) 
+            : (cleanP.toLowerCase() === 'tnus@2026' || 
+               (matchUser.initialPassword && (cleanP === matchUser.initialPassword.trim()))
+              );
+
+          if (!isMatch) {
+            matchUser.failedLogins = (matchUser.failedLogins || 0) + 1;
+            const remaining = 5 - matchUser.failedLogins;
+            window.saveStateToLocalStorage();
+
+            if (matchUser.failedLogins >= 5) {
+              matchUser.status = 'locked';
+              window.saveStateToLocalStorage();
+              window.logUserActivity('Khóa tài khoản tự động', `Tài khoản ${matchUser.name} (@${matchUser.username}) bị khóa do nhập sai mật khẩu 5 lần.`, 'users', 'BLOCKED');
+              Swal.fire({
+                icon: 'error',
+                title: 'TÀI KHOẢN ĐÃ BỊ TỰ ĐỘNG KHÓA',
+                html: `
+                  <div class="text-left text-xs space-y-2">
+                    <p class="text-rose-600 font-bold">Cảnh báo an ninh: Nhập sai mật khẩu quá 5 lần liên tiếp!</p>
+                    <p>Hệ thống đã tự động khóa tài khoản <strong>${matchUser.name}</strong> để bảo vệ dữ liệu.</p>
+                    <p class="text-slate-500">Liên hệ Quản trị viên ThS. Trịnh Minh Phú (0975.090.666) để mở khóa.</p>
+                  </div>
+                `,
+                confirmButtonColor: '#2563eb'
+              });
+              return;
+            }
+
+            Swal.showValidationMessage(`Mật khẩu không chính xác! Bạn còn ${remaining} lần thử trước khi tài khoản bị khóa.`);
+            if (pInput) {
+              pInput.value = '';
+              pInput.focus();
+            }
+            return;
+          }
+        }
+
         roleLoginSubmitted = true;
         window.handleLoginSubmit(u, p, targetTab || ui.destTab, normRole);
       };
@@ -21015,7 +21108,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     const isTeacherLogin = (requiredRole === 'teacher');
     Swal.fire({
       icon: 'error',
-      title: 'Tài khoản không tồn tại',
+      title: isTeacherLogin ? 'Tên đăng nhập không đúng' : 'Tài khoản không tồn tại',
       html: `
         <div class="text-xs text-slate-600 text-left space-y-2">
           <p>Không tìm thấy tài khoản <strong>"${username}"</strong> trong hệ thống phòng máy TNUS.</p>
@@ -21025,7 +21118,17 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
           </div>
         </div>
       `,
-      confirmButtonColor: '#2563eb'
+      confirmButtonText: '<i class="fa-solid fa-rotate-left mr-1.5"></i>Thử đăng nhập lại',
+      showCancelButton: true,
+      cancelButtonText: 'Đóng',
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b'
+    }).then(res => {
+      if (res.isConfirmed) {
+        if (typeof window.openRoleLoginModal === 'function') {
+          window.openRoleLoginModal(requiredRole || 'teacher', explicitTargetTab, username);
+        }
+      }
     });
     return;
   }
@@ -21044,7 +21147,17 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
           </div>
         </div>
       `,
-      confirmButtonColor: '#2563eb'
+      confirmButtonText: '<i class="fa-solid fa-rotate-left mr-1.5"></i>Đăng nhập tài khoản khác',
+      showCancelButton: true,
+      cancelButtonText: 'Đóng',
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b'
+    }).then(res => {
+      if (res.isConfirmed) {
+        if (typeof window.openRoleLoginModal === 'function') {
+          window.openRoleLoginModal('teacher', explicitTargetTab, '');
+        }
+      }
     });
     return;
   }
@@ -21125,12 +21238,24 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
       icon: 'warning',
       title: 'Mật khẩu không chính xác',
       html: `
-        <div class="text-xs text-slate-600">
-          Tên đăng nhập hoặc mật khẩu không đúng.<br>
-          Bạn còn <strong class="text-rose-600 font-bold">${remaining}</strong> lần thử trước khi tài khoản bị khóa an toàn!
+        <div class="text-xs text-slate-600 text-left space-y-2">
+          <p>Mật khẩu đăng nhập của tài khoản <strong>@${user.username}</strong> (${user.name}) không chính xác.</p>
+          <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs">
+            Bạn còn <strong class="text-rose-800 font-bold">${remaining}</strong> lần thử trước khi tài khoản bị khóa an toàn!
+          </div>
         </div>
       `,
-      confirmButtonColor: '#2563eb'
+      confirmButtonText: '<i class="fa-solid fa-rotate-left mr-1.5"></i>Thử đăng nhập lại',
+      showCancelButton: true,
+      cancelButtonText: 'Đóng',
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b'
+    }).then(res => {
+      if (res.isConfirmed) {
+        if (typeof window.openRoleLoginModal === 'function') {
+          window.openRoleLoginModal(requiredRole || user.role, explicitTargetTab, user.username);
+        }
+      }
     });
     return;
   }
