@@ -6670,6 +6670,7 @@ function verifyPassword(inputPassword, user) {
   if (!inputPassword || !user) return false;
   const pLower = inputPassword.toLowerCase().trim();
   if (pLower === 'tnus@2026' || pLower === 'admin' || pLower === 'tnus@admin2026') return true;
+  if (user.initialPassword && (inputPassword === user.initialPassword || inputPassword.trim() === user.initialPassword.trim())) return true;
   const hash = hashPassword(inputPassword, user.salt || 'TNUS_KHOA_TOAN_TIN_2026');
   return hash === user.passwordHash;
 }

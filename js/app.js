@@ -121,8 +121,8 @@ function loadState() {
           rootAdmin.department = 'Khoa Toán - Tin, TNUS';
           rootAdmin.status = 'active';
         }
-        // Loại bỏ các tài khoản mẫu cũ (USR-02 đến USR-06) theo chỉ đạo: chỉ duy trì Admin USR-01, các tài khoản khác sẽ do người dùng tự khởi tạo thêm vào sau
-        window.appState.users = window.appState.users.filter(u => !['USR-02', 'USR-03', 'USR-04', 'USR-05', 'USR-06'].includes(u.id));
+        // Chỉ loại bỏ tài khoản kỹ thuật viên (lab_staff / ktvlab) nếu còn tồn đọng từ bộ nhớ đệm cũ
+        window.appState.users = window.appState.users.filter(u => u.role !== 'lab_staff' && u.username !== 'ktvlab');
         if (typeof window.saveStateToLocalStorage === 'function') {
           window.saveStateToLocalStorage();
         }
@@ -1264,6 +1264,12 @@ window.renderUserAccountsTable = function() {
               </button>
             `}
 
+            <!-- Nút Sao chép thông tin tài khoản (Gửi Zalo / Email) -->
+            <button onclick="window.copyUserCredentials('${user.id}')" class="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-600 hover:text-white text-cyan-700 border border-cyan-300 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1" title="Sao chép thông tin đăng nhập để gửi cho Cán bộ / Giảng viên">
+              <i class="fa-regular fa-copy"></i>
+              <span>Sao chép</span>
+            </button>
+
             <!-- Nút Sửa (Màu vàng cam nổi bật) -->
             <button onclick="window.showEditUserModal('${user.id}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 border border-amber-300 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1" title="Chỉnh sửa thông tin tài khoản">
               <i class="fa-solid fa-pen-to-square"></i>
@@ -1330,6 +1336,59 @@ window.updateUserKPIs = function() {
   setEl('user-kpi-active', `${activeCount}/${total}`);
 };
 
+// Hàm sao chép thông tin tài khoản để bàn giao cho Giảng viên / Cán bộ
+window.copyUserCredentials = function(userId) {
+  const user = (window.appState.users || []).find(u => u.id === userId);
+  if (!user) return;
+
+  const roleName = user.roleName || (window.appState.roles?.find(r => r.id === user.role)?.name) || user.role;
+  const pass = user.initialPassword || 'Tnus@2026';
+  const loginUrl = window.location.origin + window.location.pathname;
+
+  const textToCopy = 
+`KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
+THÔNG TIN TÀI KHOẢN HỆ THỐNG PHÒNG MÁY:
+• Họ và tên: ${user.name}
+• Vai trò: ${roleName}
+• Tên đăng nhập: ${user.username}
+• Mật khẩu: ${pass}
+• Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}
+• Link đăng nhập: ${loginUrl}
+---------------------------------------------
+Quản trị viên hỗ trợ: ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus.edu.vn)`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Đã sao chép thông tin!',
+        html: `<span class="text-xs text-slate-600">Đã sao chép thông tin của <b>${user.name}</b> (@${user.username}) để gửi qua Zalo/Email</span>`,
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }).catch(() => {
+      prompt('Sao chép thông tin tài khoản dưới đây:', textToCopy);
+    });
+  } else {
+    prompt('Sao chép thông tin tài khoản dưới đây:', textToCopy);
+  }
+};
+
+// Hàm tự động gợi ý Username từ Họ và tên theo chuẩn TNUS
+function generateUsernameFromName(name) {
+  if (!name) return '';
+  let clean = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  clean = clean.replace(/^(ThS|TS|PGS|GS|CN|KS)\.?\s+/i, '').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+  const lastName = parts[parts.length - 1].toLowerCase().replace(/[^a-z0-9]/g, '');
+  const initials = parts.slice(0, -1).map(p => p[0].toLowerCase().replace(/[^a-z0-9]/g, '')).join('');
+  return (lastName + initials).slice(0, 20);
+}
+
 // Modal Thêm người dùng mới
 window.showAddUserModal = function() {
   if (!window.checkPermission('manage_users', 'Tạo tài khoản người dùng mới')) return;
@@ -1346,8 +1405,8 @@ window.showAddUserModal = function() {
 
   Swal.fire({
     title: `
-      <div class="flex items-center space-x-2 text-left">
-        <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-base">
+      <div class="flex items-center space-x-3 text-left">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg shadow-xs">
           <i class="fa-solid fa-user-plus"></i>
         </div>
         <div>
@@ -1357,46 +1416,63 @@ window.showAddUserModal = function() {
       </div>
     `,
     html: `
-      <form id="form-add-user" class="text-left space-y-3 text-xs max-h-[70vh] overflow-y-auto pr-1">
+      <form id="form-add-user" class="text-left space-y-3.5 text-xs max-h-[75vh] overflow-y-auto pr-1 pt-2">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Mã Tài Khoản</label>
-            <input type="text" id="add-user-id" value="${defaultId}" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded font-mono font-bold text-slate-600 text-xs">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Tên Đăng Nhập (Username) <span class="text-rose-500">*</span></label>
-            <input type="text" id="add-user-username" placeholder="vd: huongtt" class="w-full p-2 border border-slate-300 rounded font-mono text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Họ và Tên Cán Bộ / Người Dùng <span class="text-rose-500">*</span></label>
-            <input type="text" id="add-user-name" placeholder="vd: ThS. Trần Thu Hường" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            <input type="text" id="add-user-id" value="${defaultId}" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-lg font-mono font-bold text-slate-600 text-xs">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Vai Trò Phân Quyền (RBAC) <span class="text-rose-500">*</span></label>
-            <select id="add-user-role" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 bg-white">
-              <option value="admin">Admin (Quản trị hệ thống)</option>
-              <option value="lab_manager">Quản lý phòng máy (Lab Manager)</option>
-              <option value="teacher">Giảng viên (Teacher)</option>
-              <option value="student">Sinh viên / Khách (Student)</option>
+            <select id="add-user-role" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="lab_manager" selected>🏢 Quản lý phòng máy (Lab Manager)</option>
+              <option value="teacher">👨‍🏫 Giảng viên thực hành (Teacher)</option>
+              <option value="admin">🛡️ Quản trị viên hệ thống (Admin)</option>
+              <option value="student">👨‍🎓 Sinh viên / Khách tra cứu (Student)</option>
             </select>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Đơn Vị Công Tác / Bộ Môn</label>
-            <input type="text" id="add-user-dept" value="Khoa Toán - Tin, TNUS" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            <label class="block font-bold text-slate-700 mb-1">Họ và Tên Cán Bộ / Người Dùng <span class="text-rose-500">*</span></label>
+            <input type="text" id="add-user-name" placeholder="vd: ThS. Trần Thu Hường" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tên Đăng Nhập (Username) <span class="text-rose-500">*</span></label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-mono text-xs">@</span>
+              <input type="text" id="add-user-username" placeholder="qlphongmay hoặc huongtt" class="w-full pl-6 pr-2 py-2 border border-slate-300 rounded-lg font-mono text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <p class="text-2xs text-slate-400 mt-1 italic">Gợi ý tự động từ họ tên hoặc tự đặt tùy ý (chữ thường, số, không dấu)</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Mật Khẩu Ban Đầu <span class="text-rose-500">*</span></label>
+            <div class="relative">
+              <input type="password" id="add-user-password" value="Tnus@2026" class="w-full pl-2.5 pr-8 py-2 border border-slate-300 rounded-lg font-mono text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <button type="button" id="btn-toggle-add-pass" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600" title="Ẩn/Hiện mật khẩu">
+                <i class="fa-solid fa-eye-slash text-xs" id="icon-toggle-add-pass"></i>
+              </button>
+            </div>
+            <div class="flex items-center space-x-1.5 mt-1.5">
+              <button type="button" id="btn-set-default-pass" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-2xs font-medium rounded border border-slate-300 transition">
+                Mặc định (Tnus@2026)
+              </button>
+              <button type="button" id="btn-generate-rand-pass" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-2xs font-medium rounded border border-blue-200 transition">
+                <i class="fa-solid fa-wand-magic-sparkles mr-0.5"></i>Tạo ngẫu nhiên
+              </button>
+            </div>
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Biểu Tượng Avatar</label>
-            <select id="add-user-avatar" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+            <select id="add-user-avatar" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="🏢" selected>🏢 Quản lý phòng máy</option>
               <option value="👨‍🏫">👨‍🏫 Giảng viên nam</option>
               <option value="👩‍🏫">👩‍🏫 Giảng viên nữ</option>
               <option value="👨‍💼">👨‍💼 Quản trị viên</option>
-              <option value="🏢">🏢 Quản lý phòng máy</option>
               <option value="👨‍🎓">👨‍🎓 Sinh viên nam</option>
               <option value="👩‍🎓">👩‍🎓 Sinh viên nữ</option>
             </select>
@@ -1406,52 +1482,82 @@ window.showAddUserModal = function() {
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Email ĐH Khoa Học</label>
-            <input type="email" id="add-user-email" placeholder="huongtt@tnus.edu.vn" class="w-full p-2 border border-slate-300 rounded font-mono text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            <input type="email" id="add-user-email" placeholder="huongtt@tnus.edu.vn" class="w-full p-2 border border-slate-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Số Điện Thoại Liên Hệ</label>
-            <input type="text" id="add-user-phone" placeholder="09xx.xxx.xxx" class="w-full p-2 border border-slate-300 rounded font-mono text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            <input type="text" id="add-user-phone" placeholder="09xx.xxx.xxx" class="w-full p-2 border border-slate-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Mật Khẩu Ban Đầu</label>
-            <input type="password" id="add-user-password" value="Tnus@2026" class="w-full p-2 border border-slate-300 rounded font-mono text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            <label class="block font-bold text-slate-700 mb-1">Đơn Vị Công Tác / Bộ Môn</label>
+            <input type="text" id="add-user-dept" value="Khoa Toán - Tin, TNUS" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Trạng Thái Truy Cập</label>
-            <select id="add-user-status" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 bg-white">
-              <option value="active">Đang hoạt động</option>
-              <option value="locked">Khóa truy cập</option>
+            <select id="add-user-status" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="active" selected>Đang hoạt động (Bình thường)</option>
+              <option value="locked">Khóa truy cập (Tạm khóa)</option>
             </select>
           </div>
         </div>
       </form>
     `,
     showCancelButton: true,
-    confirmButtonText: 'Tạo tài khoản',
-    cancelButtonText: 'Hủy',
+    confirmButtonText: '<i class="fa-solid fa-check mr-1.5"></i>Tạo tài khoản',
+    cancelButtonText: 'Hủy bỏ',
     confirmButtonColor: '#2563eb',
-    width: '580px',
+    width: '600px',
     didOpen: () => {
+      const nameInput = document.getElementById('add-user-name');
       const usernameInput = document.getElementById('add-user-username');
       const emailInput = document.getElementById('add-user-email');
+      const passInput = document.getElementById('add-user-password');
       const roleSelect = document.getElementById('add-user-role');
       const avatarSelect = document.getElementById('add-user-avatar');
+      const deptInput = document.getElementById('add-user-dept');
+      const btnTogglePass = document.getElementById('btn-toggle-add-pass');
+      const iconTogglePass = document.getElementById('icon-toggle-add-pass');
+      const btnSetDefaultPass = document.getElementById('btn-set-default-pass');
+      const btnGenRandPass = document.getElementById('btn-generate-rand-pass');
 
-      if (usernameInput && emailInput) {
+      // Tự động sinh Username & Email khi gõ họ tên nếu admin chưa gõ Username riêng
+      let userTypedUsername = false;
+      let userTypedEmail = false;
+
+      if (usernameInput) {
         usernameInput.addEventListener('input', () => {
-          const u = usernameInput.value.trim().toLowerCase();
-          if (!emailInput.dataset.customized) {
-            emailInput.value = u ? `${u}@tnus.edu.vn` : '';
+          userTypedUsername = true;
+          // Tự động làm sạch: bỏ dấu cách, chuyển thường, chỉ giữ chữ, số, gạch
+          const cleaned = usernameInput.value.toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+          if (usernameInput.value !== cleaned) usernameInput.value = cleaned;
+          if (!userTypedEmail && emailInput) {
+            emailInput.value = cleaned ? `${cleaned}@tnus.edu.vn` : '';
           }
-        });
-        emailInput.addEventListener('input', () => {
-          emailInput.dataset.customized = 'true';
         });
       }
 
+      if (emailInput) {
+        emailInput.addEventListener('input', () => {
+          userTypedEmail = true;
+        });
+      }
+
+      if (nameInput) {
+        nameInput.addEventListener('input', () => {
+          if (!userTypedUsername && usernameInput) {
+            const suggested = generateUsernameFromName(nameInput.value);
+            usernameInput.value = suggested;
+            if (!userTypedEmail && emailInput) {
+              emailInput.value = suggested ? `${suggested}@tnus.edu.vn` : '';
+            }
+          }
+        });
+      }
+
+      // Đổi vai trò -> Tự động đổi Avatar tương ứng & gợi ý đơn vị
       if (roleSelect && avatarSelect) {
         roleSelect.addEventListener('change', () => {
           const r = roleSelect.value;
@@ -1462,43 +1568,107 @@ window.showAddUserModal = function() {
             student: '👨‍🎓'
           };
           if (avatarMap[r]) avatarSelect.value = avatarMap[r];
+
+          if (deptInput && (!deptInput.dataset.customized)) {
+            if (r === 'lab_manager') {
+              deptInput.value = 'Tổ Quản trị Phòng máy - Khoa Toán - Tin';
+            } else if (r === 'teacher') {
+              deptInput.value = 'Bộ môn Tin học - Khoa Toán - Tin, TNUS';
+            } else {
+              deptInput.value = 'Khoa Toán - Tin, TNUS';
+            }
+          }
+        });
+      }
+
+      if (deptInput) {
+        deptInput.addEventListener('input', () => {
+          deptInput.dataset.customized = 'true';
+        });
+      }
+
+      // Ẩn/Hiện mật khẩu
+      if (btnTogglePass && passInput && iconTogglePass) {
+        btnTogglePass.addEventListener('click', () => {
+          if (passInput.type === 'password') {
+            passInput.type = 'text';
+            iconTogglePass.className = 'fa-solid fa-eye text-xs text-blue-600';
+          } else {
+            passInput.type = 'password';
+            iconTogglePass.className = 'fa-solid fa-eye-slash text-xs text-slate-400';
+          }
+        });
+      }
+
+      // Nút mật khẩu mặc định
+      if (btnSetDefaultPass && passInput) {
+        btnSetDefaultPass.addEventListener('click', () => {
+          passInput.value = 'Tnus@2026';
+          if (passInput.type === 'password') {
+            passInput.type = 'text';
+            if (iconTogglePass) iconTogglePass.className = 'fa-solid fa-eye text-xs text-blue-600';
+          }
+        });
+      }
+
+      // Nút tạo mật khẩu ngẫu nhiên
+      if (btnGenRandPass && passInput) {
+        btnGenRandPass.addEventListener('click', () => {
+          const randNum = Math.floor(1000 + Math.random() * 9000);
+          passInput.value = `Tnus@${randNum}`;
+          passInput.type = 'text';
+          if (iconTogglePass) iconTogglePass.className = 'fa-solid fa-eye text-xs text-blue-600';
         });
       }
     },
     preConfirm: () => {
-      const username = document.getElementById('add-user-username').value.trim().toLowerCase();
-      const name = document.getElementById('add-user-name').value.trim();
-      const role = document.getElementById('add-user-role').value;
-      const dept = document.getElementById('add-user-dept').value.trim();
-      const avatar = document.getElementById('add-user-avatar').value;
-      const email = document.getElementById('add-user-email').value.trim();
-      const phone = document.getElementById('add-user-phone').value.trim();
-      const status = document.getElementById('add-user-status').value;
+      const username = (document.getElementById('add-user-username')?.value || '').trim().toLowerCase();
+      const name = (document.getElementById('add-user-name')?.value || '').trim();
+      const role = document.getElementById('add-user-role')?.value || 'lab_manager';
+      const dept = (document.getElementById('add-user-dept')?.value || '').trim();
+      const avatar = document.getElementById('add-user-avatar')?.value || '🏢';
+      const email = (document.getElementById('add-user-email')?.value || '').trim();
+      const phone = (document.getElementById('add-user-phone')?.value || '').trim();
+      const status = document.getElementById('add-user-status')?.value || 'active';
+      const rawPass = (document.getElementById('add-user-password')?.value || '').trim();
+
+      if (!name) {
+        Swal.showValidationMessage('Vui lòng nhập Họ và Tên Cán bộ / Người dùng');
+        return false;
+      }
 
       if (!username) {
-        Swal.showValidationMessage('Vui lòng nhập tên đăng nhập (Username)');
+        Swal.showValidationMessage('Vui lòng nhập Tên Đăng Nhập (Username)');
+        return false;
+      }
+      if (username.length < 3) {
+        Swal.showValidationMessage('Tên đăng nhập phải có ít nhất 3 ký tự');
         return false;
       }
       if (!/^[a-z0-9_.-]+$/.test(username)) {
-        Swal.showValidationMessage('Tên đăng nhập chỉ chứa chữ cái thường, số và dấu gạch');
+        Swal.showValidationMessage('Tên đăng nhập chỉ được chứa chữ cái thường, số và dấu gạch (_ . -)');
         return false;
       }
-      if (window.appState.users.some(u => u.username.toLowerCase() === username)) {
-        Swal.showValidationMessage(`Tên đăng nhập '${username}' đã tồn tại trong hệ thống!`);
-        return false;
-      }
-      if (!name) {
-        Swal.showValidationMessage('Vui lòng nhập họ và tên');
+      if ((window.appState.users || []).some(u => (u.username || '').toLowerCase() === username)) {
+        Swal.showValidationMessage(`Tên đăng nhập '@${username}' đã tồn tại trong hệ thống! Vui lòng chọn tên khác.`);
         return false;
       }
 
-      const rawPass = document.getElementById('add-user-password')?.value || 'Tnus@2026';
-      const roleObj = (window.appState.roles || SYSTEM_ROLES).find(r => r.id === role);
-      const roleName = roleObj ? roleObj.name : role;
+      if (!rawPass) {
+        Swal.showValidationMessage('Vui lòng nhập Mật Khẩu ban đầu cho tài khoản');
+        return false;
+      }
+      if (rawPass.length < 6) {
+        Swal.showValidationMessage('Mật khẩu phải có độ dài tối thiểu 6 ký tự để đảm bảo an toàn!');
+        return false;
+      }
+
+      const roleObj = (window.appState.roles || SYSTEM_ROLES || []).find(r => r.id === role);
+      const roleName = roleObj ? roleObj.name : (role === 'lab_manager' ? 'Quản lý phòng máy' : (role === 'teacher' ? 'Giảng viên' : (role === 'admin' ? 'Quản trị viên' : 'Sinh viên')));
       const salt = 'TNUS_KHOA_TOAN_TIN_2026';
 
       return {
-        id: document.getElementById('add-user-id').value,
+        id: document.getElementById('add-user-id')?.value || defaultId,
         username,
         name,
         role,
@@ -1508,7 +1678,8 @@ window.showAddUserModal = function() {
         email: email || `${username}@tnus.edu.vn`,
         phone: phone || '',
         status,
-        passwordHash: typeof hashPassword === 'function' ? hashPassword(rawPass, salt) : 'hashed_' + rawPass,
+        initialPassword: rawPass,
+        passwordHash: typeof hashPassword === 'function' ? hashPassword(rawPass, salt) : 'sha256_' + rawPass,
         salt: salt,
         failedLogins: 0,
         createdAt: new Date().toISOString().split('T')[0],
@@ -1517,18 +1688,79 @@ window.showAddUserModal = function() {
     }
   }).then(result => {
     if (result.isConfirmed && result.value) {
-      window.appState.users.push(result.value);
+      const newUser = result.value;
+      if (!Array.isArray(window.appState.users)) window.appState.users = [];
+      window.appState.users.push(newUser);
       window.saveStateToLocalStorage();
-      window.logUserActivity('Thêm tài khoản', `Tạo tài khoản mới ${result.value.name} (@${result.value.username}) với vai trò ${result.value.roleName}`);
+      window.logUserActivity('Thêm tài khoản', `Tạo tài khoản mới ${newUser.name} (@${newUser.username}) với vai trò ${newUser.roleName}`);
       window.renderUserAccountsTable();
       window.updateUserKPIs();
 
+      // Hiển thị Card bàn giao tài khoản kèm nút Sao chép 1-click
+      const loginUrl = window.location.origin + window.location.pathname;
+      const textToCopy = 
+`KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
+THÔNG TIN TÀI KHOẢN HỆ THỐNG PHÒNG MÁY:
+• Họ và tên: ${newUser.name}
+• Vai trò: ${newUser.roleName}
+• Tên đăng nhập: ${newUser.username}
+• Mật khẩu: ${newUser.initialPassword}
+• Đơn vị: ${newUser.department}
+• Link đăng nhập: ${loginUrl}
+---------------------------------------------
+Quản trị viên hỗ trợ: ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus.edu.vn)`;
+
       Swal.fire({
         icon: 'success',
-        title: 'Thêm tài khoản thành công!',
-        text: `Tài khoản ${result.value.name} (@${result.value.username}) đã được tạo và phân quyền ${result.value.roleName}.`,
-        timer: 1800,
-        showConfirmButton: false
+        title: 'Tạo Tài Khoản Thành Công!',
+        html: `
+          <div class="text-left text-xs space-y-3 mt-1">
+            <p class="text-slate-600">Tài khoản đã sẵn sàng trong hệ thống. Quản trị viên có thể sao chép thông tin dưới đây để gửi cho cán bộ qua Zalo/Email:</p>
+            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div class="flex items-center space-x-3 pb-2 border-b border-slate-200">
+                <span class="text-3xl">${newUser.avatar}</span>
+                <div>
+                  <div class="font-bold text-slate-800 text-sm">${newUser.name}</div>
+                  <div class="text-slate-500 font-mono">${newUser.roleName} • ID: ${newUser.id}</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <div><span class="text-slate-500">Tên đăng nhập:</span> <strong class="font-mono text-blue-600 font-bold block text-sm">@${newUser.username}</strong></div>
+                <div><span class="text-slate-500">Mật khẩu:</span> <strong class="font-mono text-emerald-600 font-bold block text-sm">${newUser.initialPassword}</strong></div>
+                <div><span class="text-slate-500">Email:</span> <span class="font-mono text-slate-700 block">${newUser.email}</span></div>
+                <div><span class="text-slate-500">Đơn vị:</span> <span class="text-slate-700 block">${newUser.department}</span></div>
+              </div>
+            </div>
+            <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-2xs flex items-center space-x-2">
+              <i class="fa-solid fa-circle-info text-amber-600 text-sm shrink-0"></i>
+              <span>Cán bộ có thể dùng ngay Tên đăng nhập và Mật khẩu này để đăng nhập vào phân hệ phòng máy.</span>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-regular fa-copy mr-1.5"></i>Sao chép thông tin tài khoản',
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#0284c7',
+        cancelButtonColor: '#64748b',
+        width: '560px'
+      }).then(copyRes => {
+        if (copyRes.isConfirmed) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+              Swal.fire({
+                icon: 'success',
+                title: 'Đã sao chép vào bộ nhớ tạm!',
+                text: 'Bạn có thể dán (Ctrl+V) để gửi cho Cán bộ / Giảng viên.',
+                timer: 2200,
+                showConfirmButton: false
+              });
+            }).catch(() => {
+              prompt('Sao chép thông tin tài khoản dưới đây:', textToCopy);
+            });
+          } else {
+            prompt('Sao chép thông tin tài khoản dưới đây:', textToCopy);
+          }
+        }
       });
     }
   });
