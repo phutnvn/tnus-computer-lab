@@ -573,8 +573,8 @@
             <span class="hidden xl:inline">Đổi MK</span>
           </button>
 
-          <!-- Nút Đăng nhập tài khoản -->
-          <button id="btn-header-login" onclick="window.openLoginModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 whitespace-nowrap shrink-0" title="Đăng nhập tài khoản & phân quyền">
+          <!-- Nút Đăng nhập tài khoản (Được ẩn khi đã vào phiên làm việc hoặc giao diện Sinh viên) -->
+          <button id="btn-header-login" onclick="window.openLoginModal()" class="hidden px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 whitespace-nowrap shrink-0" title="Đăng nhập tài khoản & phân quyền">
             <i class="fa-solid fa-right-to-bracket"></i>
             <span class="hidden sm:inline">Đăng nhập</span>
           </button>
@@ -15023,6 +15023,8 @@ window.updateUserUI = function() {
 
   const role = window.normalizeRole ? window.normalizeRole(u.role) : (u.role || 'student');
   const isAdmin = (role === 'admin');
+  const isStudent = (role === 'student');
+  const roleContainer = document.getElementById('header-role-switcher-container');
   const select = document.getElementById('user-role-select');
   const staticBadge = document.getElementById('header-role-static-badge');
   const staticName = document.getElementById('header-role-static-name');
@@ -15035,25 +15037,38 @@ window.updateUserUI = function() {
   if (roleDisplay) roleDisplay.textContent = `${u.roleName || role} • Khoa Toán - Tin`;
   if (badgeAvatar) badgeAvatar.textContent = u.avatar || '👤';
 
-  // KIỂM SOÁT BẢO MẬT NGHIÊM NGẶT:
-  // Tuyệt đối không cho phép chuyển đổi vai trò/tài khoản đối với:
-  // Quản lý phòng máy, Giảng viên, Sinh viên.
-  // Chỉ duy nhất Quản trị viên (Admin) mới có quyền sử dụng dropdown chuyển đổi vai trò.
+  // KIỂM SOÁT BẢO MẬT & ĐIỀU KHIỂN HEADER:
+  // - Sinh viên: BỎ HOÀN TOÀN nút lệnh / hộp chọn vai trò (ẩn roleContainer)
+  // - Admin: Hiển thị dropdown chuyển đổi vai trò
+  // - Quản lý phòng máy, Giảng viên: Hiển thị huy hiệu vai trò tĩnh cố định
+  if (roleContainer) {
+    if (isStudent) {
+      roleContainer.style.display = 'none';
+    } else {
+      roleContainer.style.display = '';
+    }
+  }
+
   if (select) {
     select.value = role;
     if (isAdmin) {
-      select.classList.remove('hidden');
+      select.style.display = '';
       select.removeAttribute('disabled');
-      if (staticBadge) staticBadge.classList.add('hidden');
-      if (roleLabel) roleLabel.classList.remove('hidden');
+      if (staticBadge) staticBadge.style.display = 'none';
+      if (roleLabel) roleLabel.style.display = '';
+    } else if (isStudent) {
+      select.style.display = 'none';
+      select.setAttribute('disabled', 'true');
+      if (staticBadge) staticBadge.style.display = 'none';
+      if (roleLabel) roleLabel.style.display = 'none';
     } else {
-      select.classList.add('hidden');
+      select.style.display = 'none';
       select.setAttribute('disabled', 'true');
       if (staticBadge) {
-        staticBadge.classList.remove('hidden');
+        staticBadge.style.display = '';
         if (staticName) staticName.textContent = u.roleName || role;
       }
-      if (roleLabel) roleLabel.classList.remove('hidden');
+      if (roleLabel) roleLabel.style.display = '';
     }
   }
 
@@ -18866,86 +18881,87 @@ window.applyRoleRestrictionsToUI = function() {
   const isAdmin = (role === 'admin');
   const bannerContainer = document.getElementById('dynamic-role-alert-banner');
 
-  // 0. BẢO MẬT CHUYỂN ĐỔI VAI TRÒ TRÊN HEADER:
-  // Quản lý phòng máy, Giảng viên, Sinh viên tuyệt đối không được phép chuyển đổi vai trò/tài khoản
+  // 0. BẢO MẬT & ĐIỀU KHIỂN HEADER THEO VAI TRÒ:
+  const isStudent = (role === 'student');
+  const roleContainer = document.getElementById('header-role-switcher-container');
   const headerSelect = document.getElementById('user-role-select');
   const staticBadge = document.getElementById('header-role-static-badge');
   const staticName = document.getElementById('header-role-static-name');
   const roleLabel = document.getElementById('header-role-label');
-  if (headerSelect) {
-    if (isAdmin) {
-      headerSelect.classList.remove('hidden');
-      headerSelect.removeAttribute('disabled');
-      if (staticBadge) staticBadge.classList.add('hidden');
-      if (roleLabel) roleLabel.classList.remove('hidden');
+
+  if (roleContainer) {
+    if (isStudent) {
+      // BỎ HOÀN TOÀN nút lệnh / hộp chọn vai trò ở giao diện Sinh viên
+      roleContainer.style.display = 'none';
+    } else if (isAdmin) {
+      roleContainer.style.display = '';
+      if (headerSelect) {
+        headerSelect.style.display = '';
+        headerSelect.removeAttribute('disabled');
+      }
+      if (staticBadge) staticBadge.style.display = 'none';
+      if (roleLabel) roleLabel.style.display = '';
     } else {
-      headerSelect.classList.add('hidden');
-      headerSelect.setAttribute('disabled', 'true');
+      roleContainer.style.display = '';
+      if (headerSelect) {
+        headerSelect.style.display = 'none';
+        headerSelect.setAttribute('disabled', 'true');
+      }
       if (staticBadge) {
-        staticBadge.classList.remove('hidden');
+        staticBadge.style.display = '';
         if (staticName) staticName.textContent = u.roleName || role;
       }
-      if (roleLabel) roleLabel.classList.remove('hidden');
+      if (roleLabel) roleLabel.style.display = '';
     }
   }
 
   // 0.1. ĐIỀU KHIỂN CÁC NÚT LỆNH TRÊN HEADER:
-  // Với tài khoản Sinh viên / Khách:
-  // - BỎ nút "Chức năng 5 vai trò"
-  // - Ẩn nút "Sao lưu" & "Reset mẫu" (chỉ dành cho Quản trị viên)
-  // - Ẩn nút "Đổi MK" (khách không có mật khẩu cá nhân)
-  // - Hiển thị nút "Đăng nhập cán bộ" rõ ràng, nổi bật
-  const isStudent = (role === 'student');
+  // - BỎ nút "Chức năng 4 vai trò" cho Sinh viên
+  // - Ẩn nút "Sao lưu" & "Reset mẫu" cho Sinh viên và các tài khoản không phải Admin
+  // - Ẩn nút "Đổi MK" cho Sinh viên
+  // - BỎ nút "Đăng nhập cán bộ" cho Sinh viên (khi cần đăng nhập chỉ dùng nút Đăng xuất)
   const rolesComparisonBtn = document.getElementById('btn-header-roles-comparison');
   if (rolesComparisonBtn) {
-    if (isStudent) {
-      rolesComparisonBtn.classList.add('hidden');
-    } else {
-      rolesComparisonBtn.classList.remove('hidden');
-    }
+    rolesComparisonBtn.style.display = isStudent ? 'none' : '';
   }
 
   const backupControls = document.getElementById('header-backup-controls');
   const backupDivider = document.getElementById('header-backup-divider');
   if (backupControls) {
-    if (isStudent) {
-      backupControls.classList.add('hidden');
-      if (backupDivider) backupDivider.classList.add('hidden');
-    } else {
-      backupControls.classList.remove('hidden');
-      if (backupDivider) backupDivider.classList.remove('hidden');
-    }
+    backupControls.style.display = (isStudent || !isAdmin) ? 'none' : '';
+  }
+  if (backupDivider) {
+    backupDivider.style.display = (isStudent || !isAdmin) ? 'none' : '';
   }
 
   const changePwdBtn = document.getElementById('btn-header-change-password');
   if (changePwdBtn) {
-    if (isStudent) {
-      changePwdBtn.classList.add('hidden');
-    } else {
-      changePwdBtn.classList.remove('hidden');
-    }
+    changePwdBtn.style.display = isStudent ? 'none' : '';
   }
 
   const headerLoginBtn = document.getElementById('btn-header-login');
   if (headerLoginBtn) {
-    if (isStudent) {
-      headerLoginBtn.classList.remove('hidden');
-      headerLoginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i><span>Đăng nhập cán bộ</span>';
-      headerLoginBtn.className = 'px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 whitespace-nowrap shrink-0';
-    } else {
-      headerLoginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i><span class="hidden sm:inline">Đăng nhập</span>';
-    }
+    // BỎ hoàn toàn nút lệnh đăng nhập trên thanh header cho Sinh viên (và các vai trò đã đăng nhập)
+    headerLoginBtn.style.display = 'none';
+  }
+
+  const userProfileBtn = document.getElementById('btn-user-profile-header');
+  if (userProfileBtn) {
+    // Ẩn badge profile cho sinh viên để giao diện tối giản, tập trung học tập tra cứu
+    userProfileBtn.style.display = isStudent ? 'none' : '';
   }
 
   const headerLogoutBtn = document.getElementById('btn-header-logout');
   if (headerLogoutBtn) {
-    headerLogoutBtn.classList.remove('hidden');
+    headerLogoutBtn.style.display = '';
     if (isStudent) {
-      headerLogoutBtn.title = 'Đăng xuất khỏi chế độ Khách và mở giao diện Đăng nhập tài khoản';
-      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i><span class="inline">Đăng xuất</span>';
+      headerLogoutBtn.title = 'Đăng xuất khỏi tài khoản Sinh viên và mở giao diện Đăng nhập';
+      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket mr-1.5"></i><span class="font-bold">Đăng xuất</span>';
+      headerLogoutBtn.className = 'px-3.5 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer';
     } else {
       headerLogoutBtn.title = 'Đăng xuất khỏi phiên làm việc';
-      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i><span class="hidden sm:inline">Đăng xuất</span>';
+      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-power-off mr-1.5"></i><span>Đăng xuất</span>';
+      headerLogoutBtn.className = 'px-3 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer';
     }
   }
 
