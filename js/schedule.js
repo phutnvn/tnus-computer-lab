@@ -1471,7 +1471,7 @@ class ScheduleManager {
     }
     if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Đăng ký ca thực hành mới')) return;
     const defaultDate = prefillDate || (this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate);
-    const defaultLecturer = (curUser && curUser.role === 'teacher') ? (curUser.name || 'Giảng viên thực hành') : (curUser?.name || 'ThS. Trịnh Minh Phú');
+    const defaultLecturer = (curUser && curUser.role === 'teacher') ? (curUser.name || 'Giảng viên') : (curUser?.name || 'ThS. Trịnh Minh Phú');
 
     Swal.fire({
       title: `

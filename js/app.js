@@ -122,11 +122,17 @@ function loadState() {
           rootAdmin.status = 'active';
         }
 
-        // Chuẩn hóa đồng bộ tên đăng nhập Giảng viên theo chuẩn TNUS (anhnt)
+        // Chuẩn hóa đồng bộ vai trò và mật khẩu các tài khoản Cán bộ / Giảng viên
         window.appState.users.forEach(u => {
-          if (u.username === 'anhnth') {
-            u.username = 'anhnt';
-            if (!u.email || u.email === 'anhnth@tnus.edu.vn') u.email = 'anhnt@tnus.edu.vn';
+          if (u.username === 'anhnth' || u.username === 'anhnt') {
+            u.role = 'teacher';
+            u.roleName = 'Giảng viên';
+            if (!u.initialPassword) u.initialPassword = 'Tnus@2026';
+          }
+          if (u.username === 'toannv') {
+            u.role = 'teacher';
+            u.roleName = 'Giảng viên';
+            if (!u.initialPassword) u.initialPassword = 'Tnus@2026';
           }
           if (!u.initialPassword) {
             u.initialPassword = (u.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
@@ -1429,8 +1435,11 @@ window.copyUserCredentials = function(userId) {
 
   const roleName = user.roleName || (window.appState.roles?.find(r => r.id === user.role)?.name) || user.role;
   const pass = user.initialPassword || (user.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
-  const loginUrl = window.location.origin + window.location.pathname;
   const cleanUname = (user.username || '').replace(/^@+/, '');
+  const baseUrl = (typeof window.getCanonicalAppUrl === 'function' ? window.getCanonicalAppUrl() : (window.location.origin + window.location.pathname)).split('?')[0].split('#')[0];
+  const userNormRole = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
+  const userDestTab = (userNormRole === 'teacher' ? 'schedule' : (userNormRole === 'lab_manager' ? 'computers' : (userNormRole === 'student' ? 'schedule' : 'dashboard')));
+  const directLoginUrl = `${baseUrl}?role=${userNormRole}&user=${cleanUname}&tab=${userDestTab}`;
 
   const textToCopy = 
 `KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
@@ -1441,7 +1450,7 @@ THÔNG TIN TÀI KHOẢN HỆ THỐNG PHÒNG MÁY:
 • Mật khẩu: ${pass}
 • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}
 • Trạng thái: ${user.status === 'locked' ? 'Đang khóa' : 'Đang hoạt động'}
-• Link truy cập: ${loginUrl}
+• Link đăng nhập trực tiếp: ${directLoginUrl}
 ---------------------------------------------
 Quản trị viên hỗ trợ: ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus.edu.vn)`;
 
@@ -1467,6 +1476,10 @@ Quản trị viên hỗ trợ: ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus
             <div><span class="text-slate-500">Mật khẩu:</span> <strong class="font-mono text-emerald-600 font-bold block">${pass}</strong></div>
             <div><span class="text-slate-500">Email:</span> <span class="font-mono text-slate-700 block truncate">${user.email || 'Chưa cập nhật'}</span></div>
             <div><span class="text-slate-500">Trạng thái:</span> <span class="${user.status === 'locked' ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold'} block">${user.status === 'locked' ? 'Đã khóa' : 'Hoạt động'}</span></div>
+          </div>
+          <div class="pt-2 border-t border-slate-200">
+            <span class="text-slate-500 text-[10px]">Link đăng nhập trực tiếp (tự động điền tài khoản):</span>
+            <div class="p-1.5 bg-blue-50 border border-blue-200 rounded text-[10px] font-mono text-blue-700 truncate select-all">${directLoginUrl}</div>
           </div>
         </div>
         <div>
@@ -1903,16 +1916,19 @@ window.showAddUserModal = function() {
       window.updateUserKPIs();
 
       // Hiển thị Card bàn giao tài khoản kèm nút Sao chép 1-click
-      const loginUrl = window.location.origin + window.location.pathname;
+      const baseUrl = (typeof window.getCanonicalAppUrl === 'function' ? window.getCanonicalAppUrl() : (window.location.origin + window.location.pathname)).split('?')[0].split('#')[0];
+      const newRoleNorm = window.normalizeRole ? window.normalizeRole(newUser.role) : newUser.role;
+      const newDestTab = (newRoleNorm === 'teacher' ? 'schedule' : (newRoleNorm === 'lab_manager' ? 'computers' : (newRoleNorm === 'student' ? 'schedule' : 'dashboard')));
+      const directLoginUrl = `${baseUrl}?role=${newRoleNorm}&user=${newUser.username}&tab=${newDestTab}`;
       const textToCopy = 
 `KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
 THÔNG TIN TÀI KHOẢN HỆ THỐNG PHÒNG MÁY:
 • Họ và tên: ${newUser.name}
 • Vai trò: ${newUser.roleName}
-• Tên đăng nhập: ${newUser.username}
+• Tên đăng nhập: @${newUser.username}
 • Mật khẩu: ${newUser.initialPassword}
 • Đơn vị: ${newUser.department}
-• Link đăng nhập: ${loginUrl}
+• Link đăng nhập trực tiếp: ${directLoginUrl}
 ---------------------------------------------
 Quản trị viên hỗ trợ: ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus.edu.vn)`;
 
@@ -4734,6 +4750,7 @@ function applyUrlParameters(params) {
     const curUser = window.appState.currentUser;
     const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
     const targetNormRole = window.normalizeRole ? window.normalizeRole(targetAccount) : targetAccount;
+    const specificUser = (userParam && userParam !== targetNormRole) ? userParam : (params.username || '');
 
     // Nếu tham số là Sinh viên / Khách tra cứu: Vào thẳng ngay lập tức, không bắt đăng nhập
     if (targetNormRole === 'student') {
@@ -4747,8 +4764,9 @@ function applyUrlParameters(params) {
       return;
     }
 
-    // Nếu người dùng chưa ở phiên vai trò này, bật hộp thoại đăng nhập bắt buộc
-    if (curRole !== targetNormRole) {
+    // Nếu người dùng chưa ở phiên vai trò này hoặc chưa đúng tài khoản cụ thể, bật hộp thoại đăng nhập bắt buộc
+    const isDifferentUser = specificUser && curUser && curUser.username && (curUser.username.toLowerCase().replace(/^@+/, '') !== specificUser.toLowerCase().replace(/^@+/, ''));
+    if (curRole !== targetNormRole || isDifferentUser) {
       // Đảm bảo không hiển thị phân hệ quản lý thiết bị/tài khoản ở background trước khi xác thực
       if (window.appState.currentTab === 'computers' || window.appState.currentTab === 'users') {
         const safeLink = document.querySelector('.nav-tab-link[data-tab="dashboard"]');
@@ -4757,7 +4775,7 @@ function applyUrlParameters(params) {
       setTimeout(() => {
         if (typeof window.openRoleLoginModal === 'function') {
           const defaultRoleTab = (targetNormRole === 'lab_manager' ? 'computers' : (targetNormRole === 'teacher' ? 'schedule' : 'simulation'));
-          window.openRoleLoginModal(targetAccount, tabParam || defaultRoleTab);
+          window.openRoleLoginModal(targetNormRole, tabParam || defaultRoleTab, specificUser);
         }
       }, 300);
     } else {
@@ -5039,7 +5057,7 @@ window.applyRoleRestrictionsToUI = function() {
         usersTabLink.classList.remove('opacity-40', 'pointer-events-none');
         usersTabLink.title = 'Phân quyền & Tài khoản';
       } else {
-        usersTabLink.style.display = '';
+        usersTabLink.style.display = 'none';
         usersTabLink.classList.add('opacity-40', 'pointer-events-none');
         usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành riêng cho Quản trị viên (Admin)';
       }
@@ -5858,7 +5876,7 @@ window.ROLE_CAPABILITY_PROFILES = {
     sampleAccount: 'Tài khoản Quản lý phòng máy (Lab Manager)'
   },
   teacher: {
-    title: 'Giảng Viên Thực Hành',
+    title: 'Giảng Viên',
     subtitle: 'Giảng viên giảng dạy / thực hành',
     badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     color: 'emerald',
@@ -5877,7 +5895,7 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Không thể duyệt hoặc hủy ca thực hành của giảng viên khác',
       'Không thể can thiệp phân quyền hoặc quản trị tài khoản'
     ],
-    sampleAccount: 'Tài khoản Giảng viên thực hành'
+    sampleAccount: 'Tài khoản Giảng viên'
   },
   student: {
     title: 'Sinh Viên / Khách Tra Cứu',
@@ -6126,7 +6144,7 @@ window.showAllRolesCapabilityModal = function() {
 
           <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between">
             <div>
-              <div class="font-bold text-emerald-900 text-xs">👨‍🏫 Giảng viên thực hành</div>
+              <div class="font-bold text-emerald-900 text-xs">👨‍🏫 Giảng viên</div>
               <div class="text-[10px] text-slate-600">Đăng ký ca dạy, mở ca thực hành & báo hỏng thiết bị</div>
             </div>
             ${isAdmin ? `
@@ -6239,7 +6257,7 @@ window.returnToGuestView = function(showToast = true) {
  * Giao diện tối giản, chuyên nghiệp, dễ nhìn, không rườm rà.
  * Khi đóng sẽ tự động chuyển về giao diện tài khoản khách (Sinh viên).
  */
-window.openRoleLoginModal = function(roleParam, targetTab) {
+window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '') {
   const rawRole = (roleParam || 'lab_manager').toString().toLowerCase().trim();
   const aliasRoleMap = {
     'manager': 'lab_manager',
@@ -6286,7 +6304,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
   const roleUiConfig = {
     lab_manager: {
       roleTitle: 'QUẢN LÝ PHÒNG MÁY',
-      roleBadge: 'Quản lý thiết bị',
+      roleBadge: 'Quản lý phòng máy',
       themeColor: '#4f46e5',
       badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       iconClass: 'fa-desktop',
@@ -6294,8 +6312,8 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
       destTabLabel: 'Quản lý Thiết bị (104 máy)'
     },
     teacher: {
-      roleTitle: 'GIẢNG VIÊN THỰC HÀNH',
-      roleBadge: 'Giảng dạy',
+      roleTitle: 'GIẢNG VIÊN',
+      roleBadge: 'Giảng viên',
       themeColor: '#059669',
       badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       iconClass: 'fa-chalkboard-user',
@@ -6341,8 +6359,8 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
     roleUsers = [stdAcc];
   }
 
-  // Tên đăng nhập và Mật khẩu luôn để trống hoàn toàn (không điền sẵn giá trị mặc định) để người dùng tự nhập hoặc chọn chip
-  const defaultUsername = '';
+  // Tên đăng nhập lấy từ prefillUsername nếu được truyền vào từ link chia sẻ, hoặc để trống tự nhập
+  const defaultUsername = (prefillUsername || '').replace(/^@+/, '');
   const defaultPass = '';
 
   let userChipsHtml = '';
@@ -6993,7 +7011,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
       ]
     },
     teacher: {
-      badge: 'Giảng viên thực hành',
+      badge: 'Giảng viên',
       badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
       tabName: 'Lịch thực hành',
       powers: [
@@ -7043,7 +7061,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
         <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-slate-900">${user.name}</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${info.badgeClass}">${info.badge}</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${info.badgeClass}">${user.roleName || info.badge}</span>
           </div>
           <div class="text-[11px] text-slate-500 font-mono">Username: <strong class="text-blue-700">@${(user.username || '').replace(/^@+/, '')}</strong> • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}</div>
         </div>
