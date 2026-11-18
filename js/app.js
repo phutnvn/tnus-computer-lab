@@ -6237,15 +6237,19 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
     return r === normRole;
   });
 
-  let defaultUser = roleUsers[0];
-  if (!defaultUser && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS[normRole]) {
+  const isTeacherRole = (normRole === 'teacher');
+
+  let defaultUser = isTeacherRole ? null : roleUsers[0];
+  if (!isTeacherRole && !defaultUser && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS[normRole]) {
     defaultUser = STANDARD_ROLE_ACCOUNTS[normRole];
   }
-  const defaultUsername = defaultUser ? (defaultUser.username || '') : (normRole === 'lab_manager' ? 'linhtt' : '');
-  const defaultPass = (defaultUser && defaultUser.initialPassword) ? defaultUser.initialPassword : 'Tnus@2026';
+  // Yêu cầu: tên đăng nhập, mật khẩu tài khoản giáo viên để trống, không để tên mặc định
+  const defaultUsername = isTeacherRole ? '' : (defaultUser ? (defaultUser.username || '') : (normRole === 'lab_manager' ? 'linhtt' : ''));
+  const defaultPass = isTeacherRole ? '' : ((defaultUser && defaultUser.initialPassword) ? defaultUser.initialPassword : (normRole === 'lab_manager' ? 'Tnus@2026' : ''));
 
   let userChipsHtml = '';
-  if (roleUsers.length > 0) {
+  // Đối với giáo viên: để trống hoàn toàn, không hiện gợi ý chip để giáo viên tự nhập tài khoản cá nhân do Admin cấp
+  if (!isTeacherRole && roleUsers.length > 0) {
     const chips = roleUsers.map(u => {
       const uname = (u.username || '').replace(/^@+/, '');
       const uPass = u.initialPassword || 'Tnus@2026';
@@ -6361,6 +6365,10 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
     didOpen: () => {
       const uInput = document.getElementById('role-login-username');
       const pInput = document.getElementById('role-login-password');
+      if (isTeacherRole) {
+        if (uInput) uInput.value = '';
+        if (pInput) pInput.value = '';
+      }
       if (uInput) uInput.focus();
 
       // Kết nối các nút điền nhanh tài khoản khả dụng
