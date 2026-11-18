@@ -6799,6 +6799,24 @@ const INITIAL_USERS = [
     lastLogin: '2026-11-18 07:45'
   },
   {
+    id: 'USR-04',
+    username: 'anhnth',
+    name: 'ThS. Nguyễn Tuấn Anh',
+    role: 'teacher',
+    roleName: 'Giảng viên',
+    email: 'anhnth@tnus.edu.vn',
+    phone: '0983.123.456',
+    department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
+    avatar: '👨‍🏫',
+    status: 'active',
+    initialPassword: 'Tnus@2026',
+    passwordHash: hashPassword('Tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026',
+    failedLogins: 0,
+    createdAt: '2026-10-15',
+    lastLogin: '2026-11-18 07:50'
+  },
+  {
     id: 'USR-05',
     username: 'student',
     name: 'Sinh viên / Khách tra cứu',

@@ -8887,6 +8887,24 @@ const INITIAL_USERS = [
     lastLogin: '2026-11-18 07:45'
   },
   {
+    id: 'USR-04',
+    username: 'anhnth',
+    name: 'ThS. Nguyễn Tuấn Anh',
+    role: 'teacher',
+    roleName: 'Giảng viên',
+    email: 'anhnth@tnus.edu.vn',
+    phone: '0983.123.456',
+    department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
+    avatar: '👨‍🏫',
+    status: 'active',
+    initialPassword: 'Tnus@2026',
+    passwordHash: hashPassword('Tnus@2026'),
+    salt: 'TNUS_KHOA_TOAN_TIN_2026',
+    failedLogins: 0,
+    createdAt: '2026-10-15',
+    lastLogin: '2026-11-18 07:50'
+  },
+  {
     id: 'USR-05',
     username: 'student',
     name: 'Sinh viên / Khách tra cứu',
@@ -14259,10 +14277,31 @@ function loadState() {
           labManager.email = 'linhtt@tnus.edu.vn';
         }
 
-        // Đảm bảo luôn có tài khoản Giảng viên thực hành chuẩn (TS. Nguyễn Văn Toàn - @toannv)
-        let teacherUser = window.appState.users.find(u => u.username === 'toannv' || u.role === 'teacher');
-        if (!teacherUser && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS.teacher) {
+        // Đảm bảo luôn có các tài khoản Giảng viên chuẩn (@toannv, @anhnth)
+        let teacherToan = window.appState.users.find(u => u.username === 'toannv');
+        if (!teacherToan && typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' && STANDARD_ROLE_ACCOUNTS.teacher) {
           window.appState.users.push({ ...STANDARD_ROLE_ACCOUNTS.teacher });
+        }
+        let teacherAnh = window.appState.users.find(u => u.username === 'anhnth' || u.username === 'anhnt');
+        if (!teacherAnh) {
+          window.appState.users.push({
+            id: 'USR-04',
+            username: 'anhnth',
+            name: 'ThS. Nguyễn Tuấn Anh',
+            role: 'teacher',
+            roleName: 'Giảng viên',
+            email: 'anhnth@tnus.edu.vn',
+            phone: '0983.123.456',
+            department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
+            avatar: '👨‍🏫',
+            status: 'active',
+            initialPassword: 'Tnus@2026',
+            passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
+            salt: 'TNUS_KHOA_TOAN_TIN_2026',
+            failedLogins: 0,
+            createdAt: '2026-10-15',
+            lastLogin: '2026-11-18 07:50'
+          });
         }
 
         // Chỉ loại bỏ tài khoản kỹ thuật viên (lab_staff / ktvlab) nếu còn tồn đọng từ bộ nhớ đệm cũ
@@ -20829,6 +20868,10 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     'giangvien': 'toannv',
     'teacher': 'toannv',
     'gv': 'toannv',
+    'anhnth': 'anhnth',
+    'anhnt': 'anhnth',
+    'tuananh': 'anhnth',
+    'nguyentuananh': 'anhnth',
     
     // Sinh viên / Khách
     'student': 'student',
@@ -20958,6 +21001,84 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
       lastLogin: '2026-11-18 07:45'
     };
     if (!window.appState.users.some(u => u.username === 'toannv')) {
+      window.appState.users.push(user);
+      window.saveStateToLocalStorage();
+    }
+  }
+
+  // 5.2 Nếu từ khóa là anhnth / anhnt (ThS. Nguyễn Tuấn Anh) mà chưa có trong bộ nhớ, tự động đồng bộ ngay lập tức:
+  if (!user && (cleanTerm === 'anhnth' || cleanTerm === 'anhnt' || cleanTerm === 'tuananh' || cleanTerm === 'nguyentuananh')) {
+    user = {
+      id: 'USR-04',
+      username: 'anhnth',
+      name: 'ThS. Nguyễn Tuấn Anh',
+      role: 'teacher',
+      roleName: 'Giảng viên',
+      email: 'anhnth@tnus.edu.vn',
+      phone: '0983.123.456',
+      department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
+      avatar: '👨‍🏫',
+      status: 'active',
+      initialPassword: 'Tnus@2026',
+      passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
+      salt: 'TNUS_KHOA_TOAN_TIN_2026',
+      failedLogins: 0,
+      createdAt: '2026-10-15',
+      lastLogin: '2026-11-18 07:50'
+    };
+    if (!window.appState.users.some(u => u.username === 'anhnth')) {
+      window.appState.users.push(user);
+      window.saveStateToLocalStorage();
+    }
+  }
+
+  // 5.3 Tự động nhận diện và đồng bộ bất kỳ Giảng viên nào có trong Thời Khóa Biểu Khoa Toán - Tin TNUS:
+  if (!user && cleanTerm) {
+    const unaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+    const cleanTermUnaccent = unaccent(cleanTerm);
+    
+    // Tìm trong lịch xem có giảng viên nào tương ứng không
+    const schedules = window.appState.schedules || (typeof INITIAL_SCHEDULES !== 'undefined' ? INITIAL_SCHEDULES : []);
+    const matchingSchedule = schedules.find(s => {
+      if (!s.lecturer) return false;
+      const cleanLec = s.lecturer.replace(/^MG:\s*/i, '').trim();
+      const cleanLecUnaccent = unaccent(cleanLec);
+      const parts = cleanLecUnaccent.split(/\s+/);
+      const lastName = parts[parts.length - 1];
+      const initials = parts.slice(0, -1).map(p => p[0]).join('');
+      const generatedUname = (lastName + initials);
+      return generatedUname === cleanTerm || 
+             generatedUname === cleanTermUnaccent || 
+             cleanLec.toLowerCase() === cleanTerm || 
+             cleanLecUnaccent === cleanTermUnaccent ||
+             cleanTerm.includes(lastName) ||
+             (cleanTerm.startsWith('anh') && cleanLecUnaccent.includes('anh'));
+    });
+
+    if (matchingSchedule) {
+      const cleanLecName = matchingSchedule.lecturer.replace(/^MG:\s*/i, '').trim();
+      const maxNum = (window.appState.users || []).reduce((max, u) => {
+        const m = (u.id || '').match(/USR-(\d+)/);
+        return m ? Math.max(max, parseInt(m[1], 10)) : max;
+      }, 5);
+      user = {
+        id: `USR-${(maxNum + 1).toString().padStart(2, '0')}`,
+        username: cleanTerm,
+        name: cleanLecName.startsWith('ThS') || cleanLecName.startsWith('TS') ? cleanLecName : `ThS. ${cleanLecName}`,
+        role: 'teacher',
+        roleName: 'Giảng viên',
+        email: `${cleanTerm}@tnus.edu.vn`,
+        phone: '0983.123.456',
+        department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
+        avatar: '👨‍🏫',
+        status: 'active',
+        initialPassword: 'Tnus@2026',
+        passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
+        salt: 'TNUS_KHOA_TOAN_TIN_2026',
+        failedLogins: 0,
+        createdAt: new Date().toISOString().split('T')[0],
+        lastLogin: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
       window.appState.users.push(user);
       window.saveStateToLocalStorage();
     }
