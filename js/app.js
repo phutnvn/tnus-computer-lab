@@ -968,6 +968,31 @@ function initUserRoleSwitcher() {
       }
 
       const selectedRole = e.target.value;
+
+      // Sinh viên / Khách: Cho phép chuyển xem trực quan ngay
+      if (selectedRole === 'student') {
+        const targetUser = window.getRoleUser(selectedRole);
+        if (targetUser) {
+          window.appState.currentUser = targetUser;
+          window.saveStateToLocalStorage();
+          window.updateUserUI();
+          if (window.applyRoleRestrictionsToUI) window.applyRoleRestrictionsToUI();
+          window.logUserActivity('Đổi vai trò', `Chuyển sang vai trò: Sinh viên / Tra cứu`);
+          window.switchTab('simulation');
+        }
+        return;
+      }
+
+      // Quản lý phòng máy, Giảng viên, Kỹ thuật viên: BẮT BUỘC ĐĂNG NHẬP XÁC THỰC
+      // Chỉ kích hoạt giao diện khi đăng nhập thành công!
+      if (selectedRole !== 'admin') {
+        select.value = curRole; // Giữ nguyên vai trò hiện hành cho tới khi xác thực thành công
+        if (typeof window.openRoleLoginModal === 'function') {
+          window.openRoleLoginModal(selectedRole);
+        }
+        return;
+      }
+
       const targetUser = window.getRoleUser(selectedRole);
       if (targetUser) {
         window.appState.currentUser = targetUser;
@@ -978,14 +1003,6 @@ function initUserRoleSwitcher() {
         
         if (window.renderUserAccountsTable) window.renderUserAccountsTable();
         if (window.updateUserKPIs) window.updateUserKPIs();
-
-        // Nếu đang ở tab users mà vai trò mới không có quyền thì tự động chuyển về dashboard
-        const currentTab = window.appState.currentTab || 'dashboard';
-        const normRole = window.normalizeRole(targetUser.role);
-        if (currentTab === 'users' && normRole !== 'admin') {
-          const homeTabs = { lab_manager: 'computers', teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
-          window.switchTab(homeTabs[normRole] || 'dashboard');
-        }
 
         Swal.fire({
           icon: 'info',
@@ -4285,27 +4302,42 @@ function applyUrlParameters(params) {
 
   console.log('[RBAC Router] Áp dụng tham số URL:', params);
 
-  // 1. Tự động mở Giao diện Đăng Nhập cho vai trò khi URL có ?role= hoặc ?user=
-  const curUser = window.appState.currentUser;
-  const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
-  const isCurrentlyNonAdmin = curUser && curRole && curRole !== 'admin';
-
-  if ((userParam || roleParam) && isCurrentlyNonAdmin) {
-    console.warn('[RBAC Router] Bỏ qua chuyển vai trò qua tham số URL vì tài khoản hiện hành là: ' + curRole);
-  } else if (roleParam || userParam) {
+  // 1. Khi có tham số ?role= hoặc ?user=:
+  // TUYỆT ĐỐI KHÔNG mở tab phân hệ trước khi đăng nhập thành công.
+  // Giao diện vai trò CHỈ HOẠT ĐỘNG KHI ĐĂNG NHẬP THÀNH CÔNG!
+  if (roleParam || userParam) {
     const targetAccount = roleParam || userParam;
-    setTimeout(() => {
-      if (typeof window.openRoleLoginModal === 'function') {
-        window.openRoleLoginModal(targetAccount, tabParam);
-      }
-    }, 450);
-  }
+    const curUser = window.appState.currentUser;
+    const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
+    const targetNormRole = window.normalizeRole ? window.normalizeRole(targetAccount) : targetAccount;
 
-  // 2. Tự động chuyển tab theo tham số ?tab= (dashboard, simulation, computers, schedule, maintenance, users)
-  if (tabParam) {
-    const tabLink = document.querySelector(`.nav-tab-link[data-tab="${tabParam.toLowerCase()}"]`);
-    if (tabLink) {
-      setTimeout(() => tabLink.click(), 80);
+    // Nếu người dùng chưa ở phiên vai trò này, bật hộp thoại đăng nhập bắt buộc
+    if (curRole !== targetNormRole) {
+      // Đảm bảo không hiển thị phân hệ quản lý thiết bị/tài khoản ở background trước khi xác thực
+      if (window.appState.currentTab === 'computers' || window.appState.currentTab === 'users') {
+        const safeLink = document.querySelector('.nav-tab-link[data-tab="dashboard"]');
+        if (safeLink) safeLink.click();
+      }
+      setTimeout(() => {
+        if (typeof window.openRoleLoginModal === 'function') {
+          const defaultRoleTab = (targetNormRole === 'lab_manager' ? 'computers' : (targetNormRole === 'teacher' ? 'schedule' : (targetNormRole === 'lab_staff' ? 'maintenance' : 'simulation')));
+          window.openRoleLoginModal(targetAccount, tabParam || defaultRoleTab);
+        }
+      }, 300);
+    } else {
+      // Nếu đã đăng nhập đúng vai trò này rồi thì cho phép chuyển tab
+      if (tabParam) {
+        const tabLink = document.querySelector(`.nav-tab-link[data-tab="${tabParam.toLowerCase()}"]`);
+        if (tabLink) setTimeout(() => tabLink.click(), 80);
+      }
+    }
+  } else {
+    // 2. Chỉ chuyển tab theo ?tab= khi KHÔNG có yêu cầu đăng nhập vai trò
+    if (tabParam) {
+      const tabLink = document.querySelector(`.nav-tab-link[data-tab="${tabParam.toLowerCase()}"]`);
+      if (tabLink) {
+        setTimeout(() => tabLink.click(), 80);
+      }
     }
   }
 
@@ -5831,6 +5863,9 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
         </div>
       </div>
     `,
+    backdrop: 'rgba(15, 23, 42, 0.88)',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
     showCancelButton: true,
     confirmButtonText: `<i class="fa-solid fa-right-to-bracket mr-1.5"></i>Đăng Nhập Vào Phân Hệ`,
     cancelButtonText: 'Đóng',
@@ -5847,7 +5882,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
             const p = pwdInput.value;
             if (u && p) {
               Swal.close();
-              window.handleLoginSubmit(u, p);
+              window.handleLoginSubmit(u, p, targetTab || ui.destTab);
             }
           }
         });
@@ -5868,7 +5903,13 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
     }
   }).then(result => {
     if (result.isConfirmed) {
-      window.handleLoginSubmit(result.value.username, result.value.password);
+      window.handleLoginSubmit(result.value.username, result.value.password, targetTab || ui.destTab);
+    } else {
+      // Khi bấm Đóng/Hủy, không giữ màn hình ở phân hệ quản lý nếu chưa được cấp quyền
+      const curRole = window.normalizeRole ? window.normalizeRole(window.appState.currentUser?.role) : (window.appState.currentUser?.role || 'student');
+      if (curRole !== normRole && (window.appState.currentTab === 'computers' || window.appState.currentTab === 'users')) {
+        window.switchTab('dashboard');
+      }
     }
   });
 };
@@ -5950,6 +5991,9 @@ window.openLoginModal = function() {
         </div>
       </div>
     `,
+    backdrop: 'rgba(15, 23, 42, 0.88)',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
     showCancelButton: true,
     confirmButtonText: '<i class="fa-solid fa-right-to-bracket mr-1.5"></i>Đăng Nhập',
     cancelButtonText: 'Đóng',
@@ -6023,7 +6067,7 @@ window.quickFillLogin = function(username, password) {
 /**
  * Xử lý xác thực đăng nhập tài khoản (Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Admin, Sinh viên)
  */
-window.handleLoginSubmit = function(username, password) {
+window.handleLoginSubmit = function(username, password, explicitTargetTab = null) {
   const term = username.toLowerCase().trim();
 
   // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa
@@ -6188,7 +6232,7 @@ window.handleLoginSubmit = function(username, password) {
     student: 'simulation'       // Sinh viên -> Sơ đồ mô phỏng 2D
   };
 
-  const targetTab = homeTabMap[normRole] || 'dashboard';
+  const targetTab = explicitTargetTab || homeTabMap[normRole] || 'dashboard';
   if (typeof window.switchTab === 'function') {
     setTimeout(() => {
       window.switchTab(targetTab);
