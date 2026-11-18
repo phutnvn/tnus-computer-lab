@@ -20396,7 +20396,8 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
   const defaultPass = '';
 
   let userChipsHtml = '';
-  if (roleUsers.length > 0) {
+  // Bỏ phần hiển thị gợi ý tài khoản tại giao diện đăng nhập giảng viên theo yêu cầu
+  if (normRole !== 'teacher' && roleUsers.length > 0) {
     const chips = roleUsers.map(u => {
       const uname = (u.username || '').replace(/^@+/, '');
       const uPass = u.initialPassword || 'Tnus@2026';
