@@ -6800,11 +6800,11 @@ const INITIAL_USERS = [
   },
   {
     id: 'USR-04',
-    username: 'anhnth',
+    username: 'anhnt',
     name: 'ThS. Nguyễn Tuấn Anh',
     role: 'teacher',
     roleName: 'Giảng viên',
-    email: 'anhnth@tnus.edu.vn',
+    email: 'anhnt@tnus.edu.vn',
     phone: '0983.123.456',
     department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
     avatar: '👨‍🏫',

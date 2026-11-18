@@ -8888,11 +8888,11 @@ const INITIAL_USERS = [
   },
   {
     id: 'USR-04',
-    username: 'anhnth',
+    username: 'anhnt',
     name: 'ThS. Nguyễn Tuấn Anh',
     role: 'teacher',
     roleName: 'Giảng viên',
-    email: 'anhnth@tnus.edu.vn',
+    email: 'anhnt@tnus.edu.vn',
     phone: '0983.123.456',
     department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
     avatar: '👨‍🏫',
@@ -12415,6 +12415,41 @@ class ScheduleManager {
   }
 
   // =========================================================================
+  // KIỂM TRA QUYỀN SỞ HỮU CA DẠY CỦA GIẢNG VIÊN (RBAC LECTURER OWNERSHIP)
+  // =========================================================================
+  checkLecturerOwnership(curUser, itemLecturer) {
+    if (!curUser || !itemLecturer) return false;
+    const role = window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role;
+    if (role === 'admin' || role === 'lab_manager') return true;
+    if (role !== 'teacher') return false;
+
+    const uName = (curUser.name || '').trim().toLowerCase();
+    const iLect = (itemLecturer || '').trim().toLowerCase();
+
+    // 1. So khớp tên đầy đủ hoặc chứa nhau
+    if (iLect === uName || iLect.includes(uName) || uName.includes(iLect)) return true;
+
+    // 2. So khớp sau khi bỏ học hàm / học vị (ThS, TS, PGS, GS, CN, KS, MG,...)
+    const stripTitle = (s) => (s || '').replace(/^(ths|ts|pgs|gs|cn|ks|mg:?)\.?\s+/i, '').trim();
+    const cleanUName = stripTitle(uName);
+    const cleanILect = stripTitle(iLect);
+    if (cleanILect === cleanUName || cleanILect.includes(cleanUName) || cleanUName.includes(cleanILect)) return true;
+
+    // 3. So khớp không dấu
+    const unaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    const uClean = unaccent(cleanUName);
+    const lClean = unaccent(cleanILect);
+    if (lClean === uClean || lClean.includes(uClean) || uClean.includes(lClean)) return true;
+
+    // 4. So khớp theo Username chuẩn
+    const uname = (curUser.username || '').toLowerCase().replace(/^@+/, '');
+    if (uname === 'toannv' && lClean.includes('toan')) return true;
+    if ((uname === 'anhnt' || uname === 'anhnth') && (lClean.includes('tuan anh') || lClean.includes('anh'))) return true;
+
+    return false;
+  }
+
+  // =========================================================================
   // CHỈNH SỬA CA HỌC (EDIT SCHEDULE MODAL)
   // =========================================================================
   showEditScheduleModal(scheduleId) {
@@ -12431,9 +12466,7 @@ class ScheduleManager {
         Swal.fire('Từ chối', 'Bạn không có quyền chỉnh sửa thời khóa biểu.', 'error');
         return;
       }
-      const teacherName = (curUser.name || '').trim();
-      const itemLecturer = (item.lecturer || '').trim();
-      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
       if (!isOwner) {
         Swal.fire({
           icon: 'warning',
@@ -12586,9 +12619,7 @@ class ScheduleManager {
         });
         return;
       }
-      const teacherName = (curUser.name || '').trim();
-      const itemLecturer = (item.lecturer || '').trim();
-      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
       if (!isOwner) {
         Swal.fire({
           icon: 'warning',
@@ -12672,9 +12703,7 @@ class ScheduleManager {
         Swal.fire('Từ chối', 'Bạn không có quyền hủy ca học.', 'error');
         return;
       }
-      const teacherName = (curUser.name || '').trim();
-      const itemLecturer = (item.lecturer || '').trim();
-      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
       if (!isOwner) {
         Swal.fire({
           icon: 'warning',
@@ -14267,8 +14296,12 @@ function loadState() {
           rootAdmin.status = 'active';
         }
 
-        // Đảm bảo các tài khoản có đầy đủ mật khẩu ban đầu phục vụ chức năng Sao chép
+        // Chuẩn hóa đồng bộ tên đăng nhập Giảng viên theo chuẩn TNUS (anhnt)
         window.appState.users.forEach(u => {
+          if (u.username === 'anhnth') {
+            u.username = 'anhnt';
+            if (!u.email || u.email === 'anhnth@tnus.edu.vn') u.email = 'anhnt@tnus.edu.vn';
+          }
           if (!u.initialPassword) {
             u.initialPassword = (u.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
           }
@@ -20880,10 +20913,15 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     
     // Giảng viên
     'toannv': 'toannv',
-    'anhnth': 'anhnth',
-    'anhnt': 'anhnth',
-    'tuananh': 'anhnth',
-    'nguyentuananh': 'anhnth',
+    'toan': 'toannv',
+    'nguyenvantoan': 'toannv',
+    'anhnt': 'anhnt',
+    'anhnth': 'anhnt',
+    'tuananh': 'anhnt',
+    'nguyentuananh': 'anhnt',
+    'teacher': 'toannv',
+    'giangvien': 'toannv',
+    'gv': 'toannv',
     
     // Sinh viên / Khách
     'student': 'student',
@@ -20904,6 +20942,8 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
   // 1. Tìm chính xác trong appState.users (ưu tiên hàng đầu tài khoản do Admin tạo mới!)
   let user = (window.appState.users || []).find(u => 
     (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
+    (cleanTerm === 'anhnth' && u.username && u.username.toLowerCase().replace(/^@+/, '') === 'anhnt') ||
+    (cleanTerm === 'anhnt' && u.username && u.username.toLowerCase().replace(/^@+/, '') === 'anhnth') ||
     (u.id && u.id.toLowerCase() === cleanTerm) ||
     (u.email && u.email.toLowerCase() === cleanTerm) ||
     (u.name && u.name.toLowerCase().trim() === cleanTerm)
@@ -20925,14 +20965,16 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
 
   // 2. Nếu chưa thấy, thử tìm theo bí danh trong appState.users
   if (!user && lookupKey) {
-    user = (window.appState.users || []).find(u => 
-      (u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey) ||
-      (lookupKey === 'linhtt' && (u.role === 'lab_manager' || u.username === 'qlphongmay')) ||
-      (lookupKey === 'anhnth' && u.role === 'teacher') ||
-      (lookupKey === 'toannv' && u.role === 'teacher') ||
-      (lookupKey === 'student' && u.role === 'student') ||
-      (lookupKey === 'admin' && u.role === 'admin')
-    );
+    user = (window.appState.users || []).find(u => {
+      const uClean = (u.username || '').toLowerCase().replace(/^@+/, '');
+      if (uClean === lookupKey) return true;
+      if (lookupKey === 'anhnt' && (uClean === 'anhnt' || uClean === 'anhnth')) return true;
+      if (lookupKey === 'toannv' && uClean === 'toannv') return true;
+      if (lookupKey === 'linhtt' && (uClean === 'linhtt' || uClean === 'qlphongmay')) return true;
+      if (lookupKey === 'admin' && (uClean === 'admin' || u.role === 'admin')) return true;
+      if (lookupKey === 'student' && (uClean === 'student' || u.role === 'student')) return true;
+      return false;
+    });
   }
 
   // 3. Nếu chưa có trong appState.users, kiểm tra tài khoản đại diện chuẩn của hệ thống
@@ -21177,7 +21219,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
             <span class="font-bold text-slate-900">${user.name}</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${info.badgeClass}">${info.badge}</span>
           </div>
-          <div class="text-[11px] text-slate-500 font-mono">Username: @${user.username} • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}</div>
+          <div class="text-[11px] text-slate-500 font-mono">Username: <strong class="text-blue-700">@${(user.username || '').replace(/^@+/, '')}</strong> • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}</div>
         </div>
 
         <div>

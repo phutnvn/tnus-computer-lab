@@ -1629,6 +1629,41 @@ class ScheduleManager {
   }
 
   // =========================================================================
+  // KIỂM TRA QUYỀN SỞ HỮU CA DẠY CỦA GIẢNG VIÊN (RBAC LECTURER OWNERSHIP)
+  // =========================================================================
+  checkLecturerOwnership(curUser, itemLecturer) {
+    if (!curUser || !itemLecturer) return false;
+    const role = window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role;
+    if (role === 'admin' || role === 'lab_manager') return true;
+    if (role !== 'teacher') return false;
+
+    const uName = (curUser.name || '').trim().toLowerCase();
+    const iLect = (itemLecturer || '').trim().toLowerCase();
+
+    // 1. So khớp tên đầy đủ hoặc chứa nhau
+    if (iLect === uName || iLect.includes(uName) || uName.includes(iLect)) return true;
+
+    // 2. So khớp sau khi bỏ học hàm / học vị (ThS, TS, PGS, GS, CN, KS, MG,...)
+    const stripTitle = (s) => (s || '').replace(/^(ths|ts|pgs|gs|cn|ks|mg:?)\.?\s+/i, '').trim();
+    const cleanUName = stripTitle(uName);
+    const cleanILect = stripTitle(iLect);
+    if (cleanILect === cleanUName || cleanILect.includes(cleanUName) || cleanUName.includes(cleanILect)) return true;
+
+    // 3. So khớp không dấu
+    const unaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    const uClean = unaccent(cleanUName);
+    const lClean = unaccent(cleanILect);
+    if (lClean === uClean || lClean.includes(uClean) || uClean.includes(lClean)) return true;
+
+    // 4. So khớp theo Username chuẩn
+    const uname = (curUser.username || '').toLowerCase().replace(/^@+/, '');
+    if (uname === 'toannv' && lClean.includes('toan')) return true;
+    if ((uname === 'anhnt' || uname === 'anhnth') && (lClean.includes('tuan anh') || lClean.includes('anh'))) return true;
+
+    return false;
+  }
+
+  // =========================================================================
   // CHỈNH SỬA CA HỌC (EDIT SCHEDULE MODAL)
   // =========================================================================
   showEditScheduleModal(scheduleId) {
@@ -1645,9 +1680,7 @@ class ScheduleManager {
         Swal.fire('Từ chối', 'Bạn không có quyền chỉnh sửa thời khóa biểu.', 'error');
         return;
       }
-      const teacherName = (curUser.name || '').trim();
-      const itemLecturer = (item.lecturer || '').trim();
-      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
       if (!isOwner) {
         Swal.fire({
           icon: 'warning',
@@ -1800,9 +1833,7 @@ class ScheduleManager {
         });
         return;
       }
-      const teacherName = (curUser.name || '').trim();
-      const itemLecturer = (item.lecturer || '').trim();
-      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
       if (!isOwner) {
         Swal.fire({
           icon: 'warning',
@@ -1886,9 +1917,7 @@ class ScheduleManager {
         Swal.fire('Từ chối', 'Bạn không có quyền hủy ca học.', 'error');
         return;
       }
-      const teacherName = (curUser.name || '').trim();
-      const itemLecturer = (item.lecturer || '').trim();
-      const isOwner = (itemLecturer && teacherName && (itemLecturer.toLowerCase().includes(teacherName.toLowerCase()) || teacherName.toLowerCase().includes(itemLecturer.toLowerCase()) || (curUser.username === 'toannv' && itemLecturer.includes('Toàn'))));
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
       if (!isOwner) {
         Swal.fire({
           icon: 'warning',

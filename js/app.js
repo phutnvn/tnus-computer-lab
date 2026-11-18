@@ -122,8 +122,12 @@ function loadState() {
           rootAdmin.status = 'active';
         }
 
-        // Đảm bảo các tài khoản có đầy đủ mật khẩu ban đầu phục vụ chức năng Sao chép
+        // Chuẩn hóa đồng bộ tên đăng nhập Giảng viên theo chuẩn TNUS (anhnt)
         window.appState.users.forEach(u => {
+          if (u.username === 'anhnth') {
+            u.username = 'anhnt';
+            if (!u.email || u.email === 'anhnth@tnus.edu.vn') u.email = 'anhnt@tnus.edu.vn';
+          }
           if (!u.initialPassword) {
             u.initialPassword = (u.role === 'admin' ? 'Tnus@Admin2026' : 'Tnus@2026');
           }
@@ -6735,10 +6739,15 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     
     // Giảng viên
     'toannv': 'toannv',
-    'anhnth': 'anhnth',
-    'anhnt': 'anhnth',
-    'tuananh': 'anhnth',
-    'nguyentuananh': 'anhnth',
+    'toan': 'toannv',
+    'nguyenvantoan': 'toannv',
+    'anhnt': 'anhnt',
+    'anhnth': 'anhnt',
+    'tuananh': 'anhnt',
+    'nguyentuananh': 'anhnt',
+    'teacher': 'toannv',
+    'giangvien': 'toannv',
+    'gv': 'toannv',
     
     // Sinh viên / Khách
     'student': 'student',
@@ -6759,6 +6768,8 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
   // 1. Tìm chính xác trong appState.users (ưu tiên hàng đầu tài khoản do Admin tạo mới!)
   let user = (window.appState.users || []).find(u => 
     (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
+    (cleanTerm === 'anhnth' && u.username && u.username.toLowerCase().replace(/^@+/, '') === 'anhnt') ||
+    (cleanTerm === 'anhnt' && u.username && u.username.toLowerCase().replace(/^@+/, '') === 'anhnth') ||
     (u.id && u.id.toLowerCase() === cleanTerm) ||
     (u.email && u.email.toLowerCase() === cleanTerm) ||
     (u.name && u.name.toLowerCase().trim() === cleanTerm)
@@ -6780,14 +6791,16 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
 
   // 2. Nếu chưa thấy, thử tìm theo bí danh trong appState.users
   if (!user && lookupKey) {
-    user = (window.appState.users || []).find(u => 
-      (u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey) ||
-      (lookupKey === 'linhtt' && (u.role === 'lab_manager' || u.username === 'qlphongmay')) ||
-      (lookupKey === 'anhnth' && u.role === 'teacher') ||
-      (lookupKey === 'toannv' && u.role === 'teacher') ||
-      (lookupKey === 'student' && u.role === 'student') ||
-      (lookupKey === 'admin' && u.role === 'admin')
-    );
+    user = (window.appState.users || []).find(u => {
+      const uClean = (u.username || '').toLowerCase().replace(/^@+/, '');
+      if (uClean === lookupKey) return true;
+      if (lookupKey === 'anhnt' && (uClean === 'anhnt' || uClean === 'anhnth')) return true;
+      if (lookupKey === 'toannv' && uClean === 'toannv') return true;
+      if (lookupKey === 'linhtt' && (uClean === 'linhtt' || uClean === 'qlphongmay')) return true;
+      if (lookupKey === 'admin' && (uClean === 'admin' || u.role === 'admin')) return true;
+      if (lookupKey === 'student' && (uClean === 'student' || u.role === 'student')) return true;
+      return false;
+    });
   }
 
   // 3. Nếu chưa có trong appState.users, kiểm tra tài khoản đại diện chuẩn của hệ thống
@@ -7032,7 +7045,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
             <span class="font-bold text-slate-900">${user.name}</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${info.badgeClass}">${info.badge}</span>
           </div>
-          <div class="text-[11px] text-slate-500 font-mono">Username: @${user.username} • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}</div>
+          <div class="text-[11px] text-slate-500 font-mono">Username: <strong class="text-blue-700">@${(user.username || '').replace(/^@+/, '')}</strong> • Đơn vị: ${user.department || 'Khoa Toán - Tin, TNUS'}</div>
         </div>
 
         <div>
