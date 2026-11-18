@@ -1150,7 +1150,7 @@ class ScheduleManager {
                                   <i class="fa-regular fa-clock"></i>
                                 </div>
                                 <span class="text-[11px] font-semibold text-slate-500">Phòng trống</span>
-                                ${role === 'lab_staff' ? '<span class="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Khả dụng bảo trì</span>' : '<span class="text-[10px] text-slate-400">Chưa có ca học</span>'}
+                                ${role === 'lab_manager' ? '<span class="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Khả dụng bảo trì</span>' : '<span class="text-[10px] text-slate-400">Chưa có ca học</span>'}
                               </div>
                             </td>
                           `;
@@ -1457,12 +1457,12 @@ class ScheduleManager {
   showAddScheduleModal(prefillLab = null, prefillShift = null, prefillDate = null) {
     const curUser = window.appState.currentUser;
     const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
-    if (role === 'lab_staff' || role === 'student') {
+    if (role === 'student') {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'error',
           title: 'Truy cập bị từ chối',
-          html: 'Tài khoản <strong>Kỹ thuật viên / Sinh viên</strong> chỉ có quyền tra cứu lịch phòng trống để phục vụ công tác bảo trì & học tập, không có thẩm quyền xếp lịch giảng dạy.'
+          html: 'Tài khoản <strong>Sinh viên / Tra cứu</strong> chỉ có quyền xem thời khóa biểu, không có thẩm quyền xếp lịch giảng dạy.'
         });
       }
       return;

@@ -323,7 +323,7 @@ class MaintenanceManager {
 
     const curUser = window.appState?.currentUser;
     const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
-    const canUpdateStatus = (curRole === 'admin' || curRole === 'lab_manager' || curRole === 'lab_staff');
+    const canUpdateStatus = (curRole === 'admin' || curRole === 'lab_manager');
     const canDeleteTicket = (curRole === 'admin' || curRole === 'lab_manager');
 
     tbody.innerHTML = pageItems.map(item => {

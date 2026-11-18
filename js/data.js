@@ -6608,14 +6608,6 @@ const SYSTEM_ROLES = [
     isSuper: false
   },
   {
-    id: 'lab_staff',
-    name: 'Kỹ thuật viên',
-    code: 'LAB_STAFF',
-    description: 'Quản lý thiết bị, cập nhật tình trạng và xử lý sự cố',
-    badgeClass: 'bg-amber-600 text-white',
-    isSuper: false
-  },
-  {
     id: 'student',
     name: 'Sinh viên / Khách',
     code: 'STUDENT',
@@ -6650,14 +6642,6 @@ const DEFAULT_ROLE_PERMISSIONS = {
     'simulation.view',
     'schedule.view', 'schedule.create', 'schedule.edit', 'schedule.export', 'schedule.manage',
     'maintenance.view', 'maintenance.create'
-  ],
-  lab_staff: [
-    // Kỹ thuật viên: Quản lý thiết bị, cập nhật tình trạng và xử lý sự cố
-    'dashboard.view', 'dashboard.export',
-    'simulation.view', 'simulation.edit', 'simulation.export', 'simulation.manage',
-    'computers.view', 'computers.create', 'computers.edit', 'computers.export',
-    'schedule.view',
-    'maintenance.view', 'maintenance.create', 'maintenance.edit', 'maintenance.approve', 'maintenance.export'
   ],
   student: [
     // Sinh viên: Chế độ tra cứu tối giản (Sơ đồ 2D, Dashboard chỉ đọc, Thời khóa biểu)
@@ -6730,20 +6714,6 @@ const STANDARD_ROLE_ACCOUNTS = {
     phone: '0912.345.678',
     department: 'Bộ môn Khoa học Máy tính - TNUS',
     avatar: '👨‍🏫',
-    status: 'active',
-    passwordHash: hashPassword('tnus@2026'),
-    salt: 'TNUS_KHOA_TOAN_TIN_2026'
-  },
-  lab_staff: {
-    id: 'USR-04',
-    username: 'ktvlab',
-    name: 'Kỹ thuật viên phòng máy',
-    role: 'lab_staff',
-    roleName: 'Kỹ thuật viên',
-    email: 'ktvlab@tnus.edu.vn',
-    phone: '0988.776.655',
-    department: 'Tổ Kỹ thuật - Khoa Toán - Tin',
-    avatar: '🧑‍🔧',
     status: 'active',
     passwordHash: hashPassword('tnus@2026'),
     salt: 'TNUS_KHOA_TOAN_TIN_2026'
@@ -6830,12 +6800,6 @@ const ROLE_PERMISSIONS = {
     badgeClass: 'bg-emerald-600 text-white',
     description: 'Xem lịch thực hành, đăng ký phòng, cập nhật thông tin được phép',
     permissions: DEFAULT_ROLE_PERMISSIONS.teacher
-  },
-  lab_staff: {
-    label: 'Kỹ thuật viên',
-    badgeClass: 'bg-amber-600 text-white',
-    description: 'Quản lý thiết bị, cập nhật tình trạng và xử lý sự cố',
-    permissions: DEFAULT_ROLE_PERMISSIONS.lab_staff
   },
   student: {
     label: 'Sinh viên / Khách',

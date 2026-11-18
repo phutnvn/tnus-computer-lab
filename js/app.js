@@ -95,8 +95,6 @@ function loadState() {
       window.appState.rolePermissions.lab_manager = [...DEFAULT_ROLE_PERMISSIONS.lab_manager];
       // Giảng viên luôn được đồng bộ đúng chuẩn quyền giảng dạy, đăng ký lịch & báo hỏng
       window.appState.rolePermissions.teacher = [...DEFAULT_ROLE_PERMISSIONS.teacher];
-      // Kỹ thuật viên luôn được đồng bộ đúng chuẩn quyền quản lý thiết bị, Wake-on-LAN & tiếp nhận bảo trì
-      window.appState.rolePermissions.lab_staff = [...DEFAULT_ROLE_PERMISSIONS.lab_staff];
       // Sinh viên luôn được đồng bộ đúng chuẩn quyền tra cứu chỉ đọc
       window.appState.rolePermissions.student = [...DEFAULT_ROLE_PERMISSIONS.student];
 
@@ -136,8 +134,8 @@ function loadState() {
       if (parsed.currentUser) {
         if (window.appState.users.some(u => u.id === parsed.currentUser.id)) {
           window.appState.currentUser = window.appState.users.find(u => u.id === parsed.currentUser.id);
-        } else if (parsed.currentUser.role && parsed.currentUser.role !== 'admin') {
-          // Duy trì phiên làm việc theo vai trò đã chọn (lab_manager, teacher, lab_staff, student)
+        } else if (parsed.currentUser.role && parsed.currentUser.role !== 'admin' && parsed.currentUser.role !== 'lab_staff') {
+          // Duy trì phiên làm việc theo vai trò đã chọn (lab_manager, teacher, student)
           window.appState.currentUser = parsed.currentUser;
         } else {
           window.appState.currentUser = window.appState.users[0];
@@ -451,7 +449,7 @@ window.switchTab = function(targetTab) {
         title: 'CHỨC NĂNG DÀNH CHO CÁN BỘ QUẢN LÝ THIẾT BỊ',
         html: `
           <div class="text-left text-xs space-y-2">
-            <p>Phân hệ <strong>Quản lý Thiết bị (104 máy)</strong> dành riêng cho Cán bộ Quản lý phòng máy và Kỹ thuật viên để theo dõi vòng đời tài sản, cấu hình IP/MAC và kiểm kê thiết bị.</p>
+            <p>Phân hệ <strong>Quản lý Thiết bị (104 máy)</strong> dành riêng cho Cán bộ Quản lý phòng máy để theo dõi vòng đời tài sản, cấu hình IP/MAC và kiểm kê thiết bị.</p>
             <p class="text-slate-600">${isTeacher ? 'Giảng viên vui lòng mở <strong>Thời khóa biểu</strong> để quản lý ca dạy hoặc tra cứu cấu hình và vị trí máy trên <strong>Sơ đồ Mô phỏng 2D</strong>.' : 'Sinh viên vui lòng tra cứu trực quan sơ đồ phòng máy, máy tính trống khả dụng và thông số tại phân hệ <strong>Sơ đồ Mô phỏng 2D</strong>.'}</p>
           </div>
         `,
@@ -472,8 +470,8 @@ window.switchTab = function(targetTab) {
         title: 'CHỨC NĂNG BẢO TRÌ & SỰ CỐ',
         html: `
           <div class="text-left text-xs space-y-2">
-            <p>Phân hệ <strong>Bảo trì & Sự cố</strong> dành riêng cho Cán bộ Quản lý, Giảng viên và Kỹ thuật viên xử lý kỹ thuật.</p>
-            <p class="text-slate-600">Sinh viên khi phát hiện sự cố máy tính vui lòng báo trực tiếp với Giảng viên phụ trách ca dạy hoặc Kỹ thuật viên phòng máy.</p>
+            <p>Phân hệ <strong>Bảo trì & Sự cố</strong> dành riêng cho Cán bộ Quản lý và Giảng viên xử lý kỹ thuật.</p>
+            <p class="text-slate-600">Sinh viên khi phát hiện sự cố máy tính vui lòng báo trực tiếp với Giảng viên phụ trách ca dạy hoặc Cán bộ quản lý phòng máy.</p>
           </div>
         `,
         confirmButtonColor: '#2563eb'
@@ -737,12 +735,12 @@ const RBAC_LEGACY_MAP = {
   broadcast_screen: 'simulation.manage'
 };
 
-// Chuẩn hóa mã vai trò và xử lý các bí danh URL (manager -> lab_manager, staff -> lab_staff)
+// Chuẩn hóa mã vai trò và xử lý các bí danh URL (manager -> lab_manager, staff -> lab_manager)
 window.normalizeRole = function(r) {
   if (!r) return 'student';
   const str = String(r).toLowerCase().trim();
   if (str === 'manager' || str === 'qlpm' || str === 'qlphong' || str === 'lab_manager') return 'lab_manager';
-  if (str === 'staff' || str === 'ktv' || str === 'kythuat' || str === 'lab_staff') return 'lab_staff';
+  if (str === 'staff' || str === 'ktv' || str === 'kythuat' || str === 'lab_staff' || str === 'technician') return 'lab_manager';
   if (str === 'teacher' || str === 'giangvien' || str === 'gv') return 'teacher';
   if (str === 'student' || str === 'sinhvien' || str === 'khach' || str === 'guest') return 'student';
   if (str === 'admin' || str === 'administrator' || str === 'quantri') return 'admin';
@@ -903,7 +901,7 @@ window.updateUserUI = function() {
 
   // KIỂM SOÁT BẢO MẬT NGHIÊM NGẶT:
   // Tuyệt đối không cho phép chuyển đổi vai trò/tài khoản đối với:
-  // Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Sinh viên.
+  // Quản lý phòng máy, Giảng viên, Sinh viên.
   // Chỉ duy nhất Quản trị viên (Admin) mới có quyền sử dụng dropdown chuyển đổi vai trò.
   if (select) {
     select.value = role;
@@ -961,7 +959,7 @@ function initUserRoleSwitcher() {
         Swal.fire({
           icon: 'warning',
           title: 'Không được phép chuyển đổi vai trò',
-          text: 'Chức năng chuyển đổi vai trò chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên, Kỹ thuật viên và Sinh viên không được phép tự ý chuyển đổi.',
+          text: 'Chức năng chuyển đổi vai trò chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên và Sinh viên không được phép tự ý chuyển đổi.',
           confirmButtonColor: '#2563eb'
         });
         return false;
@@ -983,7 +981,7 @@ function initUserRoleSwitcher() {
         return;
       }
 
-      // Quản lý phòng máy, Giảng viên, Kỹ thuật viên: BẮT BUỘC ĐĂNG NHẬP XÁC THỰC
+      // Quản lý phòng máy, Giảng viên, Sinh viên: BẮT BUỘC ĐĂNG NHẬP XÁC THỰC
       // Chỉ kích hoạt giao diện khi đăng nhập thành công!
       if (selectedRole !== 'admin') {
         select.value = curRole; // Giữ nguyên vai trò hiện hành cho tới khi xác thực thành công
@@ -1024,7 +1022,7 @@ window.switchToUser = function(userId) {
     Swal.fire({
       icon: 'warning',
       title: 'Không có quyền chuyển đổi tài khoản',
-      text: 'Chức năng chuyển đổi tài khoản chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên, Kỹ thuật viên và Sinh viên không được phép thực hiện.',
+      text: 'Chức năng chuyển đổi tài khoản chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên và Sinh viên không được phép thực hiện.',
       confirmButtonColor: '#2563eb'
     });
     return;
@@ -1177,7 +1175,6 @@ window.renderUserAccountsTable = function() {
     admin: { label: 'Quản trị viên (Admin)', bg: 'bg-blue-100 text-blue-800 border-blue-200' },
     lab_manager: { label: 'Quản lý phòng máy', bg: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
     teacher: { label: 'Giảng viên', bg: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-    lab_staff: { label: 'Kỹ thuật viên', bg: 'bg-amber-100 text-amber-800 border-amber-200' },
     student: { label: 'Sinh viên', bg: 'bg-purple-100 text-purple-800 border-purple-200' }
   };
 
@@ -1317,7 +1314,6 @@ window.updateUserKPIs = function() {
   const adminCount = users.filter(u => u.role === 'admin').length;
   const managerCount = users.filter(u => u.role === 'lab_manager').length;
   const teacherCount = users.filter(u => u.role === 'teacher').length;
-  const staffCount = users.filter(u => u.role === 'lab_staff').length;
   const studentCount = users.filter(u => u.role === 'student').length;
   const activeCount = users.filter(u => (u.status || 'active') === 'active').length;
 
@@ -1330,7 +1326,6 @@ window.updateUserKPIs = function() {
   setEl('user-kpi-admin', adminCount);
   setEl('user-kpi-manager', managerCount);
   setEl('user-kpi-teacher', teacherCount);
-  setEl('user-kpi-staff', staffCount);
   setEl('user-kpi-student', studentCount);
   setEl('user-kpi-active', `${activeCount}/${total}`);
 };
@@ -1385,7 +1380,6 @@ window.showAddUserModal = function() {
               <option value="admin">Admin (Quản trị hệ thống)</option>
               <option value="lab_manager">Quản lý phòng máy (Lab Manager)</option>
               <option value="teacher">Giảng viên (Teacher)</option>
-              <option value="lab_staff">Kỹ thuật viên (Lab Staff)</option>
               <option value="student">Sinh viên / Khách (Student)</option>
             </select>
           </div>
@@ -1401,8 +1395,8 @@ window.showAddUserModal = function() {
             <select id="add-user-avatar" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 bg-white">
               <option value="👨‍🏫">👨‍🏫 Giảng viên nam</option>
               <option value="👩‍🏫">👩‍🏫 Giảng viên nữ</option>
-              <option value="🧑‍🔧">🧑‍🔧 Kỹ thuật viên</option>
               <option value="👨‍💼">👨‍💼 Quản trị viên</option>
+              <option value="🏢">🏢 Quản lý phòng máy</option>
               <option value="👨‍🎓">👨‍🎓 Sinh viên nam</option>
               <option value="👩‍🎓">👩‍🎓 Sinh viên nữ</option>
             </select>
@@ -1465,7 +1459,6 @@ window.showAddUserModal = function() {
             admin: '👨‍💼',
             lab_manager: '🏢',
             teacher: '👨‍🏫',
-            lab_staff: '🧑‍🔧',
             student: '👨‍🎓'
           };
           if (avatarMap[r]) avatarSelect.value = avatarMap[r];
@@ -1584,7 +1577,6 @@ window.showEditUserModal = function(userId) {
               <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin (Quản trị viên)</option>
               <option value="lab_manager" ${user.role === 'lab_manager' ? 'selected' : ''}>Quản lý phòng máy (Lab Manager)</option>
               <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Giảng viên (Teacher)</option>
-              <option value="lab_staff" ${user.role === 'lab_staff' ? 'selected' : ''}>Kỹ thuật viên (Lab Staff)</option>
               <option value="student" ${user.role === 'student' ? 'selected' : ''}>Sinh viên / Khách (Student)</option>
             </select>
           </div>
@@ -1599,9 +1591,9 @@ window.showEditUserModal = function(userId) {
             <label class="block font-bold text-slate-700 mb-1">Biểu Tượng Avatar</label>
             <select id="edit-user-avatar" class="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 bg-white">
               <option value="👨‍💼" ${user.avatar === '👨‍💼' ? 'selected' : ''}>👨‍💼 Quản trị viên</option>
+              <option value="🏢" ${user.avatar === '🏢' ? 'selected' : ''}>🏢 Quản lý phòng máy</option>
               <option value="👨‍🏫" ${user.avatar === '👨‍🏫' ? 'selected' : ''}>👨‍🏫 Giảng viên nam</option>
               <option value="👩‍🏫" ${user.avatar === '👩‍🏫' ? 'selected' : ''}>👩‍🏫 Giảng viên nữ</option>
-              <option value="🧑‍🔧" ${user.avatar === '🧑‍🔧' ? 'selected' : ''}>🧑‍🔧 Kỹ thuật viên</option>
               <option value="👨‍🎓" ${user.avatar === '👨‍🎓' ? 'selected' : ''}>👨‍🎓 Sinh viên nam</option>
               <option value="👩‍🎓" ${user.avatar === '👩‍🎓' ? 'selected' : ''}>👩‍🎓 Sinh viên nữ</option>
             </select>
@@ -1958,7 +1950,6 @@ window.exportUsersToExcel = function() {
     admin: 'Quản trị viên (Admin)',
     lab_manager: 'Quản lý phòng máy',
     teacher: 'Giảng viên',
-    lab_staff: 'Kỹ thuật viên',
     student: 'Sinh viên / Khách'
   };
 
@@ -2007,7 +1998,7 @@ window.exportUsersToExcel = function() {
       { 'Thuộc tính': 'Hệ thống vận hành', 'Nội dung': 'Hệ thống Mô phỏng & Quản trị Phòng máy tính TNUS (Tầng 5, Nhà A1)' },
       { 'Thuộc tính': 'Cán bộ phụ trách', 'Nội dung': 'ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus.edu.vn)' },
       { 'Thuộc tính': 'Tổng số tài khoản', 'Nội dung': `${users.length} tài khoản` },
-      { 'Thuộc tính': 'Mô hình phân quyền', 'Nội dung': 'RBAC Enterprise 3.0 (5 vai trò: Admin, QL Phòng, Giảng viên, Kỹ thuật viên, Sinh viên)' },
+      { 'Thuộc tính': 'Mô hình phân quyền', 'Nội dung': 'RBAC Enterprise 3.0 (4 vai trò: Admin, QL Phòng, Giảng viên, Sinh viên)' },
       { 'Thuộc tính': 'Thời gian kết xuất', 'Nội dung': new Date().toLocaleString('vi-VN') }
     ];
     const metaSheet = XLSX.utils.json_to_sheet(metaData);
@@ -2093,18 +2084,6 @@ window.downloadUserExcelTemplate = function() {
     {
       'STT': 4,
       'Mã tài khoản': 'USR-04',
-      'Tên đăng nhập': 'ktvlab',
-      'Họ và tên': 'Lê Văn Kỹ Thuật',
-      'Mã vai trò (RBAC)': 'lab_staff',
-      'Vai trò hệ thống': 'Kỹ thuật viên',
-      'Đơn vị công tác': 'Tổ Kỹ thuật - Khoa Toán - Tin',
-      'Email': 'ktvlab@tnus.edu.vn',
-      'Số điện thoại': '0988.776.655',
-      'Trạng thái': 'Đang hoạt động'
-    },
-    {
-      'STT': 5,
-      'Mã tài khoản': 'USR-05',
       'Tên đăng nhập': 'sinhvien',
       'Họ và tên': 'Trần Thị Sinh Viên',
       'Mã vai trò (RBAC)': 'student',
@@ -2189,7 +2168,7 @@ window.showImportUsersModal = function() {
 
         <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-600 space-y-1">
           <div class="font-bold text-slate-700">Quy tắc nạp dữ liệu:</div>
-          <div>• <strong>5 Vai trò hợp lệ:</strong> <code>admin</code> (Quản trị), <code>lab_manager</code> (Quản lý PM), <code>teacher</code> (Giảng viên), <code>lab_staff</code> (Kỹ thuật), <code>student</code> (Sinh viên).</div>
+          <div>• <strong>4 Vai trò hợp lệ:</strong> <code>admin</code> (Quản trị), <code>lab_manager</code> (Quản lý PM), <code>teacher</code> (Giảng viên), <code>student</code> (Sinh viên).</div>
           <div>• Tài khoản đã tồn tại (trùng username) sẽ được <strong>tự động cập nhật</strong> thông tin mới.</div>
           <div>• Tài khoản mới sẽ được cấp mật khẩu mặc định: <strong class="text-blue-700 font-mono">Tnus@2026</strong>.</div>
         </div>
@@ -2240,7 +2219,6 @@ window.handleUserExcelImport = function(event) {
         admin: 'Quản trị viên',
         lab_manager: 'Quản lý phòng máy',
         teacher: 'Giảng viên',
-        lab_staff: 'Kỹ thuật viên',
         student: 'Sinh viên'
       };
 
@@ -2248,7 +2226,6 @@ window.handleUserExcelImport = function(event) {
         admin: '👨‍💼',
         lab_manager: '🏢',
         teacher: '👨‍🏫',
-        lab_staff: '🧑‍🔧',
         student: '👨‍🎓'
       };
 
@@ -2269,9 +2246,8 @@ window.handleUserExcelImport = function(event) {
         const roleRaw = (r['Mã vai trò (RBAC)'] || r['role'] || r['Vai trò hệ thống'] || r['Vai trò'] || '').toString().toLowerCase();
         let role = 'student';
         if (roleRaw.includes('admin') || roleRaw.includes('quản trị')) role = 'admin';
-        else if (roleRaw.includes('manager') || roleRaw.includes('quản lý') || roleRaw.includes('lab_manager')) role = 'lab_manager';
+        else if (roleRaw.includes('manager') || roleRaw.includes('quản lý') || roleRaw.includes('lab_manager') || roleRaw.includes('staff') || roleRaw.includes('kỹ thuật') || roleRaw.includes('ktv')) role = 'lab_manager';
         else if (roleRaw.includes('teach') || roleRaw.includes('giảng viên') || roleRaw.includes('gv')) role = 'teacher';
-        else if (roleRaw.includes('staff') || roleRaw.includes('kỹ thuật') || roleRaw.includes('ktv')) role = 'lab_staff';
 
         const existing = window.appState.users.find(u => u.username.toLowerCase() === username);
         if (existing) {
@@ -2400,8 +2376,8 @@ window.renderActivityLogs = function(filterText = '') {
 
   const roleBadges = {
     admin: 'bg-blue-100 text-blue-800',
+    lab_manager: 'bg-indigo-100 text-indigo-800',
     teacher: 'bg-emerald-100 text-emerald-800',
-    lab_staff: 'bg-amber-100 text-amber-800',
     student: 'bg-purple-100 text-purple-800'
   };
 
@@ -2465,7 +2441,7 @@ window.openComputerDetailModal = function(computerId) {
 
   const curUser = window.appState.currentUser;
   const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
-  const canManageStatus = (role === 'admin' || role === 'lab_manager' || role === 'lab_staff');
+  const canManageStatus = (role === 'admin' || role === 'lab_manager');
 
   const cfg = STATUS_CONFIG[comp.status] || STATUS_CONFIG.good;
   const isPowerOn = comp.powerState === 'on';
@@ -4068,12 +4044,12 @@ window.reportIncidentForComputer = function(computerId) {
 function exportComputersToExcel() {
   const curUser = window.appState?.currentUser;
   const curRole = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
-  if (curRole !== 'admin' && curRole !== 'lab_manager' && curRole !== 'lab_staff') {
+  if (curRole !== 'admin' && curRole !== 'lab_manager') {
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         icon: 'error',
         title: 'Truy cập bị từ chối',
-        html: 'Chỉ <strong>Cán bộ Quản lý</strong> và <strong>Kỹ thuật viên</strong> mới có thẩm quyền xuất dữ liệu kiểm kê thiết bị máy tính.'
+        html: 'Chỉ <strong>Quản trị viên</strong> và <strong>Quản lý phòng máy</strong> mới có thẩm quyền xuất dữ liệu kiểm kê thiết bị máy tính.'
       });
     }
     return;
@@ -4320,7 +4296,7 @@ function applyUrlParameters(params) {
       }
       setTimeout(() => {
         if (typeof window.openRoleLoginModal === 'function') {
-          const defaultRoleTab = (targetNormRole === 'lab_manager' ? 'computers' : (targetNormRole === 'teacher' ? 'schedule' : (targetNormRole === 'lab_staff' ? 'maintenance' : 'simulation')));
+          const defaultRoleTab = (targetNormRole === 'lab_manager' ? 'computers' : (targetNormRole === 'teacher' ? 'schedule' : 'simulation'));
           window.openRoleLoginModal(targetAccount, tabParam || defaultRoleTab);
         }
       }, 300);
@@ -4449,7 +4425,7 @@ window.applyRoleRestrictionsToUI = function() {
   const bannerContainer = document.getElementById('dynamic-role-alert-banner');
 
   // 0. BẢO MẬT CHUYỂN ĐỔI VAI TRÒ TRÊN HEADER:
-  // Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Sinh viên tuyệt đối không được phép chuyển đổi vai trò/tài khoản
+  // Quản lý phòng máy, Giảng viên, Sinh viên tuyệt đối không được phép chuyển đổi vai trò/tài khoản
   const headerSelect = document.getElementById('user-role-select');
   const staticBadge = document.getElementById('header-role-static-badge');
   const staticName = document.getElementById('header-role-static-name');
@@ -4542,7 +4518,7 @@ window.applyRoleRestrictionsToUI = function() {
   if (computersTabLink) {
     if (role === 'student' || role === 'teacher') {
       computersTabLink.classList.add('opacity-40', 'pointer-events-none');
-      computersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản lý Thiết bị chỉ dành cho Cán bộ Quản lý và Kỹ thuật viên';
+      computersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản lý Thiết bị chỉ dành cho Cán bộ Quản lý và Quản trị viên';
     } else {
       computersTabLink.classList.remove('opacity-40', 'pointer-events-none');
       computersTabLink.title = 'Quản lý Thiết bị (104 máy)';
@@ -4553,7 +4529,7 @@ window.applyRoleRestrictionsToUI = function() {
   if (maintenanceTabLink) {
     if (role === 'student') {
       maintenanceTabLink.classList.add('opacity-40', 'pointer-events-none');
-      maintenanceTabLink.title = '[🔒 Bị khóa] Phân hệ Bảo trì & Sự cố dành cho Giảng viên và Kỹ thuật viên';
+      maintenanceTabLink.title = '[🔒 Bị khóa] Phân hệ Bảo trì & Sự cố dành cho Cán bộ Quản lý và Giảng viên';
     } else {
       maintenanceTabLink.classList.remove('opacity-40', 'pointer-events-none');
       maintenanceTabLink.title = 'Bảo trì & Sự cố';
@@ -4571,8 +4547,8 @@ window.applyRoleRestrictionsToUI = function() {
     }
   }
 
-  // 3. ĐÁNH DẤU CỘT VAI TRÒ HIỆN HÀNH TRÊN BẢNG 11 NGHIỆP VỤ & 5 THẺ CHI TIẾT
-  const allRoles = ['admin', 'lab_manager', 'teacher', 'lab_staff', 'student'];
+  // 3. ĐÁNH DẤU CỘT VAI TRÒ HIỆN HÀNH TRÊN BẢNG 11 NGHIỆP VỤ & 4 THẺ CHI TIẾT
+  const allRoles = ['admin', 'lab_manager', 'teacher', 'student'];
   allRoles.forEach(r => {
     const isCurrent = (r === role);
     const th = document.getElementById(`th-role-${r}`);
@@ -4604,14 +4580,14 @@ window.applyRoleRestrictionsToUI = function() {
   });
 
   // 4. KHÓA / MỞ KHÓA VÀ GẮN CHỈ BÁO TRỰC QUAN TRÊN TẤT CẢ CÁC NÚT BẤM (RBAC ENFORCEMENT)
-  const canControlPower = isAdmin || role === 'lab_manager' || role === 'lab_staff';
-  const canManageComputers = isAdmin || role === 'lab_manager' || role === 'lab_staff';
+  const canControlPower = isAdmin || role === 'lab_manager';
+  const canManageComputers = isAdmin || role === 'lab_manager';
   const canCreateSchedule = isAdmin || role === 'lab_manager' || role === 'teacher';
   const canBroadcast = isAdmin || role === 'lab_manager' || role === 'teacher';
   const canLockScreen = isAdmin || role === 'lab_manager' || role === 'teacher';
-  const canFaultInject = isAdmin || role === 'lab_staff';
+  const canFaultInject = isAdmin || role === 'lab_manager';
   const canCreateTicket = role !== 'student';
-  const canResolveTicket = isAdmin || role === 'lab_manager' || role === 'lab_staff';
+  const canResolveTicket = isAdmin || role === 'lab_manager';
 
   const applyBtnState = (btnEl, isAllowed, allowedMsg, deniedMsg) => {
     if (!btnEl) return;
@@ -4669,7 +4645,7 @@ window.applyRoleRestrictionsToUI = function() {
       if (resetText) resetText.classList.remove('hidden');
     }
   } else {
-    // Với Admin / Cán bộ / Giảng viên / Kỹ thuật viên:
+    // Với Admin / Cán bộ / Giảng viên:
     if (scenarioLabel) scenarioLabel.textContent = 'Thực nghiệm:';
     if (findAvailBtn) findAvailBtn.classList.add('hidden');
     if (reportFaultBtn) reportFaultBtn.classList.add('hidden');
@@ -4681,11 +4657,11 @@ window.applyRoleRestrictionsToUI = function() {
     if (lockBtn) lockBtn.classList.remove('hidden');
     if (faultBtn) faultBtn.classList.remove('hidden');
 
-    applyBtnState(wolBtn, canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền điều khiển nguồn Wake-on-LAN');
+    applyBtnState(wolBtn, canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên và Quản lý phòng mới có quyền điều khiển nguồn Wake-on-LAN');
     applyBtnState(broadcastBtn, canBroadcast, 'Phát bài giảng & đề thi (UDP Multicast)', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mới có quyền phát bài giảng');
     applyBtnState(lockBtn, canLockScreen, 'Khóa / Mở màn hình lớp học', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mở ca mới có quyền khóa màn hình');
-    applyBtnState(faultBtn, canFaultInject, 'Mô phỏng phát sinh sự cố', 'Chỉ Kỹ thuật viên mới có quyền thử nghiệm sự cố');
-    applyBtnState(resetBtn, canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền khôi phục');
+    applyBtnState(faultBtn, canFaultInject, 'Mô phỏng phát sinh sự cố', 'Chỉ Quản trị viên và Quản lý phòng mới có quyền thử nghiệm sự cố');
+    applyBtnState(resetBtn, canControlPower, 'Khôi phục trạng thái chuẩn phòng máy', 'Chỉ Quản trị viên và Quản lý phòng mới có quyền khôi phục');
   }
 
   // Nút thao tác nhanh trên Banner Dashboard (Tab 1)
@@ -4715,7 +4691,7 @@ window.applyRoleRestrictionsToUI = function() {
   }
 
   // Nút trong Tab 3 (Computers)
-  applyBtnState(document.getElementById('btn-add-computer'), canManageComputers, 'Thêm máy trạm mới', 'Chỉ Quản trị viên, Quản lý phòng và Kỹ thuật viên mới có quyền thêm máy tính');
+  applyBtnState(document.getElementById('btn-add-computer'), canManageComputers, 'Thêm máy trạm mới', 'Chỉ Quản trị viên và Quản lý phòng mới có quyền thêm máy tính');
   applyBtnState(document.getElementById('btn-batch-actions'), canManageComputers, 'Thao tác hàng loạt', 'Chức năng chỉ dành cho cán bộ quản lý thiết bị');
 
   // Nút trong Tab 4 (Schedule)
@@ -4757,7 +4733,7 @@ window.applyRoleRestrictionsToUI = function() {
       window.switchTab('schedule');
     }, 50);
   } else if (curTab === 'users' && !isAdmin) {
-    const homeTabs = { lab_manager: 'computers', teacher: 'schedule', lab_staff: 'maintenance', student: 'simulation' };
+    const homeTabs = { lab_manager: 'computers', teacher: 'schedule', student: 'simulation' };
     setTimeout(() => {
       window.switchTab(homeTabs[role] || 'dashboard');
     }, 50);
@@ -4775,7 +4751,7 @@ window.directTestRole = function(role, defaultTab = 'dashboard') {
       Swal.fire({
         icon: 'warning',
         title: 'Không có quyền chuyển đổi vai trò',
-        text: 'Chức năng dùng thử vai trò chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên, Kỹ thuật viên và Sinh viên không được phép tự ý chuyển đổi vai trò.',
+        text: 'Chức năng dùng thử vai trò chỉ dành riêng cho Quản trị viên (Admin). Các tài khoản Quản lý phòng máy, Giảng viên và Sinh viên không được phép tự ý chuyển đổi vai trò.',
         confirmButtonColor: '#2563eb'
       });
       return;
@@ -5058,7 +5034,6 @@ window.renderRbacMatrixTable = function() {
     admin: 'Quản trị viên luôn sở hữu toàn quyền 42/42 chức năng trên hệ thống (không thể vô hiệu hóa).',
     lab_manager: 'Toàn quyền cấu hình máy tính, thiết bị, duyệt ca học, bảo trì và xuất báo cáo.',
     teacher: 'Xem sơ đồ, theo dõi và đăng ký lịch thực hành, gửi phiếu báo hỏng máy tính.',
-    lab_staff: 'Điều khiển Wake-on-LAN, quản lý danh mục thiết bị, xử lý sự cố và bảo dưỡng kỹ thuật.',
     student: 'Chế độ tra cứu thông tin (Read-only): Xem sơ đồ phòng máy và lịch thực hành.'
   };
 
@@ -5066,7 +5041,6 @@ window.renderRbacMatrixTable = function() {
     admin: 'Admin (Quản trị hệ thống)',
     lab_manager: 'Quản lý phòng máy',
     teacher: 'Giảng viên (Teacher)',
-    lab_staff: 'Kỹ thuật viên (Lab Staff)',
     student: 'Sinh viên / Khách'
   };
 
@@ -5338,13 +5312,12 @@ window.getRoleDutySummary = function(role) {
     admin: '🛡️ Toàn quyền quản trị hệ thống, thiết bị & phân quyền',
     lab_manager: '🏢 Điều phối 4 phòng PM • Duyệt lịch • Bảo trì',
     teacher: '👨‍🏫 Dạy thực hành • Đăng ký lịch • Báo hỏng máy',
-    lab_staff: '🧑‍🔧 Bật/Tắt Wake-on-LAN • Bảo trì & Sửa chữa',
     student: '👨‍🎓 Tra cứu sơ đồ 2D • Xem lịch học (Chỉ đọc)'
   };
   return summaries[role] || 'Thành viên hệ thống';
 };
 
-// Cấu trúc định nghĩa chi tiết chức năng, quyền hạn & giới hạn an toàn của 5 vai trò
+// Cấu trúc định nghĩa chi tiết chức năng, quyền hạn & giới hạn an toàn của 4 vai trò
 window.ROLE_CAPABILITY_PROFILES = {
   admin: {
     title: 'Admin (Quản trị viên Hệ thống)',
@@ -5406,27 +5379,6 @@ window.ROLE_CAPABILITY_PROFILES = {
       'Không thể can thiệp phân quyền hoặc quản trị tài khoản'
     ],
     sampleAccount: 'Tài khoản Giảng viên thực hành'
-  },
-  lab_staff: {
-    title: 'Kỹ Thuật Viên Phòng Máy',
-    subtitle: 'Kỹ thuật viên phòng máy',
-    badge: 'bg-amber-100 text-amber-800 border-amber-300',
-    color: 'amber',
-    icon: 'fa-wrench',
-    desc: 'Chịu trách nhiệm trực tiếp về kỹ thuật phần cứng, mạng LAN, cài đặt phần mềm, điều khiển nguồn Wake-on-LAN và xử lý sự cố máy tính.',
-    allowed: [
-      'Kích hoạt Wake-on-LAN bật/tắt nguồn toàn bộ hoặc từng máy trạm tuần tự',
-      'Cập nhật trạng thái máy: Hoạt động, Cần kiểm tra, Đang hỏng, Bảo trì',
-      'Tiếp nhận phiếu sự cố, ghi nhận nguyên nhân, thay linh kiện & hoàn thành sửa',
-      'In nhãn mã QR kiểm kê dán lên từng case máy tính',
-      'Gửi cảnh báo kỹ thuật và đề xuất thay thế linh kiện nâng cấp máy'
-    ],
-    restricted: [
-      'Không có quyền xếp lịch dạy hoặc duyệt ca thực hành',
-      'Không có quyền tạo hoặc phân quyền tài khoản người dùng',
-      'Không có quyền xóa hoàn toàn máy trạm khỏi cơ sở dữ liệu'
-    ],
-    sampleAccount: 'Tài khoản Kỹ thuật viên phòng máy'
   },
   student: {
     title: 'Sinh Viên / Khách Tra Cứu',
@@ -5560,10 +5512,10 @@ window.showAllRolesCapabilityModal = function() {
         <div class="p-3 ${isAdmin ? 'bg-blue-50/80 border-blue-200 text-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600'} rounded-xl border leading-relaxed text-[11px]">
           ${isAdmin 
             ? 'Mỗi vai trò được thiết kế chuyên biệt theo quy trình vận hành giảng dạy thực tế tại 4 phòng máy A1-503, A1-504, A1-505, A1-506. Là Quản trị viên (Admin), bạn có thể bấm "Vào thử" để chuyển thử nghiệm tức thì.' 
-            : `Bảng đối chiếu thông tin phân quyền & năng lực của 5 loại tài khoản trên hệ thống phòng máy TNUS. Bạn đang đăng nhập với tài khoản <strong>${curUser ? curUser.name : ''}</strong> (${curUser ? curUser.roleName : ''}) - <span class="text-slate-500 font-semibold">Tài khoản này không được phép chuyển đổi sang vai trò khác.</span>`}
+            : `Bảng đối chiếu thông tin phân quyền & năng lực của 4 loại tài khoản trên hệ thống phòng máy TNUS. Bạn đang đăng nhập với tài khoản <strong>${curUser ? curUser.name : ''}</strong> (${curUser ? curUser.roleName : ''}) - <span class="text-slate-500 font-semibold">Tài khoản này không được phép chuyển đổi sang vai trò khác.</span>`}
         </div>
 
-        <!-- BẢNG SO SÁNH NHANH 5 VAI TRÒ -->
+        <!-- BẢNG SO SÁNH NHANH 4 VAI TRÒ -->
         <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-xs">
           <table class="w-full text-left text-[11px] border-collapse bg-white">
             <thead>
@@ -5572,7 +5524,6 @@ window.showAllRolesCapabilityModal = function() {
                 <th class="py-2.5 px-2 text-center text-blue-700 bg-blue-50/60">Admin</th>
                 <th class="py-2.5 px-2 text-center text-indigo-700 bg-indigo-50/60">QL Phòng</th>
                 <th class="py-2.5 px-2 text-center text-emerald-700 bg-emerald-50/60">Giảng Viên</th>
-                <th class="py-2.5 px-2 text-center text-amber-700 bg-amber-50/60">Kỹ Thuật</th>
                 <th class="py-2.5 px-2 text-center text-purple-700 bg-purple-50/60">Sinh Viên</th>
               </tr>
             </thead>
@@ -5583,14 +5534,12 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
               </tr>
               <tr class="bg-slate-50/50">
                 <td class="py-2 px-3 font-semibold">2. Bật / Tắt nguồn Wake-on-LAN máy trạm</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr>
@@ -5598,7 +5547,6 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr class="bg-slate-50/50">
@@ -5607,7 +5555,6 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
-                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr>
                 <td class="py-2 px-3 font-semibold">5. Duyệt đơn & Phê duyệt lịch phòng máy</td>
@@ -5615,11 +5562,9 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
-                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr class="bg-slate-50/50">
                 <td class="py-2 px-3 font-semibold">6. Gửi phiếu báo hỏng thiết bị trực tiếp</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
@@ -5630,13 +5575,11 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
-                <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
               <tr class="bg-slate-50/50">
                 <td class="py-2 px-3 font-semibold">8. Quản lý tài khoản cán bộ (Thêm/Sửa/Khóa/Reset)</td>
                 <td class="py-2 px-2 text-center text-emerald-600 font-bold">✓</td>
-                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
@@ -5647,13 +5590,12 @@ window.showAllRolesCapabilityModal = function() {
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
                 <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
-                <td class="py-2 px-2 text-center text-slate-300 font-bold">—</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- 5 THẺ VAI TRÒ NHANH KÈM NÚT DÙNG THỬ HOẶC TRẠNG THÁI -->
+        <!-- 4 THẺ VAI TRÒ NHANH KÈM NÚT DÙNG THỬ HOẶC TRẠNG THÁI -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
           <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/40 flex items-center justify-between">
             <div>
@@ -5697,21 +5639,7 @@ window.showAllRolesCapabilityModal = function() {
             `)}
           </div>
 
-          <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/40 flex items-center justify-between">
-            <div>
-              <div class="font-bold text-amber-900 text-xs">🧑‍🔧 Kỹ thuật viên phòng máy</div>
-              <div class="text-[10px] text-slate-600">Bật nguồn Wake-on-LAN, bảo trì, sửa chữa & in tem QR</div>
-            </div>
-            ${isAdmin ? `
-              <button onclick="Swal.close(); window.directTestRole('lab_staff');" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold transition shadow-2xs">Vào thử</button>
-            ` : (curRole === 'lab_staff' ? `
-              <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-circle-check"></i> Đang dùng</span>
-            ` : `
-              <span class="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium border border-slate-200 cursor-not-allowed flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Khóa chuyển</span>
-            `)}
-          </div>
-
-          <div class="p-3 rounded-xl border border-purple-200 bg-purple-50/40 flex items-center justify-between md:col-span-2">
+          <div class="p-3 rounded-xl border border-purple-200 bg-purple-50/40 flex items-center justify-between">
             <div>
               <div class="font-bold text-purple-900 text-xs">👨‍🎓 Sinh Viên / Khách (Read-only)</div>
               <div class="text-[10px] text-slate-600">Tra cứu sơ đồ 2D trực quan, cấu hình máy & thời khóa biểu tuần các phòng máy</div>
@@ -5808,7 +5736,7 @@ window.returnToGuestView = function(showToast = true) {
 
 /**
  * Mở hộp thoại Đăng nhập chuyên biệt cho từng vai trò tài khoản
- * (Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Quản trị viên, Sinh viên)
+ * (Quản lý phòng máy, Giảng viên, Quản trị viên, Sinh viên)
  * Giao diện tối giản, chuyên nghiệp, dễ nhìn, không rườm rà.
  * Khi đóng sẽ tự động chuyển về giao diện tài khoản khách (Sinh viên).
  */
@@ -5825,13 +5753,13 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
     'giangvien': 'teacher',
     'gv': 'teacher',
     'toannv': 'teacher',
-    'staff': 'lab_staff',
-    'lab_staff': 'lab_staff',
-    'technician': 'lab_staff',
-    'ktv': 'lab_staff',
-    'ktvlab': 'lab_staff',
-    'kythuat': 'lab_staff',
-    'kythuatvien': 'lab_staff',
+    'staff': 'lab_manager',
+    'lab_staff': 'lab_manager',
+    'technician': 'lab_manager',
+    'ktv': 'lab_manager',
+    'ktvlab': 'lab_manager',
+    'kythuat': 'lab_manager',
+    'kythuatvien': 'lab_manager',
     'admin': 'admin',
     'quantri': 'admin',
     'quantrivien': 'admin',
@@ -5862,15 +5790,6 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
       iconClass: 'fa-chalkboard-user',
       destTab: targetTab || 'schedule',
       destTabLabel: 'Lịch Thực Hành Phòng Máy'
-    },
-    lab_staff: {
-      roleTitle: 'KỸ THUẬT VIÊN LAB',
-      roleBadge: 'Bảo trì & WOL',
-      themeColor: '#d97706',
-      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
-      iconClass: 'fa-wrench',
-      destTab: targetTab || 'maintenance',
-      destTabLabel: 'Bảo Trì & Xử Lý Sự Cố'
     },
     admin: {
       roleTitle: 'QUẢN TRỊ VIÊN HỆ THỐNG',
@@ -6214,7 +6133,7 @@ window.quickFillLogin = function(username, password) {
 };
 
 /**
- * Xử lý xác thực đăng nhập tài khoản (Quản lý phòng máy, Giảng viên, Kỹ thuật viên, Admin, Sinh viên)
+ * Xử lý xác thực đăng nhập tài khoản (Quản lý phòng máy, Giảng viên, Admin, Sinh viên)
  */
 window.handleLoginSubmit = function(username, password, explicitTargetTab = null) {
   const term = username.toLowerCase().trim();
@@ -6234,15 +6153,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     'giangvien': 'toannv',
     'teacher': 'toannv',
     'gv': 'toannv',
-    
-    // Kỹ thuật viên
-    'ktvlab': 'ktvlab',
-    'ktv': 'ktvlab',
-    'kythuat': 'ktvlab',
-    'kythuatvien': 'ktvlab',
-    'lab_staff': 'ktvlab',
-    'technician': 'ktvlab',
-    'staff': 'ktvlab',
     
     // Sinh viên / Khách
     'student': 'student',
@@ -6376,7 +6286,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
   const homeTabMap = {
     lab_manager: 'computers',   // Quản lý phòng máy -> Quản lý Thiết bị (104 máy)
     teacher: 'schedule',        // Giảng viên -> Lịch thực hành phòng máy
-    lab_staff: 'maintenance',   // Kỹ thuật viên -> Bảo trì & Xử lý sự cố
     admin: 'dashboard',         // Quản trị viên -> Dashboard tổng quan
     student: 'simulation'       // Sinh viên -> Sơ đồ mô phỏng 2D
   };
@@ -6410,19 +6319,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
         'Mở ca thực hành lớp học và xác nhận trả phòng',
         'Phát bài giảng & đề thi trực tuyến (UDP Multicast)',
         'Khóa / Mở màn hình lớp học tập trung khi giảng bài',
-        'Gửi phiếu báo hỏng máy tính trực tiếp cho kỹ thuật'
-      ]
-    },
-    lab_staff: {
-      badge: 'Kỹ thuật viên phòng máy',
-      badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
-      tabName: 'Bảo trì & Sự cố',
-      powers: [
-        'Tiếp nhận phiếu hỏng và xử lý sự cố 104 máy trạm',
-        'Bật nguồn Wake-on-LAN khởi động đồng loạt máy từ xa',
-        'Cập nhật tình trạng linh kiện (RAM, SSD, Nguồn, Màn hình)',
-        'In tem mã QR tra cứu kỹ thuật và bảo dưỡng định kỳ',
-        'Diễn tập sự cố và khôi phục trạng thái chuẩn phòng máy'
+        'Gửi phiếu báo hỏng máy tính trực tiếp cho Quản lý'
       ]
     },
     admin: {
@@ -6510,7 +6407,7 @@ window.logoutUser = function() {
     return;
   }
 
-  // 2. Nếu đang đăng nhập tài khoản cán bộ (Admin, Quản lý phòng máy, Giảng viên, Kỹ thuật viên):
+  // 2. Nếu đang đăng nhập tài khoản cán bộ (Admin, Quản lý phòng máy, Giảng viên):
   // Xác nhận đăng xuất và tự động chuyển về giao diện đăng nhập tài khoản
   Swal.fire({
     title: 'Xác nhận đăng xuất?',
@@ -6736,7 +6633,7 @@ window.openStudentReportFaultModal = function() {
         </div>
         <div>
           <div class="text-sm font-extrabold text-slate-900 uppercase">Báo Hỏng Máy Tính</div>
-          <div class="text-[11px] text-slate-500 font-medium">Gửi phiếu báo sự cố đến Kỹ thuật viên</div>
+          <div class="text-[11px] text-slate-500 font-medium">Gửi phiếu báo sự cố đến Cán bộ Quản lý phòng máy</div>
         </div>
       </div>
     `,
@@ -6755,7 +6652,7 @@ window.openStudentReportFaultModal = function() {
         </div>
         <div class="p-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-[11px] flex items-center gap-1.5">
           <i class="fa-solid fa-circle-info text-blue-600 shrink-0"></i>
-          <span>Kỹ thuật viên sẽ tiếp nhận và tiến hành xử lý kỹ thuật.</span>
+          <span>Cán bộ Quản lý phòng máy sẽ tiếp nhận và tiến hành xử lý kỹ thuật.</span>
         </div>
       </div>
     `,
@@ -6803,7 +6700,7 @@ window.openStudentReportFaultModal = function() {
       Swal.fire({
         icon: 'success',
         title: 'Đã gửi báo hỏng thành công',
-        text: `Mã phiếu ${ticketId} đã được chuyển đến Kỹ thuật viên phòng máy.`,
+        text: `Mã phiếu ${ticketId} đã được chuyển đến Cán bộ Quản lý phòng máy.`,
         confirmButtonColor: '#2563eb'
       });
     }

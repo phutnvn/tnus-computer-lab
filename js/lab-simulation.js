@@ -239,7 +239,7 @@ class LabSimulation {
               <span>Tìm máy trống</span>
             </button>
 
-            <button id="btn-student-report-fault" onclick="window.openStudentReportFaultModal && window.openStudentReportFaultModal()" title="Báo sự cố hỏng hóc máy tính tại phòng cho Kỹ thuật viên" class="hidden px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs">
+            <button id="btn-student-report-fault" onclick="window.openStudentReportFaultModal && window.openStudentReportFaultModal()" title="Báo sự cố hỏng hóc máy tính tại phòng cho Cán bộ Quản lý" class="hidden px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs">
               <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
               <span>Báo hỏng máy</span>
             </button>
