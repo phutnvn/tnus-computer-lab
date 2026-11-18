@@ -1393,9 +1393,9 @@
                   <option value="locked">Đã khóa</option>
                 </select>
 
-                <!-- Action Buttons -->
+                <!-- Action Buttons: Thêm tài khoản, Xuất Excel, Nhập Excel -->
                 <button id="btn-add-user" onclick="window.showAddUserModal()" 
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5">
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5" title="Thêm tài khoản người dùng mới">
                   <i class="fa-solid fa-user-plus"></i>
                   <span>Thêm tài khoản</span>
                 </button>
@@ -1406,12 +1406,12 @@
                   <span class="hidden sm:inline">Xuất Excel</span>
                 </button>
 
-                <button onclick="document.getElementById('input-import-users').click()" 
-                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5" title="Nhập danh sách tài khoản từ Excel">
+                <button id="btn-import-users" onclick="window.showImportUsersModal()" 
+                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5" title="Nhập danh sách tài khoản từ file Excel">
                   <i class="fa-solid fa-file-arrow-up"></i>
                   <span class="hidden sm:inline">Nhập Excel</span>
                 </button>
-                <input type="file" id="input-import-users" class="hidden" accept=".xlsx, .xls" onchange="window.handleUserExcelImport(event)">
+                <input type="file" id="input-import-users" class="hidden" accept=".xlsx, .xls, .csv" onchange="window.handleUserExcelImport(event)">
 
                 <button onclick="window.resetUsersToDefault()" 
                   class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Khôi phục danh sách tài khoản gốc">
@@ -15585,6 +15585,38 @@ window.showAddUserModal = function() {
     cancelButtonText: 'Hủy',
     confirmButtonColor: '#2563eb',
     width: '580px',
+    didOpen: () => {
+      const usernameInput = document.getElementById('add-user-username');
+      const emailInput = document.getElementById('add-user-email');
+      const roleSelect = document.getElementById('add-user-role');
+      const avatarSelect = document.getElementById('add-user-avatar');
+
+      if (usernameInput && emailInput) {
+        usernameInput.addEventListener('input', () => {
+          const u = usernameInput.value.trim().toLowerCase();
+          if (!emailInput.dataset.customized) {
+            emailInput.value = u ? `${u}@tnus.edu.vn` : '';
+          }
+        });
+        emailInput.addEventListener('input', () => {
+          emailInput.dataset.customized = 'true';
+        });
+      }
+
+      if (roleSelect && avatarSelect) {
+        roleSelect.addEventListener('change', () => {
+          const r = roleSelect.value;
+          const avatarMap = {
+            admin: '👨‍💼',
+            lab_manager: '🏢',
+            teacher: '👨‍🏫',
+            lab_staff: '🧑‍🔧',
+            student: '👨‍🎓'
+          };
+          if (avatarMap[r]) avatarSelect.value = avatarMap[r];
+        });
+      }
+    },
     preConfirm: () => {
       const username = document.getElementById('add-user-username').value.trim().toLowerCase();
       const name = document.getElementById('add-user-name').value.trim();
@@ -15615,6 +15647,7 @@ window.showAddUserModal = function() {
       const rawPass = document.getElementById('add-user-password')?.value || 'Tnus@2026';
       const roleObj = (window.appState.roles || SYSTEM_ROLES).find(r => r.id === role);
       const roleName = roleObj ? roleObj.name : role;
+      const salt = 'TNUS_KHOA_TOAN_TIN_2026';
 
       return {
         id: document.getElementById('add-user-id').value,
@@ -15627,7 +15660,8 @@ window.showAddUserModal = function() {
         email: email || `${username}@tnus.edu.vn`,
         phone: phone || '',
         status,
-        passwordHash: typeof hashPassword === 'function' ? hashPassword(rawPass) : 'hashed_' + rawPass,
+        passwordHash: typeof hashPassword === 'function' ? hashPassword(rawPass, salt) : 'hashed_' + rawPass,
+        salt: salt,
         failedLogins: 0,
         createdAt: new Date().toISOString().split('T')[0],
         lastLogin: 'Chưa đăng nhập'
@@ -16050,7 +16084,9 @@ window.showUserProfileModal = function() {
   });
 };
 
-// Xuất danh sách tài khoản ra Excel
+// =========================================================================
+// XUẤT DANH SÁCH TÀI KHOẢN RA EXCEL (CHỈ DÀNH CHO ADMIN)
+// =========================================================================
 window.exportUsersToExcel = function() {
   if (typeof XLSX === 'undefined') {
     Swal.fire('Lỗi', 'Thư viện XLSX chưa tải xong. Vui lòng thử lại sau giây lát.', 'error');
@@ -16058,37 +16094,257 @@ window.exportUsersToExcel = function() {
   }
 
   const users = window.appState.users || [];
+  if (users.length === 0) {
+    Swal.fire('Thông báo', 'Không có dữ liệu tài khoản để xuất file Excel.', 'info');
+    return;
+  }
+
+  const roleNameMap = {
+    admin: 'Quản trị viên (Admin)',
+    lab_manager: 'Quản lý phòng máy',
+    teacher: 'Giảng viên',
+    lab_staff: 'Kỹ thuật viên',
+    student: 'Sinh viên / Khách'
+  };
+
   const exportData = users.map((u, idx) => ({
     'STT': idx + 1,
     'Mã tài khoản': u.id,
     'Tên đăng nhập': u.username,
     'Họ và tên': u.name,
-    'Vai trò hệ thống': u.roleName || u.role,
+    'Vai trò hệ thống': u.roleName || roleNameMap[u.role] || u.role,
     'Mã vai trò (RBAC)': u.role,
     'Đơn vị công tác': u.department || 'Khoa Toán - Tin, TNUS',
-    'Email': u.email || '',
+    'Email': u.email || `${u.username}@tnus.edu.vn`,
     'Số điện thoại': u.phone || '',
     'Trạng thái': (u.status || 'active') === 'active' ? 'Đang hoạt động' : 'Đã khóa',
     'Ngày cấp tài khoản': u.createdAt || '2026-10-15',
-    'Lần đăng nhập cuối': u.lastLogin || '2026-11-14'
+    'Lần đăng nhập cuối': u.lastLogin || 'Chưa đăng nhập'
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+  // Định dạng độ rộng cột tối ưu, chống tràn chữ
+  worksheet['!cols'] = [
+    { wch: 6 },  // STT
+    { wch: 14 }, // Mã tài khoản
+    { wch: 18 }, // Tên đăng nhập
+    { wch: 28 }, // Họ và tên
+    { wch: 24 }, // Vai trò hệ thống
+    { wch: 18 }, // Mã vai trò (RBAC)
+    { wch: 32 }, // Đơn vị công tác
+    { wch: 28 }, // Email
+    { wch: 16 }, // Số điện thoại
+    { wch: 16 }, // Trạng thái
+    { wch: 18 }, // Ngày cấp
+    { wch: 22 }  // Lần đăng nhập cuối
+  ];
+
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "TaiKhoan_PhanQuyen_TNUS");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSach_TaiKhoan_TNUS");
+
+  // Sheet 2: Thông tin hệ thống & Cán bộ phụ trách
+  const metaData = [
+    { 'Thuộc tính': 'Đơn vị quản lý', 'Nội dung': 'KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)' },
+    { 'Thuộc tính': 'Hệ thống vận hành', 'Nội dung': 'Hệ thống Mô phỏng & Quản trị Phòng máy tính TNUS (Tầng 5, Nhà A1)' },
+    { 'Thuộc tính': 'Cán bộ phụ trách', 'Nội dung': 'ThS. Trịnh Minh Phú (0975.090.666 - phutm@tnus.edu.vn)' },
+    { 'Thuộc tính': 'Tổng số tài khoản', 'Nội dung': `${users.length} tài khoản` },
+    { 'Thuộc tính': 'Mô hình phân quyền', 'Nội dung': 'RBAC Enterprise 3.0 (5 vai trò: Admin, QL Phòng, Giảng viên, Kỹ thuật viên, Sinh viên)' },
+    { 'Thuộc tính': 'Thời gian kết xuất', 'Nội dung': new Date().toLocaleString('vi-VN') }
+  ];
+  const metaSheet = XLSX.utils.json_to_sheet(metaData);
+  metaSheet['!cols'] = [{ wch: 24 }, { wch: 65 }];
+  XLSX.utils.book_append_sheet(workbook, metaSheet, "ThongTin_DonVi");
 
   const fileName = `TNUS_DanhSach_TaiKhoan_RBAC_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(workbook, fileName);
 
-  window.logUserActivity('Xuất Excel', `Xuất danh sách ${users.length} tài khoản người dùng ra file Excel`);
+  window.logUserActivity('Xuất Excel', `Xuất danh sách ${users.length} tài khoản người dùng ra file ${fileName}`);
+
+  Swal.fire({
+    icon: 'success',
+    title: 'Xuất Excel thành công!',
+    html: `Đã kết xuất danh sách <strong>${users.length}</strong> tài khoản ra tệp: <br><code class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded mt-1 inline-block">${fileName}</code>`,
+    timer: 2000,
+    showConfirmButton: false
+  });
 };
 
-// Nhập danh sách tài khoản từ Excel
+// =========================================================================
+// TẢI FILE MẪU EXCEL CHUẨN ĐỂ NHẬP TÀI KHOẢN
+// =========================================================================
+window.downloadUserExcelTemplate = function() {
+  if (typeof XLSX === 'undefined') {
+    Swal.fire('Lỗi', 'Thư viện XLSX chưa tải xong.', 'error');
+    return;
+  }
+
+  const sampleRows = [
+    {
+      'STT': 1,
+      'Mã tài khoản': 'USR-01',
+      'Tên đăng nhập': 'admin',
+      'Họ và tên': 'ThS. Trịnh Minh Phú',
+      'Mã vai trò (RBAC)': 'admin',
+      'Vai trò hệ thống': 'Quản trị viên',
+      'Đơn vị công tác': 'Khoa Toán - Tin, TNUS',
+      'Email': 'phutm@tnus.edu.vn',
+      'Số điện thoại': '0975.090.666',
+      'Trạng thái': 'Đang hoạt động'
+    },
+    {
+      'STT': 2,
+      'Mã tài khoản': 'USR-02',
+      'Tên đăng nhập': 'qlphongmay',
+      'Họ và tên': 'Nguyễn Văn Quản Lý',
+      'Mã vai trò (RBAC)': 'lab_manager',
+      'Vai trò hệ thống': 'Quản lý phòng máy',
+      'Đơn vị công tác': 'Tổ Quản trị Phòng máy - Khoa Toán - Tin',
+      'Email': 'qlpm@tnus.edu.vn',
+      'Số điện thoại': '0978.889.991',
+      'Trạng thái': 'Đang hoạt động'
+    },
+    {
+      'STT': 3,
+      'Mã tài khoản': 'USR-03',
+      'Tên đăng nhập': 'toannv',
+      'Họ và tên': 'TS. Nguyễn Văn Toán',
+      'Mã vai trò (RBAC)': 'teacher',
+      'Vai trò hệ thống': 'Giảng viên',
+      'Đơn vị công tác': 'Bộ môn Khoa học Máy tính - TNUS',
+      'Email': 'toannv@tnus.edu.vn',
+      'Số điện thoại': '0912.345.678',
+      'Trạng thái': 'Đang hoạt động'
+    },
+    {
+      'STT': 4,
+      'Mã tài khoản': 'USR-04',
+      'Tên đăng nhập': 'ktvlab',
+      'Họ và tên': 'Lê Văn Kỹ Thuật',
+      'Mã vai trò (RBAC)': 'lab_staff',
+      'Vai trò hệ thống': 'Kỹ thuật viên',
+      'Đơn vị công tác': 'Tổ Kỹ thuật - Khoa Toán - Tin',
+      'Email': 'ktvlab@tnus.edu.vn',
+      'Số điện thoại': '0988.776.655',
+      'Trạng thái': 'Đang hoạt động'
+    },
+    {
+      'STT': 5,
+      'Mã tài khoản': 'USR-05',
+      'Tên đăng nhập': 'sinhvien',
+      'Họ và tên': 'Trần Thị Sinh Viên',
+      'Mã vai trò (RBAC)': 'student',
+      'Vai trò hệ thống': 'Sinh viên / Khách',
+      'Đơn vị công tác': 'Khoa Toán - Tin, TNUS',
+      'Email': 'sinhvien@tnus.edu.vn',
+      'Số điện thoại': '0208.3855.564',
+      'Trạng thái': 'Đang hoạt động'
+    }
+  ];
+
+  const worksheet = XLSX.utils.json_to_sheet(sampleRows);
+  worksheet['!cols'] = [
+    { wch: 6 },
+    { wch: 14 },
+    { wch: 18 },
+    { wch: 26 },
+    { wch: 18 },
+    { wch: 22 },
+    { wch: 32 },
+    { wch: 26 },
+    { wch: 16 },
+    { wch: 16 }
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Mau_TaiKhoan_TNUS");
+
+  const fileName = 'TNUS_Mau_Nhap_TaiKhoan_RBAC.xlsx';
+  XLSX.writeFile(workbook, fileName);
+
+  Swal.fire({
+    icon: 'success',
+    title: 'Đã tải tệp mẫu Excel!',
+    html: `Tệp <strong>${fileName}</strong> đã được tải về máy của bạn.<br><span class="text-xs text-slate-500">Mở tệp, điền danh sách tài khoản theo các cột mẫu và nạp lại vào hệ thống.</span>`,
+    confirmButtonColor: '#2563eb'
+  });
+};
+
+// =========================================================================
+// HỘP THOẠI NHẬP DANH SÁCH TÀI KHOẢN TỪ EXCEL
+// =========================================================================
+window.showImportUsersModal = function() {
+  if (!window.checkPermission('manage_users', 'Nhập danh sách tài khoản từ Excel')) return;
+
+  Swal.fire({
+    title: `
+      <div class="flex items-center space-x-2 text-left pb-2 border-b border-slate-200">
+        <div class="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center text-sm shadow-xs">
+          <i class="fa-solid fa-file-excel"></i>
+        </div>
+        <div>
+          <div class="text-base font-bold text-slate-900 leading-tight">Nhập Danh Sách Tài Khoản từ Excel</div>
+          <div class="text-[11px] text-slate-500 font-normal">Khoa Toán - Tin • Trường Đại học Khoa học (TNUS)</div>
+        </div>
+      </div>
+    `,
+    html: `
+      <div class="text-left space-y-3.5 text-xs pt-2">
+        <div class="p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2">
+          <div class="font-bold text-blue-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-blue-600"></i>
+            <span>Hướng dẫn quy chuẩn tệp Excel:</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed text-[11px]">
+            Hệ thống nhận dạng file <code>.xlsx</code> hoặc <code>.xls</code> với các cột: <strong>Tên đăng nhập</strong> (bắt buộc), <strong>Họ và tên</strong>, <strong>Mã vai trò (RBAC)</strong>, <strong>Đơn vị công tác</strong>, <strong>Email</strong>, <strong>Số điện thoại</strong>.
+          </p>
+          <div class="pt-1">
+            <button onclick="window.downloadUserExcelTemplate()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+              <i class="fa-solid fa-download"></i>
+              <span>Tải file Excel mẫu chuẩn TNUS (.xlsx)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-5 text-center transition bg-slate-50 hover:bg-blue-50/30 cursor-pointer" onclick="document.getElementById('input-import-users-modal').click()">
+          <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-600 mb-2"></i>
+          <div class="font-bold text-slate-800 text-sm">Bấm vào đây để chọn tệp Excel từ máy tính</div>
+          <div class="text-slate-500 text-[11px] mt-0.5">Hỗ trợ định dạng .xlsx, .xls (Tối đa 5MB)</div>
+          <input type="file" id="input-import-users-modal" class="hidden" accept=".xlsx, .xls, .csv" onchange="window.handleUserExcelImportFromModal(event)">
+        </div>
+
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-600 space-y-1">
+          <div class="font-bold text-slate-700">Quy tắc nạp dữ liệu:</div>
+          <div>• <strong>5 Vai trò hợp lệ:</strong> <code>admin</code> (Quản trị), <code>lab_manager</code> (Quản lý PM), <code>teacher</code> (Giảng viên), <code>lab_staff</code> (Kỹ thuật), <code>student</code> (Sinh viên).</div>
+          <div>• Tài khoản đã tồn tại (trùng username) sẽ được <strong>tự động cập nhật</strong> thông tin mới.</div>
+          <div>• Tài khoản mới sẽ được cấp mật khẩu mặc định: <strong class="text-blue-700 font-mono">Tnus@2026</strong>.</div>
+        </div>
+      </div>
+    `,
+    showConfirmButton: false,
+    showCloseButton: true,
+    width: '560px'
+  });
+};
+
+window.handleUserExcelImportFromModal = function(event) {
+  Swal.close();
+  window.handleUserExcelImport(event);
+};
+
+// =========================================================================
+// XỬ LÝ NẠP DỮ LIỆU TÀI KHOẢN TỪ FILE EXCEL
+// =========================================================================
 window.handleUserExcelImport = function(event) {
   if (!window.checkPermission('manage_users', 'Nhập danh sách tài khoản từ Excel')) return;
 
   const file = event.target.files[0];
   if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    Swal.fire('Lỗi', 'Thư viện SheetJS XLSX chưa được tải.', 'error');
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -16106,41 +16362,74 @@ window.handleUserExcelImport = function(event) {
 
       let addedCount = 0;
       let updatedCount = 0;
+      const roleNames = {
+        admin: 'Quản trị viên',
+        lab_manager: 'Quản lý phòng máy',
+        teacher: 'Giảng viên',
+        lab_staff: 'Kỹ thuật viên',
+        student: 'Sinh viên'
+      };
+
+      const avatarMap = {
+        admin: '👨‍💼',
+        lab_manager: '🏢',
+        teacher: '👨‍🏫',
+        lab_staff: '🧑‍🔧',
+        student: '👨‍🎓'
+      };
+
+      // Tìm số USR lớn nhất hiện tại để sinh mã tự động liên tục
+      let maxIdNum = 0;
+      (window.appState.users || []).forEach(u => {
+        const match = (u.id || '').match(/USR-(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxIdNum) maxIdNum = num;
+        }
+      });
 
       rows.forEach(r => {
-        const username = (r['Tên đăng nhập'] || r['username'] || '').toString().trim().toLowerCase();
+        const username = (r['Tên đăng nhập'] || r['username'] || r['Tên tài khoản'] || '').toString().trim().toLowerCase();
         if (!username) return;
 
-        const roleRaw = (r['Mã vai trò (RBAC)'] || r['role'] || r['Vai trò hệ thống'] || '').toString().toLowerCase();
+        const roleRaw = (r['Mã vai trò (RBAC)'] || r['role'] || r['Vai trò hệ thống'] || r['Vai trò'] || '').toString().toLowerCase();
         let role = 'student';
         if (roleRaw.includes('admin') || roleRaw.includes('quản trị')) role = 'admin';
-        else if (roleRaw.includes('teach') || roleRaw.includes('giảng viên')) role = 'teacher';
-        else if (roleRaw.includes('staff') || roleRaw.includes('kỹ thuật')) role = 'lab_staff';
-
-        const roleNames = { admin: 'Quản trị viên', teacher: 'Giảng viên', lab_staff: 'Kỹ thuật viên', student: 'Sinh viên' };
+        else if (roleRaw.includes('manager') || roleRaw.includes('quản lý') || roleRaw.includes('lab_manager')) role = 'lab_manager';
+        else if (roleRaw.includes('teach') || roleRaw.includes('giảng viên') || roleRaw.includes('gv')) role = 'teacher';
+        else if (roleRaw.includes('staff') || roleRaw.includes('kỹ thuật') || roleRaw.includes('ktv')) role = 'lab_staff';
 
         const existing = window.appState.users.find(u => u.username.toLowerCase() === username);
         if (existing) {
-          existing.name = r['Họ và tên'] || r['name'] || existing.name;
+          existing.name = (r['Họ và tên'] || r['name'] || r['Họ tên'] || existing.name).toString().trim();
           existing.role = role;
-          existing.roleName = roleNames[role];
-          existing.department = r['Đơn vị công tác'] || r['department'] || existing.department;
-          existing.email = r['Email'] || r['email'] || existing.email;
-          existing.phone = r['Số điện thoại'] || r['phone'] || existing.phone;
+          existing.roleName = roleNames[role] || role;
+          existing.department = (r['Đơn vị công tác'] || r['department'] || r['Bộ môn'] || existing.department).toString().trim();
+          existing.email = (r['Email'] || r['email'] || existing.email).toString().trim();
+          existing.phone = (r['Số điện thoại'] || r['phone'] || r['SĐT'] || existing.phone).toString().trim();
+          const statusRaw = (r['Trạng thái'] || r['status'] || '').toString().toLowerCase();
+          if (statusRaw.includes('khóa') || statusRaw.includes('locked')) existing.status = 'locked';
+          else if (statusRaw.includes('hoạt động') || statusRaw.includes('active')) existing.status = 'active';
           updatedCount++;
         } else {
-          const nextId = 'USR-' + (window.appState.users.length + 1).toString().padStart(2, '0');
+          maxIdNum++;
+          const nextId = 'USR-' + maxIdNum.toString().padStart(2, '0');
+          const defaultPass = 'Tnus@2026';
+          const salt = 'TNUS_KHOA_TOAN_TIN_2026';
           window.appState.users.push({
             id: r['Mã tài khoản'] || nextId,
             username: username,
-            name: r['Họ và tên'] || r['name'] || username,
+            name: (r['Họ và tên'] || r['name'] || r['Họ tên'] || username).toString().trim(),
             role: role,
-            roleName: roleNames[role],
-            department: r['Đơn vị công tác'] || 'Khoa Toán - Tin, TNUS',
-            avatar: role === 'admin' ? '👨‍💼' : (role === 'teacher' ? '👨‍🏫' : (role === 'lab_staff' ? '🧑‍🔧' : '👨‍🎓')),
-            email: r['Email'] || `${username}@tnus.edu.vn`,
-            phone: r['Số điện thoại'] || '',
-            status: 'active',
+            roleName: roleNames[role] || role,
+            department: (r['Đơn vị công tác'] || r['department'] || r['Bộ môn'] || 'Khoa Toán - Tin, TNUS').toString().trim(),
+            avatar: avatarMap[role] || '👤',
+            email: (r['Email'] || r['email'] || `${username}@tnus.edu.vn`).toString().trim(),
+            phone: (r['Số điện thoại'] || r['phone'] || r['SĐT'] || '').toString().trim(),
+            status: ((r['Trạng thái'] || r['status'] || '').toString().toLowerCase().includes('khóa') || (r['Trạng thái'] || '').toString().toLowerCase().includes('locked')) ? 'locked' : 'active',
+            passwordHash: typeof hashPassword === 'function' ? hashPassword(defaultPass, salt) : 'hashed_' + defaultPass,
+            salt: salt,
+            failedLogins: 0,
             createdAt: new Date().toISOString().split('T')[0],
             lastLogin: 'Chưa đăng nhập'
           });
@@ -16156,7 +16445,17 @@ window.handleUserExcelImport = function(event) {
       Swal.fire({
         icon: 'success',
         title: 'Nhập Excel thành công!',
-        html: `Đã nạp dữ liệu: <strong>${addedCount}</strong> tài khoản mới, cập nhật <strong>${updatedCount}</strong> tài khoản có sẵn.`,
+        html: `
+          <div class="text-left text-xs space-y-2">
+            <p>Đã xử lý xong tệp Excel dữ liệu tài khoản:</p>
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+              <div>• Thêm mới thành công: <strong class="text-emerald-600">${addedCount}</strong> tài khoản</div>
+              <div>• Cập nhật thông tin: <strong class="text-blue-600">${updatedCount}</strong> tài khoản</div>
+              <div>• Tổng số tài khoản hiện có: <strong>${window.appState.users.length}</strong> tài khoản</div>
+            </div>
+            <p class="text-slate-500 text-[11px]">Tất cả tài khoản mới đều có thể đăng nhập ngay với mật khẩu mặc định <code>Tnus@2026</code>.</p>
+          </div>
+        `,
         confirmButtonColor: '#2563eb'
       });
     } catch (err) {

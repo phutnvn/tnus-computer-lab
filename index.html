@@ -1016,9 +1016,9 @@
                   <option value="locked">Đã khóa</option>
                 </select>
 
-                <!-- Action Buttons -->
+                <!-- Action Buttons: Thêm tài khoản, Xuất Excel, Nhập Excel -->
                 <button id="btn-add-user" onclick="window.showAddUserModal()" 
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5">
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5" title="Thêm tài khoản người dùng mới">
                   <i class="fa-solid fa-user-plus"></i>
                   <span>Thêm tài khoản</span>
                 </button>
@@ -1029,12 +1029,12 @@
                   <span class="hidden sm:inline">Xuất Excel</span>
                 </button>
 
-                <button onclick="document.getElementById('input-import-users').click()" 
-                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5" title="Nhập danh sách tài khoản từ Excel">
+                <button id="btn-import-users" onclick="window.showImportUsersModal()" 
+                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center space-x-1.5" title="Nhập danh sách tài khoản từ file Excel">
                   <i class="fa-solid fa-file-arrow-up"></i>
                   <span class="hidden sm:inline">Nhập Excel</span>
                 </button>
-                <input type="file" id="input-import-users" class="hidden" accept=".xlsx, .xls" onchange="window.handleUserExcelImport(event)">
+                <input type="file" id="input-import-users" class="hidden" accept=".xlsx, .xls, .csv" onchange="window.handleUserExcelImport(event)">
 
                 <button onclick="window.resetUsersToDefault()" 
                   class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Khôi phục danh sách tài khoản gốc">
