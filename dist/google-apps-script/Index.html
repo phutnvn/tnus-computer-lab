@@ -583,7 +583,7 @@
           <!-- Nút Đăng xuất -->
           <button id="btn-header-logout" onclick="window.logoutUser()" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0" title="Đăng xuất khỏi phiên làm việc">
             <i class="fa-solid fa-power-off"></i>
-            <span class="hidden xl:inline">Đăng xuất</span>
+            <span class="inline">Đăng xuất</span>
           </button>
 
           <!-- User Badge -->
@@ -18695,6 +18695,18 @@ window.applyRoleRestrictionsToUI = function() {
     }
   }
 
+  const headerLogoutBtn = document.getElementById('btn-header-logout');
+  if (headerLogoutBtn) {
+    headerLogoutBtn.classList.remove('hidden');
+    if (isStudent) {
+      headerLogoutBtn.title = 'Đăng xuất khỏi chế độ Khách và mở giao diện Đăng nhập tài khoản';
+      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i><span class="inline">Đăng xuất</span>';
+    } else {
+      headerLogoutBtn.title = 'Đăng xuất khỏi phiên làm việc';
+      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i><span class="hidden sm:inline">Đăng xuất</span>';
+    }
+  }
+
   // 1. BANNER ĐÃ ĐƯỢC ẨN HOÀN TOÀN ĐỂ GIAO DIỆN TỐI GIẢN, THOÁNG ĐÃNG
   if (bannerContainer) {
     bannerContainer.innerHTML = '';
@@ -20657,23 +20669,43 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
 
 /**
  * Đăng xuất khỏi hệ thống
+ * Tại giao diện Khách / Sinh viên khi ấn nút đăng xuất sẽ trở về giao diện đăng nhập tài khoản
  */
 window.logoutUser = function() {
   const current = window.appState.currentUser;
+  const role = window.normalizeRole ? window.normalizeRole(current?.role) : current?.role;
+  const isGuestOrStudent = !current || role === 'student';
+
+  // 1. Nếu đang ở giao diện Khách / Sinh viên:
+  // Ấn nút Đăng xuất sẽ ngay lập tức trở về giao diện Đăng nhập tài khoản
+  if (isGuestOrStudent) {
+    window.logUserActivity('Chuyển sang Đăng nhập', 'Khách / Sinh viên ấn nút Đăng xuất để mở giao diện đăng nhập tài khoản', 'users', 'INFO');
+    if (typeof window.openLoginModal === 'function') {
+      window.openLoginModal();
+    }
+    return;
+  }
+
+  // 2. Nếu đang đăng nhập tài khoản cán bộ (Admin, Quản lý phòng máy, Giảng viên, Kỹ thuật viên):
+  // Xác nhận đăng xuất và tự động chuyển về giao diện đăng nhập tài khoản
   Swal.fire({
     title: 'Xác nhận đăng xuất?',
-    html: `Bạn có chắc chắn muốn kết thúc phiên làm việc của <strong>${current ? current.name : 'người dùng'}</strong>?`,
+    html: `Bạn có chắc chắn muốn kết thúc phiên làm việc của <strong>${current.name}</strong> (${current.roleName || role})?`,
     icon: 'question',
     showCancelButton: true,
     confirmButtonText: '<i class="fa-solid fa-power-off mr-1"></i>Đăng xuất',
     cancelButtonText: 'Ở lại',
-    confirmButtonColor: '#e11d48'
+    confirmButtonColor: '#e11d48',
+    width: '420px',
+    padding: '1.25rem'
   }).then(res => {
     if (res.isConfirmed) {
-      window.logUserActivity('Đăng xuất', `Kết thúc phiên làm việc của ${current ? current.name : ''}`, 'users', 'SUCCESS');
+      window.logUserActivity('Đăng xuất', `Kết thúc phiên làm việc của ${current.name}`, 'users', 'SUCCESS');
       
       // Chuyển về tài khoản Sinh viên / Khách mặc định
-      const guest = window.appState.users.find(u => u.role === 'student') || window.appState.users[window.appState.users.length - 1];
+      const guest = (typeof window.getRoleUser === 'function')
+        ? window.getRoleUser('student')
+        : (window.STANDARD_ROLE_ACCOUNTS?.student || { id: 'USR-05', username: 'student', name: 'Sinh viên / Khách tra cứu', role: 'student', roleName: 'Sinh viên', avatar: '👨‍🎓', status: 'active' });
       window.appState.currentUser = guest;
       window.saveStateToLocalStorage();
 
@@ -20681,14 +20713,14 @@ window.logoutUser = function() {
       if (window.renderUserAccountsTable) window.renderUserAccountsTable();
       if (window.updateUserKPIs) window.updateUserKPIs();
       if (window.applyRoleRestrictionsToUI) window.applyRoleRestrictionsToUI();
+      if (typeof window.switchTab === 'function') window.switchTab('simulation');
 
-      Swal.fire({
-        icon: 'info',
-        title: 'Đã đăng xuất',
-        text: 'Đã chuyển sang chế độ Khách (Sinh viên). Vui lòng đăng nhập lại để sử dụng các chức năng quản trị.',
-        timer: 1800,
-        showConfirmButton: false
-      });
+      // Tự động mở ngay giao diện đăng nhập tài khoản
+      setTimeout(() => {
+        if (typeof window.openLoginModal === 'function') {
+          window.openLoginModal();
+        }
+      }, 300);
     }
   });
 };
