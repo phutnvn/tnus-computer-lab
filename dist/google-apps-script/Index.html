@@ -20179,6 +20179,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
   };
 
   const ui = roleUiConfig[normRole] || roleUiConfig['lab_manager'];
+  let roleLoginSubmitted = false;
 
   Swal.fire({
     width: '420px',
@@ -20272,9 +20273,8 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
       const pInput = document.getElementById('role-login-password');
       if (uInput) uInput.focus();
 
-      let isSubmitting = false;
       const doSubmit = () => {
-        if (isSubmitting) return;
+        if (roleLoginSubmitted) return;
         const u = uInput ? uInput.value.trim() : '';
         const p = pInput ? pInput.value : '';
         if (!u) {
@@ -20285,8 +20285,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
           Swal.showValidationMessage('Vui lòng nhập mật khẩu!');
           return;
         }
-        isSubmitting = true;
-        Swal.close();
+        roleLoginSubmitted = true;
         window.handleLoginSubmit(u, p, targetTab || ui.destTab);
       };
 
@@ -20308,6 +20307,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
 
       // Xử lý nút Quay về khách:
       const handleCloseToGuest = () => {
+        roleLoginSubmitted = false;
         Swal.close();
         window.returnToGuestView(true);
       };
@@ -20316,12 +20316,14 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
       if (btnGuest) btnGuest.addEventListener('click', handleCloseToGuest);
     }
   }).then(result => {
-    // Nếu modal bị đóng (bấm nút X, phím tắt hoặc cách khác) mà không phải submit đăng nhập
-    if (!result.isConfirmed) {
-      const curRole = window.normalizeRole ? window.normalizeRole(window.appState.currentUser?.role) : (window.appState.currentUser?.role || 'student');
-      if (curRole !== normRole) {
-        window.returnToGuestView(true);
-      }
+    // Nếu người dùng đã submit đăng nhập, không can thiệp hoàn tác
+    if (roleLoginSubmitted) return;
+
+    // Chỉ khi người dùng chủ động đóng modal quay về giao diện khách
+    const curUser = window.appState.currentUser;
+    const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : (curUser?.role || 'student');
+    if (!curUser || curRole === 'student') {
+      window.returnToGuestView(false);
     }
   });
 };
@@ -20331,6 +20333,8 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
  * Giao diện gọn gàng, tinh tế, đóng thì quay về giao diện tài khoản khách
  */
 window.openLoginModal = function() {
+  let generalLoginSubmitted = false;
+
   Swal.fire({
     width: '420px',
     padding: '1.25rem',
@@ -20406,9 +20410,8 @@ window.openLoginModal = function() {
       const pInput = document.getElementById('login-password');
       if (uInput) uInput.focus();
 
-      let isSubmitting = false;
       const doSubmit = () => {
-        if (isSubmitting) return;
+        if (generalLoginSubmitted) return;
         const u = uInput ? uInput.value.trim() : '';
         const p = pInput ? pInput.value : '';
         if (!u) {
@@ -20419,8 +20422,7 @@ window.openLoginModal = function() {
           Swal.showValidationMessage('Vui lòng nhập mật khẩu!');
           return;
         }
-        isSubmitting = true;
-        Swal.close();
+        generalLoginSubmitted = true;
         window.handleLoginSubmit(u, p);
       };
 
@@ -20441,6 +20443,7 @@ window.openLoginModal = function() {
       }
 
       const handleCloseToGuest = () => {
+        generalLoginSubmitted = false;
         Swal.close();
         window.returnToGuestView(true);
       };
@@ -20449,12 +20452,11 @@ window.openLoginModal = function() {
       if (btnGuest) btnGuest.addEventListener('click', handleCloseToGuest);
     }
   }).then(result => {
-    if (!result.isConfirmed) {
-      const curUser = window.appState.currentUser;
-      const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
-      if (!curUser || curRole !== 'admin') {
-        window.returnToGuestView(true);
-      }
+    if (generalLoginSubmitted) return;
+    const curUser = window.appState.currentUser;
+    const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
+    if (!curUser || curRole === 'student') {
+      window.returnToGuestView(false);
     }
   });
 };
@@ -20491,7 +20493,18 @@ window.quickFillLogin = function(username, password) {
  * Xử lý xác thực đăng nhập tài khoản (Quản lý phòng máy, Giảng viên, Admin, Sinh viên)
  */
 window.handleLoginSubmit = function(username, password, explicitTargetTab = null) {
-  const term = username.toLowerCase().trim();
+  if (!username) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Thiếu tên đăng nhập',
+      text: 'Vui lòng nhập tên đăng nhập để tiếp tục.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
+  const rawTerm = (username || '').trim();
+  const cleanTerm = rawTerm.toLowerCase().replace(/^@+/, '');
 
   // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa
   const aliasMap = {
@@ -20523,37 +20536,53 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     'phutm': 'admin'
   };
 
-  const lookupKey = aliasMap[term] || term;
+  const lookupKey = aliasMap[cleanTerm];
 
-  // 1. Tìm trong appState.users
+  // 1. Tìm chính xác trong appState.users (ưu tiên hàng đầu tài khoản do Admin tạo mới!)
   let user = (window.appState.users || []).find(u => 
-    (u.username && u.username.toLowerCase() === lookupKey) ||
-    (u.username && u.username.toLowerCase() === term) ||
-    (u.id && u.id.toLowerCase() === term) ||
-    (u.email && u.email.toLowerCase() === term)
+    (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
+    (u.id && u.id.toLowerCase() === cleanTerm) ||
+    (u.email && u.email.toLowerCase() === cleanTerm)
   );
 
-  // 2. Nếu chưa có trong appState.users, tìm trong STANDARD_ROLE_ACCOUNTS
-  if (!user && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
-    const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
-    user = Object.values(standards).find(u => 
-      (u.username && u.username.toLowerCase() === lookupKey) ||
-      (u.username && u.username.toLowerCase() === term) ||
-      (u.id && u.id.toLowerCase() === term) ||
-      (u.email && u.email.toLowerCase() === term)
+  // 2. Nếu chưa thấy, thử tìm theo bí danh trong appState.users (nếu có tài khoản mang tên bí danh đó)
+  if (!user && lookupKey) {
+    user = (window.appState.users || []).find(u => 
+      u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey
     );
   }
 
-  // 3. Nếu tìm thấy từ STANDARD_ROLE_ACCOUNTS, bổ sung vào danh sách users của hệ thống
-  if (user && !window.appState.users.some(u => u.id === user.id || u.username === user.username)) {
-    window.appState.users.push(user);
+  // 3. Nếu vẫn chưa thấy trong appState.users, tìm trong STANDARD_ROLE_ACCOUNTS mặc định của hệ thống
+  if (!user && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
+    const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
+    user = Object.values(standards).find(u => 
+      (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanTerm) ||
+      (u.id && u.id.toLowerCase() === cleanTerm) ||
+      (u.email && u.email.toLowerCase() === cleanTerm) ||
+      (lookupKey && u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey)
+    );
+    if (user) {
+      user = { ...user };
+      if (!window.appState.users.some(u => u.id === user.id || u.username === user.username)) {
+        window.appState.users.push(user);
+        window.saveStateToLocalStorage();
+      }
+    }
   }
 
   if (!user) {
     Swal.fire({
       icon: 'error',
       title: 'Tài khoản không tồn tại',
-      text: `Không tìm thấy tài khoản "${username}" trong hệ thống phòng máy TNUS. Vui lòng kiểm tra lại tên đăng nhập hoặc liên hệ Quản trị viên.`,
+      html: `
+        <div class="text-xs text-slate-600 text-left space-y-2">
+          <p>Không tìm thấy tài khoản <strong>"${username}"</strong> trong hệ thống phòng máy TNUS.</p>
+          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 text-2xs space-y-1">
+            <p>• Nếu bạn là Cán bộ / Giảng viên mới: Vui lòng liên hệ Admin <strong>ThS. Trịnh Minh Phú (0975.090.666)</strong> để được tạo tài khoản.</p>
+            <p>• Bạn có thể nhập Tên đăng nhập (Username), Email hoặc Mã tài khoản (USR-xx).</p>
+          </div>
+        </div>
+      `,
       confirmButtonColor: '#2563eb'
     });
     return;
@@ -20576,10 +20605,18 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     return;
   }
 
-  // Xác thực mật khẩu (Hỗ trợ mật khẩu mặc định tnus@2026 hoặc mật khẩu riêng đã băm)
-  const isMatch = (typeof verifyPassword === 'function') 
-    ? verifyPassword(password, user) 
-    : (password.toLowerCase() === 'tnus@2026' || password === 'Tnus@Admin2026');
+  // Xác thực mật khẩu (Hỗ trợ mật khẩu mặc định tnus@2026, mật khẩu cá nhân, initialPassword lẫn hash)
+  const verifyFn = (typeof window.verifyPassword === 'function') 
+    ? window.verifyPassword 
+    : ((typeof verifyPassword === 'function') ? verifyPassword : null);
+
+  const cleanPass = (password || '').trim();
+  const isMatch = verifyFn 
+    ? verifyFn(cleanPass, user) 
+    : (cleanPass.toLowerCase() === 'tnus@2026' || 
+       cleanPass === 'Tnus@Admin2026' ||
+       (user.initialPassword && (cleanPass === user.initialPassword.trim()))
+      );
 
   if (!isMatch) {
     user.failedLogins = (user.failedLogins || 0) + 1;
