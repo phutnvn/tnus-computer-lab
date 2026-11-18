@@ -451,7 +451,10 @@ window.switchTab = function(targetTab) {
   const curUser = window.appState?.currentUser || (window.appState?.users && window.appState.users[0]);
   const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
 
-  // Kiểm tra thẩm quyền khi truy cập Tab Quản lý Thiết bị (Tab 3) - Khóa với Sinh viên và Giảng viên
+  // Với vai trò Sinh viên: CHỈ HIỂN THỊ VÀ TRUY CẬP DUY NHẤT LỊCH THỰC HÀNH, CÁC CHỨC NĂNG KHÁC ẨN
+  if (role === 'student' && targetTab !== 'schedule') {
+    targetTab = 'schedule';
+  }
   if (targetTab === 'computers' && (role === 'student' || role === 'teacher')) {
     if (typeof Swal !== 'undefined') {
       const isTeacher = (role === 'teacher');
@@ -4876,37 +4879,76 @@ window.applyRoleRestrictionsToUI = function() {
     bannerContainer.classList.add('hidden');
   }
 
-  // 2. KHÓA LIÊN KẾT CÁC TAB TRÊN SIDEBAR NẾU VAI TRÒ KHÔNG ĐƯỢC PHÉP
+  // 2. ĐIỀU HƯỚNG SIDEBAR THEO VAI TRÒ:
+  // Với tài khoản Sinh viên: CHỈ HIỂN THỊ DUY NHẤT CHỨC NĂNG LỊCH THỰC HÀNH, TẤT CẢ CÁC CHỨC NĂNG KHÁC ẨN HOÀN TOÀN!
+  const dashTabLink = document.querySelector('.nav-tab-link[data-tab="dashboard"]');
+  const simTabLink = document.querySelector('.nav-tab-link[data-tab="simulation"]');
   const computersTabLink = document.querySelector('.nav-tab-link[data-tab="computers"]');
-  if (computersTabLink) {
-    if (role === 'student' || role === 'teacher') {
-      computersTabLink.classList.add('opacity-40', 'pointer-events-none');
-      computersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản lý Thiết bị chỉ dành cho Cán bộ Quản lý và Quản trị viên';
-    } else {
-      computersTabLink.classList.remove('opacity-40', 'pointer-events-none');
-      computersTabLink.title = 'Quản lý Thiết bị (104 máy)';
-    }
-  }
-
+  const scheduleTabLink = document.querySelector('.nav-tab-link[data-tab="schedule"]');
   const maintenanceTabLink = document.querySelector('.nav-tab-link[data-tab="maintenance"]');
-  if (maintenanceTabLink) {
-    if (role === 'student') {
-      maintenanceTabLink.classList.add('opacity-40', 'pointer-events-none');
-      maintenanceTabLink.title = '[🔒 Bị khóa] Phân hệ Bảo trì & Sự cố dành cho Cán bộ Quản lý và Giảng viên';
-    } else {
+  const usersTabLink = document.querySelector('.nav-tab-link[data-tab="users"]');
+  const sidebarSecMain = document.getElementById('sidebar-section-main');
+  const sidebarSecOps = document.getElementById('sidebar-section-ops');
+
+  if (isStudent) {
+    // Ẩn tất cả các tab khác đối với Sinh viên, CHỈ ĐỂ LẠI DUY NHẤT LỊCH THỰC HÀNH
+    if (dashTabLink) dashTabLink.style.display = 'none';
+    if (simTabLink) simTabLink.style.display = 'none';
+    if (computersTabLink) computersTabLink.style.display = 'none';
+    if (maintenanceTabLink) maintenanceTabLink.style.display = 'none';
+    if (usersTabLink) usersTabLink.style.display = 'none';
+    if (sidebarSecMain) sidebarSecMain.style.display = 'none';
+    if (sidebarSecOps) {
+      sidebarSecOps.style.display = '';
+      sidebarSecOps.textContent = 'CHỨC NĂNG SINH VIÊN';
+    }
+    if (scheduleTabLink) {
+      scheduleTabLink.style.display = '';
+      scheduleTabLink.classList.remove('opacity-40', 'pointer-events-none');
+    }
+
+    // Tự động chuyển thẳng sang phân hệ Lịch thực hành
+    if (window.appState.currentTab !== 'schedule' && typeof window.switchTab === 'function') {
+      window.switchTab('schedule');
+    }
+  } else {
+    // Phục hồi lại đầy đủ sidebar cho Admin, Quản lý phòng máy, Giảng viên:
+    if (dashTabLink) dashTabLink.style.display = '';
+    if (simTabLink) simTabLink.style.display = '';
+    if (scheduleTabLink) scheduleTabLink.style.display = '';
+    if (sidebarSecMain) sidebarSecMain.style.display = '';
+    if (sidebarSecOps) {
+      sidebarSecOps.style.display = '';
+      sidebarSecOps.textContent = 'VẬN HÀNH PHÒNG MÁY';
+    }
+
+    if (computersTabLink) {
+      computersTabLink.style.display = '';
+      if (role === 'teacher') {
+        computersTabLink.classList.add('opacity-40', 'pointer-events-none');
+        computersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản lý Thiết bị chỉ dành cho Cán bộ Quản lý và Quản trị viên';
+      } else {
+        computersTabLink.classList.remove('opacity-40', 'pointer-events-none');
+        computersTabLink.title = 'Quản lý Thiết bị (104 máy)';
+      }
+    }
+
+    if (maintenanceTabLink) {
+      maintenanceTabLink.style.display = '';
       maintenanceTabLink.classList.remove('opacity-40', 'pointer-events-none');
       maintenanceTabLink.title = 'Bảo trì & Sự cố';
     }
-  }
 
-  const usersTabLink = document.querySelector('.nav-tab-link[data-tab="users"]');
-  if (usersTabLink) {
-    if (isAdmin) {
-      usersTabLink.classList.remove('opacity-40', 'pointer-events-none');
-      usersTabLink.title = 'Phân quyền & Tài khoản';
-    } else {
-      usersTabLink.classList.add('opacity-40', 'pointer-events-none');
-      usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành riêng cho Quản trị viên (Admin)';
+    if (usersTabLink) {
+      if (isAdmin) {
+        usersTabLink.style.display = '';
+        usersTabLink.classList.remove('opacity-40', 'pointer-events-none');
+        usersTabLink.title = 'Phân quyền & Tài khoản';
+      } else {
+        usersTabLink.style.display = '';
+        usersTabLink.classList.add('opacity-40', 'pointer-events-none');
+        usersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản trị Người dùng & Phân quyền chỉ dành riêng cho Quản trị viên (Admin)';
+      }
     }
   }
 
@@ -6079,7 +6121,7 @@ window.returnToGuestView = function(showToast = true) {
     window.updateUserKPIs();
   }
   if (typeof window.switchTab === 'function') {
-    window.switchTab('simulation');
+    window.switchTab('schedule');
   }
 
   if (showToast && typeof Swal !== 'undefined') {
@@ -6826,7 +6868,7 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     lab_manager: 'computers',   // Quản lý phòng máy -> Quản lý Thiết bị (104 máy)
     teacher: 'schedule',        // Giảng viên -> Lịch thực hành phòng máy
     admin: 'dashboard',         // Quản trị viên -> Dashboard tổng quan
-    student: 'simulation'       // Sinh viên -> Sơ đồ mô phỏng 2D
+    student: 'schedule'       // Sinh viên -> Lịch thực hành phòng máy
   };
 
   const targetTab = explicitTargetTab || homeTabMap[normRole] || 'dashboard';

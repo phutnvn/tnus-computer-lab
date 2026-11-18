@@ -517,6 +517,7 @@ class ScheduleManager {
     const canConfigAuto = (role === 'admin' || role === 'lab_manager');
     const canImportSchedule = (role === 'admin' || role === 'lab_manager');
     const canCreateSchedule = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
+    const isStudent = (role === 'student');
 
     this.container.innerHTML = `
       <div class="space-y-4">
@@ -578,7 +579,8 @@ class ScheduleManager {
             </div>
           </div>
 
-          <!-- Các nút mô phỏng & điều khiển nhanh -->
+          ${!isStudent ? `
+          <!-- Các nút mô phỏng & điều khiển nhanh (Dành riêng cho Cán bộ) -->
           <div class="flex flex-wrap items-center gap-1.5 text-xs">
             <span class="text-slate-400 font-semibold text-[11px] mr-1 hidden sm:inline">Mô phỏng giờ:</span>
             <button onclick="window.scheduleManager.setSimulatedTime(null)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded font-medium transition" title="Dùng giờ thực tế hệ thống">
@@ -601,7 +603,7 @@ class ScheduleManager {
               <i class="fa-solid fa-gear"></i>
               <span>Cài đặt</span>
             </button>` : ''}
-          </div>
+          </div>` : ''}
         </div>
 
         <!-- KHUNG GIỜ 10 TIẾT HỌC CHUẨN TNUS (THEO THỜI GIAN THỰC) -->
