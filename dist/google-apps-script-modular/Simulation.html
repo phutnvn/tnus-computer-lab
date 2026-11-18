@@ -204,9 +204,9 @@ class LabSimulation {
             </button>
           </div>
 
-          <!-- Nhóm Kịch bản thao tác thực nghiệm 1-chạm -->
-          <div class="flex items-center flex-wrap gap-1.5">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1 hidden xl:inline">Thực nghiệm:</span>
+          <!-- Nhóm Kịch bản thao tác thực nghiệm 1-chạm / Tiện ích tra cứu -->
+          <div id="sim-scenario-container" class="flex items-center flex-wrap gap-1.5">
+            <span id="sim-scenario-label" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1 hidden xl:inline">Thực nghiệm:</span>
             
             <button id="btn-scenario-wol" title="Mô phỏng phát tín hiệu Magic Packet đánh thức máy từ xa theo từng hàng" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 rounded-md font-semibold text-[11px] transition flex items-center space-x-1">
               <i class="fa-solid fa-bolt-lightning text-amber-500"></i>
@@ -233,8 +233,20 @@ class LabSimulation {
               <span>Tạo lỗi ngẫu nhiên</span>
             </button>
 
-            <button id="btn-scenario-reset" title="Khôi phục trạng thái chuẩn phòng máy" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 rounded-md font-semibold text-[11px] transition">
+            <!-- Tiện ích riêng dành cho Sinh viên / Khách tra cứu (Rõ ràng, trực quan) -->
+            <button id="btn-student-find-available" onclick="window.findAvailableComputersForStudent && window.findAvailableComputersForStudent()" title="Lọc và làm nổi bật các máy tính đang rảnh (Hoạt động tốt) để sinh viên chọn ngồi" class="hidden px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i>
+              <span>Tìm máy trống</span>
+            </button>
+
+            <button id="btn-student-report-fault" onclick="window.openStudentReportFaultModal && window.openStudentReportFaultModal()" title="Báo sự cố hỏng hóc máy tính tại phòng cho Cán bộ Quản lý" class="hidden px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-md font-bold text-[11px] transition flex items-center space-x-1 shadow-2xs">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+              <span>Báo hỏng máy</span>
+            </button>
+
+            <button id="btn-scenario-reset" title="Khôi phục trạng thái chuẩn phòng máy" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 rounded-md font-semibold text-[11px] transition flex items-center space-x-1">
               <i class="fa-solid fa-rotate-right"></i>
+              <span id="btn-scenario-reset-text" class="hidden">Làm mới</span>
             </button>
           </div>
         </div>

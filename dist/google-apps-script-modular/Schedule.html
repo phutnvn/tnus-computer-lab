@@ -22,7 +22,15 @@ class ScheduleManager {
   constructor() {
     this.container = document.getElementById('schedule-module-container');
     this.selectedLab = 'all';
-    this.selectedDate = '2026-11-14'; // Mặc định hôm nay (Thứ Bảy, 14/11/2026)
+    
+    // Khởi tạo ngày thực tế hiện hành theo đồng hồ hệ thống
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    this.todayStr = `${y}-${m}-${d}`;
+    this.selectedDate = this.todayStr;
+
     this.selectedSession = 'all';     // all, sang, chieu, toi
     this.selectedStatus = 'all';      // all, live, upcoming, completed
     this.searchQuery = '';
@@ -32,14 +40,55 @@ class ScheduleManager {
     this.autoCheckInterval = null;
   }
 
+  getTodayDateStr() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  formatDateLabel(dateStr, includeTodayTag = true) {
+    if (!dateStr || dateStr === 'all') return 'Tất cả các ngày trong kỳ';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const dayName = dayNames[d.getDay()] || '';
+    const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const isToday = dateStr === this.getTodayDateStr();
+    if (includeTodayTag && isToday) {
+      return `${dayName} (${formatted} - Hôm nay)`;
+    }
+    return `${dayName} (${formatted})`;
+  }
+
+  getDateOptionsHtml() {
+    const schedules = window.appState && window.appState.schedules ? window.appState.schedules : [];
+    const datesSet = new Set(schedules.map(s => s.date).filter(Boolean));
+    const today = this.getTodayDateStr();
+    datesSet.add(today);
+    const sortedDates = Array.from(datesSet).sort();
+
+    let html = `<option value="all">📅 Tất cả các ngày (${schedules.length} ca)</option>`;
+    sortedDates.forEach(date => {
+      const isSelected = this.selectedDate === date;
+      const label = this.formatDateLabel(date, true);
+      html += `<option value="${date}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+    });
+    return html;
+  }
+
   init() {
-    // Xác định ngày mặc định
-    const todayStr = new Date().toISOString().split('T')[0];
+    this.todayStr = this.getTodayDateStr();
+
+    // Luôn ưu tiên chọn ngày thực tế hôm nay nếu có lịch, hoặc ngày gần nhất
     if (window.appState && window.appState.schedules) {
-      if (window.appState.schedules.some(s => s.date === todayStr)) {
-        this.selectedDate = todayStr;
-      } else if (window.appState.schedules.some(s => s.date === '2026-11-14')) {
-        this.selectedDate = '2026-11-14';
+      if (window.appState.schedules.some(s => s.date === this.todayStr)) {
+        this.selectedDate = this.todayStr;
+      } else {
+        const allDates = [...new Set(window.appState.schedules.map(s => s.date))].sort();
+        this.selectedDate = allDates[allDates.length - 1] || this.todayStr;
       }
     }
 
@@ -75,6 +124,7 @@ class ScheduleManager {
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
     const actualToday = `${y}-${m}-${d}`;
+    this.todayStr = actualToday;
 
     // Lấy thời gian hiện tại (hoặc giờ mô phỏng nếu người dùng đang thử nghiệm)
     let currentTimeStr = '';
@@ -86,24 +136,36 @@ class ScheduleManager {
       currentTimeStr = `${hh}:${mm}`;
     }
 
-    // Chọn ngày kiểm tra
-    let targetDate = actualToday;
-    if (!window.appState.schedules || !window.appState.schedules.some(s => s.date === targetDate)) {
-      targetDate = '2026-11-14';
-    }
-
     const schedules = window.appState.schedules || [];
-    const targetSchedules = schedules.filter(s => s.date === targetDate);
-
     let stateChanged = false;
     let newlyActivated = [];
     let newlyCompleted = [];
 
-    targetSchedules.forEach(sch => {
-      const start = sch.startTime || '07:24';
-      const end = sch.endTime || '12:14';
+    // Tự động kiểm tra và cập nhật trạng thái thời gian thực cho TẤT CẢ các ca học
+    schedules.forEach(sch => {
+      // 1. Nếu ngày học trong quá khứ (< actualToday): Đã hoàn thành
+      if (sch.date < actualToday) {
+        if (sch.status !== 'Đã hoàn thành') {
+          sch.status = 'Đã hoàn thành';
+          stateChanged = true;
+        }
+        return;
+      }
 
-      // 1. ĐIỀU KIỆN VÀO CA: startTime <= currentTime < endTime
+      // 2. Nếu ngày học trong tương lai (> actualToday): Chưa diễn ra
+      if (sch.date > actualToday) {
+        if (sch.status === 'Đang diễn ra') {
+          sch.status = 'Chưa diễn ra';
+          stateChanged = true;
+        }
+        return;
+      }
+
+      // 3. Nếu là ngày hôm nay (=== actualToday): So khớp chính xác theo giờ phút
+      const start = sch.startTime || '07:00';
+      const end = sch.endTime || '11:50';
+
+      // 3.1. ĐIỀU KIỆN VÀO CA: startTime <= currentTime < endTime
       if (currentTimeStr >= start && currentTimeStr < end) {
         if (sch.status !== 'Đang diễn ra') {
           sch.status = 'Đang diễn ra';
@@ -121,7 +183,7 @@ class ScheduleManager {
           });
         }
       }
-      // 2. ĐIỀU KIỆN TRẢ PHÒNG KHI HẾT GIỜ: currentTime >= endTime
+      // 3.2. ĐIỀU KIỆN TRẢ PHÒNG KHI HẾT GIỜ: currentTime >= endTime
       else if (currentTimeStr >= end) {
         if (sch.status === 'Đang diễn ra') {
           sch.status = 'Đã hoàn thành';
@@ -129,7 +191,7 @@ class ScheduleManager {
           newlyCompleted.push(sch);
 
           // Kiểm tra xem phòng đó có ca nào khác đang học cùng lúc không
-          const hasOtherActive = targetSchedules.some(s => s.id !== sch.id && s.labId === sch.labId && s.status === 'Đang diễn ra');
+          const hasOtherActive = schedules.some(s => s.id !== sch.id && s.labId === sch.labId && s.date === actualToday && s.status === 'Đang diễn ra');
           if (!hasOtherActive && window.autoShiftConfig.autoReleaseOnEnd) {
             window.appState.computers.forEach(comp => {
               if (comp.labId === sch.labId && comp.status === 'in_use') {
@@ -139,14 +201,19 @@ class ScheduleManager {
           }
         }
       }
-      // 3. ĐIỀU KIỆN SẮP DIỄN RA: còn dưới 15 phút là đến giờ
+      // 3.3. ĐIỀU KIỆN SẮP DIỄN RA HOẶC CHƯA HỌC: currentTime < startTime
       else if (currentTimeStr < start) {
         const [curH, curM] = currentTimeStr.split(':').map(Number);
         const [stH, stM] = start.split(':').map(Number);
         const diffMinutes = (stH * 60 + stM) - (curH * 60 + curM);
-        if (diffMinutes <= 15 && diffMinutes > 0) {
-          if (sch.status === 'Chưa diễn ra') {
+        if (diffMinutes <= 30 && diffMinutes > 0) {
+          if (sch.status !== 'Sắp diễn ra') {
             sch.status = 'Sắp diễn ra';
+            stateChanged = true;
+          }
+        } else {
+          if (sch.status !== 'Chưa diễn ra') {
+            sch.status = 'Chưa diễn ra';
             stateChanged = true;
           }
         }
@@ -312,12 +379,12 @@ class ScheduleManager {
 
     // Tìm ca tiếp theo sắp diễn ra
     const schedules = window.appState.schedules || [];
-    const todayTarget = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const todayTarget = this.selectedDate === 'all' ? (this.todayStr || '2026-11-17') : this.selectedDate;
     const todaySchedules = schedules.filter(s => s.date === todayTarget);
 
     const compareTime = window.autoShiftConfig.simulatedTime || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const upcomingSchedules = todaySchedules
-      .filter(s => (s.startTime || '07:24') > compareTime)
+      .filter(s => (s.startTime || '07:00') > compareTime)
       .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 
     const nextShiftEl = document.getElementById('auto-shift-next-countdown');
@@ -325,7 +392,7 @@ class ScheduleManager {
       if (upcomingSchedules.length > 0) {
         const next = upcomingSchedules[0];
         const [curH, curM] = compareTime.split(':').map(Number);
-        const [stH, stM] = (next.startTime || '07:24').split(':').map(Number);
+        const [stH, stM] = (next.startTime || '07:00').split(':').map(Number);
         const diffMinutes = (stH * 60 + stM) - (curH * 60 + curM);
         const diffH = Math.floor(diffMinutes / 60);
         const diffM = diffMinutes % 60;
@@ -344,6 +411,16 @@ class ScheduleManager {
 
   // Mở hộp thoại cài đặt tham số Tự Động Vào Ca
   openAutoShiftSettingsModal() {
+    const curUser = window.appState?.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    if (role !== 'admin' && role !== 'lab_manager') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Truy cập bị từ chối',
+        html: 'Chỉ <strong>Quản trị viên (Admin)</strong> và <strong>Quản lý phòng máy</strong> mới có thẩm quyền cấu hình cơ chế tự động vào ca và cấp nguồn Wake-on-LAN.'
+      });
+      return;
+    }
     const cfg = window.autoShiftConfig;
     Swal.fire({
       title: `
@@ -435,6 +512,13 @@ class ScheduleManager {
   renderView() {
     if (!this.container) return;
 
+    const curUser = window.appState?.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canConfigAuto = (role === 'admin' || role === 'lab_manager');
+    const canImportSchedule = (role === 'admin' || role === 'lab_manager');
+    const canCreateSchedule = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
+    const isStudent = (role === 'student');
+
     this.container.innerHTML = `
       <div class="space-y-4">
         <!-- 1. THANH TỔNG QUAN CHỈ SỐ VẬN HÀNH THỜI KHÓA BIỂU (KPI CARDS) -->
@@ -495,7 +579,8 @@ class ScheduleManager {
             </div>
           </div>
 
-          <!-- Các nút mô phỏng & điều khiển nhanh -->
+          ${!isStudent ? `
+          <!-- Các nút mô phỏng & điều khiển nhanh (Dành riêng cho Cán bộ) -->
           <div class="flex flex-wrap items-center gap-1.5 text-xs">
             <span class="text-slate-400 font-semibold text-[11px] mr-1 hidden sm:inline">Mô phỏng giờ:</span>
             <button onclick="window.scheduleManager.setSimulatedTime(null)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded font-medium transition" title="Dùng giờ thực tế hệ thống">
@@ -513,10 +598,72 @@ class ScheduleManager {
             <button onclick="window.scheduleManager.setSimulatedTime('15:30')" class="px-2 py-1 bg-indigo-900/60 hover:bg-indigo-800 border border-indigo-500/50 text-indigo-200 rounded font-mono font-bold transition" title="Thử nghiệm vào Ca 4 chiều">
               15:30 (Ca 4)
             </button>
+            ${canConfigAuto ? `
             <button onclick="window.scheduleManager.openAutoShiftSettingsModal()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition flex items-center space-x-1 shadow-xs ml-1" title="Cài đặt cơ chế tự động">
               <i class="fa-solid fa-gear"></i>
               <span>Cài đặt</span>
-            </button>
+            </button>` : ''}
+          </div>` : ''}
+        </div>
+
+        <!-- KHUNG GIỜ 10 TIẾT HỌC CHUẨN TNUS (THEO THỜI GIAN THỰC) -->
+        <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200/80 rounded-xl p-3 shadow-xs">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2 pb-2 border-b border-blue-100">
+            <div class="flex items-center space-x-2">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-blue-600 text-white text-xs font-black shadow-xs">
+                <i class="fa-solid fa-clock"></i>
+              </span>
+              <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">Khung 10 Tiết Học Thực Hành Chuẩn TNUS</span>
+              <span class="hidden sm:inline-block text-[11px] font-semibold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full border border-blue-200">
+                Khoa Toán - Tin • Trường Đại học Khoa học
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-600 flex items-center space-x-3">
+              <span><strong class="text-blue-700">Buổi sáng:</strong> 5 tiết (07:00 – 11:50)</span>
+              <span><strong class="text-indigo-700">Buổi chiều:</strong> 5 tiết (13:00 – 17:50)</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-1.5 text-[11px]">
+            <div class="bg-white/90 p-1.5 rounded-lg border border-blue-200/60 text-center shadow-xs">
+              <div class="font-bold text-blue-800">Tiết 1</div>
+              <div class="font-mono text-slate-600 text-[10px]">07:00 - 07:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-blue-200/60 text-center shadow-xs">
+              <div class="font-bold text-blue-800">Tiết 2</div>
+              <div class="font-mono text-slate-600 text-[10px]">08:00 - 08:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-blue-200/60 text-center shadow-xs">
+              <div class="font-bold text-blue-800">Tiết 3</div>
+              <div class="font-mono text-slate-600 text-[10px]">09:00 - 09:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-blue-200/60 text-center shadow-xs">
+              <div class="font-bold text-blue-800">Tiết 4</div>
+              <div class="font-mono text-slate-600 text-[10px]">10:00 - 10:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-blue-200/60 text-center shadow-xs">
+              <div class="font-bold text-blue-800">Tiết 5</div>
+              <div class="font-mono text-slate-600 text-[10px]">11:00 - 11:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-indigo-200/60 text-center shadow-xs">
+              <div class="font-bold text-indigo-800">Tiết 6</div>
+              <div class="font-mono text-slate-600 text-[10px]">13:00 - 13:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-indigo-200/60 text-center shadow-xs">
+              <div class="font-bold text-indigo-800">Tiết 7</div>
+              <div class="font-mono text-slate-600 text-[10px]">14:00 - 14:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-indigo-200/60 text-center shadow-xs">
+              <div class="font-bold text-indigo-800">Tiết 8</div>
+              <div class="font-mono text-slate-600 text-[10px]">15:00 - 15:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-indigo-200/60 text-center shadow-xs">
+              <div class="font-bold text-indigo-800">Tiết 9</div>
+              <div class="font-mono text-slate-600 text-[10px]">16:00 - 16:50</div>
+            </div>
+            <div class="bg-white/90 p-1.5 rounded-lg border border-indigo-200/60 text-center shadow-xs">
+              <div class="font-bold text-indigo-800">Tiết 10</div>
+              <div class="font-mono text-slate-600 text-[10px]">17:00 - 17:50</div>
+            </div>
           </div>
         </div>
 
@@ -554,12 +701,13 @@ class ScheduleManager {
                 <span>In TKB</span>
               </button>
 
+              ${canImportSchedule ? `
               <!-- Nhập Excel -->
               <label class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
                 <i class="fa-solid fa-file-import text-blue-600"></i>
                 <span>Nhập TKB Excel</span>
                 <input type="file" id="input-import-schedule" accept=".xlsx, .xls, .csv" class="hidden">
-              </label>
+              </label>` : ''}
 
               <!-- Xuất Excel -->
               <button id="btn-export-schedule" onclick="window.scheduleManager.exportScheduleToExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs">
@@ -567,11 +715,12 @@ class ScheduleManager {
                 <span>Xuất Excel</span>
               </button>
 
+              ${canCreateSchedule ? `
               <!-- Đăng ký ca mới -->
               <button id="btn-add-schedule" onclick="window.scheduleManager.showAddScheduleModal()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center space-x-1.5">
                 <i class="fa-solid fa-calendar-plus"></i>
                 <span>Xếp Lịch Mới</span>
-              </button>
+              </button>` : ''}
             </div>
           </div>
 
@@ -580,20 +729,14 @@ class ScheduleManager {
             <!-- Nút chọn Hôm nay nhanh -->
             <button onclick="window.scheduleManager.selectTodayQuick()" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-bold transition flex items-center space-x-1">
               <i class="fa-solid fa-sun text-amber-500"></i>
-              <span>Hôm nay (14/11)</span>
+              <span>Hôm nay (${new Date().getDate().toString().padStart(2, '0')}/${(new Date().getMonth() + 1).toString().padStart(2, '0')})</span>
             </button>
 
             <!-- Chọn ngày trong học kỳ -->
             <div class="flex items-center space-x-1">
               <span class="text-slate-500 font-medium">Ngày học:</span>
               <select id="sch-date-select" class="p-1.5 bg-slate-50 border border-slate-300 rounded-lg font-bold text-blue-700">
-                <option value="all">📅 Tất cả các ngày (100 ca)</option>
-                <option value="2026-11-09">Thứ Hai (09/11/2026)</option>
-                <option value="2026-11-10">Thứ Ba (10/11/2026)</option>
-                <option value="2026-11-11">Thứ Tư (11/11/2026)</option>
-                <option value="2026-11-12">Thứ Năm (12/11/2026)</option>
-                <option value="2026-11-13">Thứ Sáu (13/11/2026)</option>
-                <option value="2026-11-14" selected>Thứ Bảy (14/11/2026 - Hôm nay)</option>
+                ${this.getDateOptionsHtml()}
               </select>
             </div>
 
@@ -615,7 +758,7 @@ class ScheduleManager {
               <select id="sch-session-filter" class="p-1.5 bg-slate-50 border border-slate-300 rounded-lg font-medium">
                 <option value="all">Tất cả các buổi</option>
                 <option value="sang">Buổi Sáng (Tiết 1 - 5)</option>
-                <option value="chieu">Buổi Chiều (Tiết 7 - 11)</option>
+                <option value="chieu">Buổi Chiều (Tiết 6 - 10)</option>
                 <option value="toi">Buổi Tối (Tiết 10 - 12)</option>
               </select>
             </div>
@@ -654,7 +797,7 @@ class ScheduleManager {
   updateKPIs() {
     const schedules = window.appState.schedules || [];
     const total = schedules.length;
-    const todayTarget = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const todayTarget = this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate;
     const todayList = schedules.filter(s => s.date === todayTarget);
     const liveCount = schedules.filter(s => s.status === 'Đang diễn ra').length;
     const totalStudents = schedules.reduce((sum, s) => sum + (parseInt(s.studentCount, 10) || 0), 0);
@@ -669,23 +812,14 @@ class ScheduleManager {
     setEl('sch-kpi-live', liveCount);
     setEl('sch-kpi-students', totalStudents.toLocaleString('vi-VN'));
 
-    const dateLabels = {
-      '2026-11-09': '09/11/2026 (Thứ Hai)',
-      '2026-11-10': '10/11/2026 (Thứ Ba)',
-      '2026-11-11': '11/11/2026 (Thứ Tư)',
-      '2026-11-12': '12/11/2026 (Thứ Năm)',
-      '2026-11-13': '13/11/2026 (Thứ Sáu)',
-      '2026-11-14': '14/11/2026 (Thứ Bảy - Hôm nay)',
-      'all': 'Tất cả các tuần trong kỳ'
-    };
-    setEl('sch-kpi-date-label', dateLabels[this.selectedDate] || this.selectedDate);
+    setEl('sch-kpi-date-label', this.formatDateLabel(this.selectedDate, true));
   }
 
   // Chọn ngày hôm nay nhanh
   selectTodayQuick() {
-    this.selectedDate = '2026-11-14';
+    this.selectedDate = this.getTodayDateStr();
     const dateSelect = document.getElementById('sch-date-select');
-    if (dateSelect) dateSelect.value = '2026-11-14';
+    if (dateSelect) dateSelect.value = this.selectedDate;
     this.renderMainContent();
     this.updateKPIs();
   }
@@ -816,8 +950,11 @@ class ScheduleManager {
   // VIEW MODE 1: MA TRẬN THỜI KHÓA BIỂU 4 PHÒNG MÁY (WEEKLY MATRIX VIEW)
   // =========================================================================
   buildMatrixViewHtml() {
-    const targetDate = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const targetDate = this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate;
     const dateSchedules = (window.appState.schedules || []).filter(s => s.date === targetDate);
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canManageShift = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
 
     // Danh sách 4 phòng máy chuẩn TNUS (Tầng 5, Nhà A1)
     const labs = [
@@ -827,16 +964,16 @@ class ScheduleManager {
       { id: 'PM4', name: 'PM4 (A1-506)', cap: 24, brand: 'Dell OptiPlex Core i5', badge: 'bg-teal-50 text-teal-700 border-teal-200' }
     ];
 
-    // Khung các ca thực hành chuẩn trong ngày
+    // Khung các ca thực hành chuẩn trong ngày theo quy định tiết học TNUS (Sáng 5 tiết: 7h-11h50, Chiều 5 tiết: 13h-17h50)
     const timeSlots = [
-      { id: 'shift-1', label: 'Ca 1 (Sáng)', time: '07:24 - 09:14', periods: 'Tiết 1-2', session: 'Sáng' },
-      { id: 'shift-2', label: 'Ca 2 (Sáng)', time: '09:24 - 11:14', periods: 'Tiết 3-4', session: 'Sáng' },
-      { id: 'shift-full-am', label: 'Ca Dài (Sáng)', time: '07:24 - 12:14', periods: 'Tiết 1-5', session: 'Sáng' },
-      { id: 'shift-mid', label: 'Ca Chuyển Tiếp', time: '11:24 - 13:14', periods: 'Tiết 5-6', session: 'Trưa' },
-      { id: 'shift-3', label: 'Ca 3 (Chiều)', time: '13:24 - 15:14', periods: 'Tiết 7-8', session: 'Chiều' },
-      { id: 'shift-4', label: 'Ca 4 (Chiều)', time: '15:24 - 17:14', periods: 'Tiết 9-10', session: 'Chiều' },
-      { id: 'shift-full-pm', label: 'Ca Dài (Chiều)', time: '13:24 - 18:14', periods: 'Tiết 7-11', session: 'Chiều' },
-      { id: 'shift-5', label: 'Ca 5 (Tối)', time: '16:24 - 19:14', periods: 'Tiết 10-12', session: 'Tối' }
+      { id: 'shift-1', label: 'Ca 1 (Sáng)', time: '07:00 - 08:50', periods: 'Tiết 1-2', session: 'Sáng', start: '07:00', end: '08:50' },
+      { id: 'shift-2', label: 'Ca 2 (Sáng)', time: '09:00 - 10:50', periods: 'Tiết 3-4', session: 'Sáng', start: '09:00', end: '10:50' },
+      { id: 'shift-full-am', label: 'Ca Dài (Sáng)', time: '07:00 - 11:50', periods: 'Tiết 1-5', session: 'Sáng', start: '07:00', end: '11:50' },
+      { id: 'shift-mid', label: 'Ca Chuyển Tiếp', time: '11:00 - 13:50', periods: 'Tiết 5-6', session: 'Trưa', start: '11:00', end: '13:50' },
+      { id: 'shift-3', label: 'Ca 3 (Chiều)', time: '13:00 - 14:50', periods: 'Tiết 6-7', session: 'Chiều', start: '13:00', end: '14:50' },
+      { id: 'shift-4', label: 'Ca 4 (Chiều)', time: '15:00 - 16:50', periods: 'Tiết 8-9', session: 'Chiều', start: '15:00', end: '16:50' },
+      { id: 'shift-full-pm', label: 'Ca Dài (Chiều)', time: '13:00 - 17:50', periods: 'Tiết 6-10', session: 'Chiều', start: '13:00', end: '17:50' },
+      { id: 'shift-5', label: 'Ca 5 (Tối)', time: '17:00 - 19:50', periods: 'Tiết 10-12', session: 'Tối', start: '17:00', end: '19:50' }
     ];
 
     let displaySlots = timeSlots;
@@ -859,7 +996,7 @@ class ScheduleManager {
         <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center space-x-2">
             <span class="w-3 h-3 rounded-full bg-blue-600"></span>
-            <span class="font-bold text-slate-800 text-sm">Thời Khóa Biểu Ngày ${targetDate}</span>
+            <span class="font-bold text-slate-800 text-sm">Thời Khóa Biểu Ngày ${this.formatDateLabel(targetDate, true)}</span>
             <span class="text-xs text-slate-500 font-medium">(${dateSchedules.length} ca học đã được xếp phòng)</span>
           </div>
           <div class="flex items-center space-x-3 text-xs">
@@ -879,7 +1016,9 @@ class ScheduleManager {
                 ${displayLabs.map(lab => `
                   <th class="p-3 border-r border-slate-200 last:border-r-0 min-w-[240px]">
                     <div class="flex items-center justify-between">
-                      <span class="font-black text-slate-800 text-sm">${lab.name}</span>
+                      <span onclick="window.navigateToLab('${lab.id}')" class="font-black text-slate-800 text-sm hover:text-blue-700 hover:underline cursor-pointer flex items-center gap-1.5 transition" title="Mở Sơ đồ 2D phòng ${lab.id}">
+                        ${lab.name} <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-blue-500 opacity-70"></i>
+                      </span>
                       <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${lab.badge}">${lab.cap} Máy</span>
                     </div>
                     <div class="text-[10px] text-slate-500 font-normal mt-0.5 line-clamp-1">${lab.brand}</div>
@@ -903,14 +1042,15 @@ class ScheduleManager {
                       const item = dateSchedules.find(s => {
                         if (s.labId !== lab.id) return false;
                         const sShift = (s.shift || '').toLowerCase();
-                        if (slot.time.includes('07:24 - 09:14') && sShift.includes('07:24 - 09:14')) return true;
-                        if (slot.time.includes('09:24 - 11:14') && sShift.includes('09:24 - 11:14')) return true;
-                        if (slot.time.includes('07:24 - 12:14') && sShift.includes('07:24 - 12:14')) return true;
-                        if (slot.time.includes('11:24 - 13:14') && sShift.includes('11:24 - 13:14')) return true;
-                        if (slot.time.includes('13:24 - 15:14') && sShift.includes('13:24 - 15:14')) return true;
-                        if (slot.time.includes('15:24 - 17:14') && sShift.includes('15:24 - 17:14')) return true;
-                        if (slot.time.includes('13:24 - 18:14') && sShift.includes('13:24 - 18:14')) return true;
-                        if (slot.time.includes('16:24 - 19:14') && sShift.includes('16:24 - 19:14')) return true;
+                        if (s.startTime && slot.start && s.startTime === slot.start) return true;
+                        if (slot.time.includes('07:00 - 08:50') && (sShift.includes('07:00 - 08:50') || sShift.includes('tiết 1-2'))) return true;
+                        if (slot.time.includes('09:00 - 10:50') && (sShift.includes('09:00 - 10:50') || sShift.includes('tiết 3-4'))) return true;
+                        if (slot.time.includes('07:00 - 11:50') && (sShift.includes('07:00 - 11:50') || sShift.includes('tiết 1-5'))) return true;
+                        if (slot.time.includes('11:00 - 13:50') && (sShift.includes('11:00 - 13:50') || sShift.includes('tiết 5-6'))) return true;
+                        if (slot.time.includes('13:00 - 14:50') && (sShift.includes('13:00 - 14:50') || sShift.includes('tiết 6-7') || sShift.includes('tiết 7-8'))) return true;
+                        if (slot.time.includes('15:00 - 16:50') && (sShift.includes('15:00 - 16:50') || sShift.includes('tiết 8-9') || sShift.includes('tiết 9-10'))) return true;
+                        if (slot.time.includes('13:00 - 17:50') && (sShift.includes('13:00 - 17:50') || sShift.includes('tiết 6-10') || sShift.includes('tiết 7-11'))) return true;
+                        if (slot.time.includes('17:00 - 19:50') && (sShift.includes('17:00 - 19:50') || sShift.includes('tiết 10-12'))) return true;
                         return false;
                       });
 
@@ -955,47 +1095,68 @@ class ScheduleManager {
 
                               <!-- Nút hành động nhanh trên ô -->
                               <div class="mt-2.5 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
-                                <div class="flex items-center space-x-1">
-                                  <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Xem chi tiết">
-                                    <i class="fa-regular fa-eye"></i>
-                                  </button>
-                                  <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" class="p-1 text-amber-600 hover:bg-amber-100 rounded" title="Chỉnh sửa ca học">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                  </button>
-                                  <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-100 rounded" title="Hủy ca học">
-                                    <i class="fa-regular fa-trash-can"></i>
-                                  </button>
-                                </div>
+                                ${canManageShift ? `
+                                  <div class="flex items-center space-x-1">
+                                    <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Xem chi tiết">
+                                      <i class="fa-regular fa-eye"></i>
+                                    </button>
+                                    <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" class="p-1 text-amber-600 hover:bg-amber-100 rounded" title="Chỉnh sửa ca học">
+                                      <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-100 rounded" title="Hủy ca học">
+                                      <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                  </div>
 
-                                ${isLive ? `
-                                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
-                                    class="px-2 py-0.5 bg-slate-800 hover:bg-slate-900 text-white rounded font-bold text-[10px] transition shadow-xs">
-                                    Trả phòng
-                                  </button>
+                                  ${isLive ? `
+                                    <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
+                                      class="px-2 py-0.5 bg-slate-800 hover:bg-slate-900 text-white rounded font-bold text-[10px] transition shadow-xs">
+                                      Trả phòng
+                                    </button>
+                                  ` : `
+                                    <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
+                                      class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[10px] transition shadow-xs flex items-center">
+                                      <i class="fa-solid fa-play text-[9px] mr-1"></i>Vào ca
+                                    </button>
+                                  `}
                                 ` : `
-                                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
-                                    class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[10px] transition shadow-xs flex items-center">
-                                    <i class="fa-solid fa-play text-[9px] mr-1"></i>Vào ca
+                                  <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition flex items-center gap-1">
+                                    <i class="fa-regular fa-eye"></i>Xem chi tiết
                                   </button>
+                                  <span class="text-[10px] text-slate-400 font-mono">${isLive ? '🔴 Đang học' : '⚪ Giờ học'}</span>
                                 `}
                               </div>
                             </div>
                           </td>
                         `;
                       } else {
-                        // Ô trống: Hiển thị nút xếp lịch trực tiếp
-                        return `
-                          <td class="p-2.5 border-r border-slate-200 last:border-r-0 align-middle text-center">
-                            <div onclick="window.scheduleManager.showAddScheduleModal('${lab.id}', '${slot.time} (${slot.periods})', '${targetDate}')" 
-                              class="border border-dashed border-slate-200 rounded-xl p-3 text-slate-400 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600 cursor-pointer transition flex flex-col items-center justify-center space-y-1 group" style="min-height: 140px;">
-                              <div class="w-7 h-7 rounded-full bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center text-xs">
-                                <i class="fa-solid fa-plus text-slate-400 group-hover:text-blue-600"></i>
+                        // Ô trống
+                        if (canManageShift) {
+                          return `
+                            <td class="p-2.5 border-r border-slate-200 last:border-r-0 align-middle text-center">
+                              <div onclick="window.scheduleManager.showAddScheduleModal('${lab.id}', '${slot.time} (${slot.periods})', '${targetDate}')" 
+                                class="border border-dashed border-slate-200 rounded-xl p-3 text-slate-400 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600 cursor-pointer transition flex flex-col items-center justify-center space-y-1 group" style="min-height: 140px;">
+                                <div class="w-7 h-7 rounded-full bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center text-xs">
+                                  <i class="fa-solid fa-plus text-slate-400 group-hover:text-blue-600"></i>
+                                </div>
+                                <span class="text-[11px] font-semibold">Phòng trống</span>
+                                <span class="text-[10px] text-slate-400 group-hover:text-blue-500">Bấm để xếp lịch</span>
                               </div>
-                              <span class="text-[11px] font-semibold">Phòng trống</span>
-                              <span class="text-[10px] text-slate-400 group-hover:text-blue-500">Bấm để xếp lịch</span>
-                            </div>
-                          </td>
-                        `;
+                            </td>
+                          `;
+                        } else {
+                          return `
+                            <td class="p-2.5 border-r border-slate-200 last:border-r-0 align-middle text-center">
+                              <div class="border border-slate-100 rounded-xl p-3 text-slate-400 bg-slate-50/40 flex flex-col items-center justify-center space-y-1" style="min-height: 140px;">
+                                <div class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs">
+                                  <i class="fa-regular fa-clock"></i>
+                                </div>
+                                <span class="text-[11px] font-semibold text-slate-500">Phòng trống</span>
+                                ${role === 'lab_manager' ? '<span class="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Khả dụng bảo trì</span>' : '<span class="text-[10px] text-slate-400">Chưa có ca học</span>'}
+                              </div>
+                            </td>
+                          `;
+                        }
                       }
                     }).join('')}
                   </tr>
@@ -1017,6 +1178,9 @@ class ScheduleManager {
     const totalPages = Math.ceil(totalItems / this.pageSize) || 1;
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const pageItems = list.slice(startIndex, startIndex + this.pageSize);
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canManageShift = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
 
     const labNames = {
       'PM1': 'PM 1 (A1-503)',
@@ -1057,7 +1221,10 @@ class ScheduleManager {
           <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')">
             <td class="py-3 px-3 font-mono font-bold text-blue-600">${item.id}</td>
             <td class="py-3 px-3 font-bold">
-              <span class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-mono text-[11px]">${labNames[item.labId] || item.labId}</span>
+              <span onclick="event.stopPropagation(); window.navigateToLab('${item.labId}')" 
+                class="px-2 py-0.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded font-mono text-[11px] cursor-pointer transition flex items-center gap-1 w-max" title="Mở sơ đồ 2D phòng ${item.labId}">
+                ${labNames[item.labId] || item.labId} <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+              </span>
             </td>
             <td class="py-3 px-3 font-mono text-slate-700 text-[11px]">${item.date}</td>
             <td class="py-3 px-3 font-semibold text-slate-800 text-[11px]">${item.shift}</td>
@@ -1074,25 +1241,40 @@ class ScheduleManager {
             <td class="py-3 px-3 text-center font-bold font-mono text-blue-700">${item.studentCount} SV</td>
             <td class="py-3 px-3 text-center">${statusBadge}</td>
             <td class="py-3 px-3 text-right space-x-1" onclick="event.stopPropagation()">
-              ${item.status === 'Đang diễn ra' ? `
-                <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
-                  class="px-2 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded text-[11px] font-bold transition shadow-xs" title="Kết thúc ca học, giải phóng máy">
-                  Trả phòng
+              ${canManageShift ? `
+                ${item.status === 'Đang diễn ra' ? `
+                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', false)" 
+                    class="px-2 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded text-[11px] font-bold transition shadow-xs" title="Kết thúc ca học, giải phóng máy">
+                    Trả phòng
+                  </button>
+                ` : `
+                  <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
+                    class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded text-[11px] font-bold transition" title="Kích hoạt phòng máy đang sử dụng">
+                    <i class="fa-solid fa-play mr-1"></i>Vào ca
+                  </button>
+                `}
+                <button onclick="window.navigateToLab('${item.labId}')" 
+                  class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition" title="Xem sơ đồ 2D phòng ${item.labId}">
+                  <i class="fa-solid fa-desktop"></i>
+                </button>
+                <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" 
+                  class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition" title="Chỉnh sửa ca học">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" 
+                  class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Hủy ca học">
+                  <i class="fa-regular fa-trash-can"></i>
                 </button>
               ` : `
-                <button onclick="window.scheduleManager.toggleSessionActive('${item.id}', true)" 
-                  class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded text-[11px] font-bold transition" title="Kích hoạt phòng máy đang sử dụng">
-                  <i class="fa-solid fa-play mr-1"></i>Vào ca
+                <button onclick="window.scheduleManager.showScheduleDetailModal('${item.id}')" 
+                  class="px-2.5 py-1 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded text-[11px] font-bold transition inline-flex items-center gap-1" title="Xem chi tiết ca học">
+                  <i class="fa-regular fa-eye"></i>Chi tiết
+                </button>
+                <button onclick="window.navigateToLab('${item.labId}')" 
+                  class="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition" title="Xem sơ đồ 2D phòng ${item.labId}">
+                  <i class="fa-solid fa-desktop"></i>
                 </button>
               `}
-              <button onclick="window.scheduleManager.showEditScheduleModal('${item.id}')" 
-                class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition" title="Chỉnh sửa ca học">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button onclick="window.scheduleManager.deleteSchedule('${item.id}')" 
-                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Hủy ca học">
-                <i class="fa-regular fa-trash-can"></i>
-              </button>
             </td>
           </tr>
         `;
@@ -1152,6 +1334,10 @@ class ScheduleManager {
   showScheduleDetailModal(scheduleId) {
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
+
+    const curUser = window.appState?.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const canManageShift = (role === 'admin' || role === 'lab_manager' || role === 'teacher');
 
     const labMap = {
       'PM1': { name: 'PM 1 (A1-503)', cap: 30, room: 'Phòng A1-503 • Tầng 5, Nhà A1', config: 'FPT Elead Core i5-14400, RAM 16GB' },
@@ -1243,15 +1429,25 @@ class ScheduleManager {
             <div class="font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">Nội dung bài thực hành & Yêu cầu phần mềm</div>
             <div class="text-slate-700">${item.note || 'Cần cài đặt MS Office, Dev C++, Visual Studio Code, Python 3.12.'}</div>
           </div>
+
+          <!-- Liên kết đồng bộ sang Sơ đồ phòng máy -->
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200">
+            <button type="button" onclick="Swal.close(); window.navigateToLab('${item.labId}')" 
+              class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+              <i class="fa-solid fa-desktop text-blue-600"></i>Xem sơ đồ phòng ${item.labId}
+            </button>
+            <span class="text-[11px] text-slate-400 font-mono">Tầng 5, Nhà A1</span>
+          </div>
         </div>
       `,
       width: '600px',
       showCancelButton: true,
+      showConfirmButton: canManageShift,
       confirmButtonText: isLive ? '<i class="fa-solid fa-door-open mr-1"></i>Kết Thúc & Trả Phòng' : '<i class="fa-solid fa-play mr-1"></i>Bắt Đầu Vào Ca Học',
       confirmButtonColor: isLive ? '#1e293b' : '#059669',
       cancelButtonText: 'Đóng'
     }).then(res => {
-      if (res.isConfirmed) {
+      if (res.isConfirmed && canManageShift) {
         this.toggleSessionActive(item.id, !isLive);
       }
     });
@@ -1261,8 +1457,21 @@ class ScheduleManager {
   // ĐĂNG KÝ LỊCH THỰC HÀNH MỚI (VỚI THUẬT TOÁN KIỂM TRA TRÙNG PHÒNG & QUÁ TẢI)
   // =========================================================================
   showAddScheduleModal(prefillLab = null, prefillShift = null, prefillDate = null) {
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    if (role === 'student') {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Truy cập bị từ chối',
+          html: 'Tài khoản <strong>Sinh viên / Tra cứu</strong> chỉ có quyền xem thời khóa biểu, không có thẩm quyền xếp lịch giảng dạy.'
+        });
+      }
+      return;
+    }
     if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Đăng ký ca thực hành mới')) return;
-    const defaultDate = prefillDate || (this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate);
+    const defaultDate = prefillDate || (this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate);
+    const defaultLecturer = (curUser && curUser.role === 'teacher') ? (curUser.name || 'Giảng viên') : (curUser?.name || 'ThS. Trịnh Minh Phú');
 
     Swal.fire({
       title: `
@@ -1298,14 +1507,14 @@ class ScheduleManager {
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Khung ca học *</label>
               <select id="modal-sch-shift" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
-                <option value="07:24 - 09:14 (Tiết 1-2)" ${prefillShift && prefillShift.includes('07:24 - 09:14') ? 'selected' : ''}>Sáng: 07:24 - 09:14 (Tiết 1-2)</option>
-                <option value="09:24 - 11:14 (Tiết 3-4)" ${prefillShift && prefillShift.includes('09:24 - 11:14') ? 'selected' : ''}>Sáng: 09:24 - 11:14 (Tiết 3-4)</option>
-                <option value="07:24 - 12:14 (Tiết 1-5)" ${prefillShift && prefillShift.includes('07:24 - 12:14') ? 'selected' : ''}>Sáng: 07:24 - 12:14 (Tiết 1-5 Suốt Sáng)</option>
-                <option value="11:24 - 13:14 (Tiết 5-6)" ${prefillShift && prefillShift.includes('11:24 - 13:14') ? 'selected' : ''}>Trưa: 11:24 - 13:14 (Tiết 5-6)</option>
-                <option value="13:24 - 15:14 (Tiết 7-8)" ${prefillShift && prefillShift.includes('13:24 - 15:14') ? 'selected' : ''}>Chiều: 13:24 - 15:14 (Tiết 7-8)</option>
-                <option value="15:24 - 17:14 (Tiết 9-10)" ${prefillShift && prefillShift.includes('15:24 - 17:14') ? 'selected' : ''}>Chiều: 15:24 - 17:14 (Tiết 9-10)</option>
-                <option value="13:24 - 18:14 (Tiết 7-11)" ${prefillShift && prefillShift.includes('13:24 - 18:14') ? 'selected' : ''}>Chiều: 13:24 - 18:14 (Tiết 7-11 Suốt Chiều)</option>
-                <option value="16:24 - 19:14 (Tiết 10-12)" ${prefillShift && prefillShift.includes('16:24 - 19:14') ? 'selected' : ''}>Tối: 16:24 - 19:14 (Tiết 10-12)</option>
+                <option value="07:00 - 08:50 (Tiết 1-2)" ${prefillShift && (prefillShift.includes('07:00') || prefillShift.includes('Tiết 1-2')) ? 'selected' : ''}>Sáng: 07:00 - 08:50 (Tiết 1-2)</option>
+                <option value="09:00 - 10:50 (Tiết 3-4)" ${prefillShift && (prefillShift.includes('09:00') || prefillShift.includes('Tiết 3-4')) ? 'selected' : ''}>Sáng: 09:00 - 10:50 (Tiết 3-4)</option>
+                <option value="07:00 - 11:50 (Tiết 1-5)" ${prefillShift && (prefillShift.includes('11:50') || prefillShift.includes('Tiết 1-5')) ? 'selected' : ''}>Sáng: 07:00 - 11:50 (Tiết 1-5 Suốt Sáng)</option>
+                <option value="11:00 - 13:50 (Tiết 5-6)" ${prefillShift && (prefillShift.includes('11:00') || prefillShift.includes('Tiết 5-6')) ? 'selected' : ''}>Trưa: 11:00 - 13:50 (Tiết 5-6 Chuyển Tiếp)</option>
+                <option value="13:00 - 14:50 (Tiết 6-7)" ${prefillShift && (prefillShift.includes('13:00') || prefillShift.includes('Tiết 6-7')) ? 'selected' : ''}>Chiều: 13:00 - 14:50 (Tiết 6-7)</option>
+                <option value="15:00 - 16:50 (Tiết 8-9)" ${prefillShift && (prefillShift.includes('15:00') || prefillShift.includes('Tiết 8-9')) ? 'selected' : ''}>Chiều: 15:00 - 16:50 (Tiết 8-9)</option>
+                <option value="13:00 - 17:50 (Tiết 6-10)" ${prefillShift && (prefillShift.includes('17:50') || prefillShift.includes('Tiết 6-10')) ? 'selected' : ''}>Chiều: 13:00 - 17:50 (Tiết 6-10 Suốt Chiều)</option>
+                <option value="17:00 - 19:50 (Tiết 10-12)" ${prefillShift && (prefillShift.includes('17:00') || prefillShift.includes('Tiết 10-12')) ? 'selected' : ''}>Tối: 17:00 - 19:50 (Tiết 10-12 Ca Tối)</option>
               </select>
             </div>
             <div>
@@ -1332,7 +1541,7 @@ class ScheduleManager {
             </div>
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Giảng viên giảng dạy *</label>
-              <input type="text" id="modal-sch-lecturer" value="ThS. Trịnh Minh Phú" class="w-full p-2 bg-white border border-slate-300 rounded">
+              <input type="text" id="modal-sch-lecturer" value="${defaultLecturer}" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
             </div>
           </div>
 
@@ -1420,11 +1629,68 @@ class ScheduleManager {
   }
 
   // =========================================================================
+  // KIỂM TRA QUYỀN SỞ HỮU CA DẠY CỦA GIẢNG VIÊN (RBAC LECTURER OWNERSHIP)
+  // =========================================================================
+  checkLecturerOwnership(curUser, itemLecturer) {
+    if (!curUser || !itemLecturer) return false;
+    const role = window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role;
+    if (role === 'admin' || role === 'lab_manager') return true;
+    if (role !== 'teacher') return false;
+
+    const uName = (curUser.name || '').trim().toLowerCase();
+    const iLect = (itemLecturer || '').trim().toLowerCase();
+
+    // 1. So khớp tên đầy đủ hoặc chứa nhau
+    if (iLect === uName || iLect.includes(uName) || uName.includes(iLect)) return true;
+
+    // 2. So khớp sau khi bỏ học hàm / học vị (ThS, TS, PGS, GS, CN, KS, MG,...)
+    const stripTitle = (s) => (s || '').replace(/^(ths|ts|pgs|gs|cn|ks|mg:?)\.?\s+/i, '').trim();
+    const cleanUName = stripTitle(uName);
+    const cleanILect = stripTitle(iLect);
+    if (cleanILect === cleanUName || cleanILect.includes(cleanUName) || cleanUName.includes(cleanILect)) return true;
+
+    // 3. So khớp không dấu
+    const unaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    const uClean = unaccent(cleanUName);
+    const lClean = unaccent(cleanILect);
+    if (lClean === uClean || lClean.includes(uClean) || uClean.includes(lClean)) return true;
+
+    // 4. So khớp theo Username chuẩn
+    const uname = (curUser.username || '').toLowerCase().replace(/^@+/, '');
+    if (uname === 'toannv' && lClean.includes('toan')) return true;
+    if ((uname === 'anhnt' || uname === 'anhnth') && (lClean.includes('tuan anh') || lClean.includes('anh'))) return true;
+
+    return false;
+  }
+
+  // =========================================================================
   // CHỈNH SỬA CA HỌC (EDIT SCHEDULE MODAL)
   // =========================================================================
   showEditScheduleModal(scheduleId) {
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
+
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const isAdminOrManager = (role === 'admin' || role === 'lab_manager');
+
+    // Giảng viên chỉ có quyền chỉnh sửa ca thực hành của chính mình
+    if (!isAdminOrManager) {
+      if (role !== 'teacher') {
+        Swal.fire('Từ chối', 'Bạn không có quyền chỉnh sửa thời khóa biểu.', 'error');
+        return;
+      }
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
+      if (!isOwner) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'KHÔNG THỂ SỬA CA CỦA GIẢNG VIÊN KHÁC',
+          text: `Ca học này do Giảng viên [${item.lecturer}] phụ trách. Giảng viên chỉ có quyền chỉnh sửa ca thực hành do chính mình đảm nhiệm. Vui lòng liên hệ Quản lý phòng máy để được hỗ trợ.`,
+          confirmButtonColor: '#2563eb'
+        });
+        return;
+      }
+    }
 
     Swal.fire({
       title: `
@@ -1460,14 +1726,14 @@ class ScheduleManager {
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Ca thực hành *</label>
               <select id="edit-sch-shift" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
-                <option value="07:24 - 09:14 (Tiết 1-2)" ${item.shift.includes('07:24 - 09:14') ? 'selected' : ''}>07:24 - 09:14 (Tiết 1-2)</option>
-                <option value="09:24 - 11:14 (Tiết 3-4)" ${item.shift.includes('09:24 - 11:14') ? 'selected' : ''}>09:24 - 11:14 (Tiết 3-4)</option>
-                <option value="07:24 - 12:14 (Tiết 1-5)" ${item.shift.includes('07:24 - 12:14') ? 'selected' : ''}>07:24 - 12:14 (Tiết 1-5)</option>
-                <option value="11:24 - 13:14 (Tiết 5-6)" ${item.shift.includes('11:24 - 13:14') ? 'selected' : ''}>11:24 - 13:14 (Tiết 5-6)</option>
-                <option value="13:24 - 15:14 (Tiết 7-8)" ${item.shift.includes('13:24 - 15:14') ? 'selected' : ''}>13:24 - 15:14 (Tiết 7-8)</option>
-                <option value="15:24 - 17:14 (Tiết 9-10)" ${item.shift.includes('15:24 - 17:14') ? 'selected' : ''}>15:24 - 17:14 (Tiết 9-10)</option>
-                <option value="13:24 - 18:14 (Tiết 7-11)" ${item.shift.includes('13:24 - 18:14') ? 'selected' : ''}>13:24 - 18:14 (Tiết 7-11)</option>
-                <option value="16:24 - 19:14 (Tiết 10-12)" ${item.shift.includes('16:24 - 19:14') ? 'selected' : ''}>16:24 - 19:14 (Tiết 10-12)</option>
+                <option value="07:00 - 08:50 (Tiết 1-2)" ${item.shift.includes('07:00') || item.shift.includes('Tiết 1-2') ? 'selected' : ''}>Sáng: 07:00 - 08:50 (Tiết 1-2)</option>
+                <option value="09:00 - 10:50 (Tiết 3-4)" ${item.shift.includes('09:00') || item.shift.includes('Tiết 3-4') ? 'selected' : ''}>Sáng: 09:00 - 10:50 (Tiết 3-4)</option>
+                <option value="07:00 - 11:50 (Tiết 1-5)" ${item.shift.includes('11:50') || item.shift.includes('Tiết 1-5') ? 'selected' : ''}>Sáng: 07:00 - 11:50 (Tiết 1-5 Suốt Sáng)</option>
+                <option value="11:00 - 13:50 (Tiết 5-6)" ${item.shift.includes('11:00') || item.shift.includes('Tiết 5-6') ? 'selected' : ''}>Trưa: 11:00 - 13:50 (Tiết 5-6 Chuyển Tiếp)</option>
+                <option value="13:00 - 14:50 (Tiết 6-7)" ${item.shift.includes('14:50') || item.shift.includes('Tiết 6-7') ? 'selected' : ''}>Chiều: 13:00 - 14:50 (Tiết 6-7)</option>
+                <option value="15:00 - 16:50 (Tiết 8-9)" ${item.shift.includes('16:50') || item.shift.includes('Tiết 8-9') ? 'selected' : ''}>Chiều: 15:00 - 16:50 (Tiết 8-9)</option>
+                <option value="13:00 - 17:50 (Tiết 6-10)" ${item.shift.includes('17:50') || item.shift.includes('Tiết 6-10') ? 'selected' : ''}>Chiều: 13:00 - 17:50 (Tiết 6-10 Suốt Chiều)</option>
+                <option value="17:00 - 19:50 (Tiết 10-12)" ${item.shift.includes('19:50') || item.shift.includes('Tiết 10-12') ? 'selected' : ''}>Tối: 17:00 - 19:50 (Tiết 10-12 Ca Tối)</option>
               </select>
             </div>
             <div>
@@ -1553,6 +1819,32 @@ class ScheduleManager {
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
 
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const isAdminOrManager = (role === 'admin' || role === 'lab_manager');
+
+    // Chỉ Quản trị viên, Quản lý phòng máy và Giảng viên phụ trách mới có quyền vào ca hoặc trả phòng
+    if (!isAdminOrManager) {
+      if (role !== 'teacher') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Từ chối quyền hạn',
+          text: 'Chỉ Giảng viên phụ trách ca dạy hoặc Quản lý phòng máy mới có quyền mở ca thực hành hoặc trả phòng.'
+        });
+        return;
+      }
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
+      if (!isOwner) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'KHÔNG THỂ THAO TÁC CA DẠY CỦA GIẢNG VIÊN KHÁC',
+          text: `Ca học này do Giảng viên [${item.lecturer}] phụ trách. Giảng viên chỉ có quyền vào ca hoặc trả phòng cho ca dạy do chính mình đảm nhiệm.`,
+          confirmButtonColor: '#2563eb'
+        });
+        return;
+      }
+    }
+
     if (activate) {
       item.status = 'Đang diễn ra';
       let turnedOnCount = 0;
@@ -1614,6 +1906,28 @@ class ScheduleManager {
     if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Hủy ca thực hành')) return;
     const item = window.appState.schedules.find(s => s.id === scheduleId);
     if (!item) return;
+
+    const curUser = window.appState.currentUser;
+    const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+    const isAdminOrManager = (role === 'admin' || role === 'lab_manager');
+
+    // Giảng viên chỉ có quyền hủy ca thực hành của chính mình
+    if (!isAdminOrManager) {
+      if (role !== 'teacher') {
+        Swal.fire('Từ chối', 'Bạn không có quyền hủy ca học.', 'error');
+        return;
+      }
+      const isOwner = this.checkLecturerOwnership(curUser, item.lecturer);
+      if (!isOwner) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'KHÔNG THỂ HỦY CA CỦA GIẢNG VIÊN KHÁC',
+          text: `Ca học này do Giảng viên [${item.lecturer}] phụ trách. Giảng viên chỉ có quyền hủy ca thực hành do chính mình đảm nhiệm. Vui lòng liên hệ Quản lý phòng máy để được hỗ trợ.`,
+          confirmButtonColor: '#2563eb'
+        });
+        return;
+      }
+    }
 
     Swal.fire({
       title: 'Hủy ca thực hành này?',
@@ -1720,8 +2034,8 @@ class ScheduleManager {
           else if (labRaw.includes('PM3') || labRaw.includes('505')) labId = 'PM3';
           else if (labRaw.includes('PM4') || labRaw.includes('506')) labId = 'PM4';
 
-          const date = (row['Ngày học'] || row['Ngày'] || row['date'] || '2026-11-14').toString().trim();
-          const shift = (row['Ca thực hành'] || row['Ca học'] || row['shift'] || '07:24 - 09:14 (Tiết 1-2)').toString().trim();
+          const date = (row['Ngày học'] || row['Ngày'] || row['date'] || this.getTodayDateStr()).toString().trim();
+          const shift = (row['Ca thực hành'] || row['Ca học'] || row['shift'] || '07:00 - 08:50 (Tiết 1-2)').toString().trim();
           const subject = (row['Tên môn học'] || row['Môn học'] || row['subject'] || 'Tin học ứng dụng').toString().trim();
           const courseCode = (row['Mã học phần'] || row['Mã môn'] || row['courseCode'] || 'TIN-TNUS').toString().trim().toUpperCase();
           const className = (row['Lớp học phần'] || row['Lớp'] || row['className'] || 'K20 CNTT').toString().trim();
@@ -1782,7 +2096,7 @@ class ScheduleManager {
   // IN BẢN THỜI KHÓA BIỂU CHUẨN ĐẠI HỌC (PRINT TIMETABLE)
   // =========================================================================
   printSchedule() {
-    const targetDate = this.selectedDate === 'all' ? '2026-11-14' : this.selectedDate;
+    const targetDate = this.selectedDate === 'all' ? this.getTodayDateStr() : this.selectedDate;
     const list = this.getFilteredSchedules();
     const labNames = {
       'PM1': 'PM 1 (A1-503)',
