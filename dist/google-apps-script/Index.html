@@ -1825,9 +1825,9 @@
                     </div>
                   </div>
                   <div class="flex items-center gap-1.5 mt-3.5 pt-2 border-t border-purple-200">
-                    <button onclick="window.openRoleLoginModal('student', 'simulation')" class="flex-1 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1" title="Đăng nhập tài khoản Sinh viên tra cứu">
-                      <i class="fa-solid fa-right-to-bracket"></i>
-                      <span>Đăng nhập vai trò</span>
+                    <button onclick="window.returnToGuestView(true)" class="flex-1 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1" title="Chuyển sang chế độ Sinh viên tra cứu (Không cần mật khẩu)">
+                      <i class="fa-solid fa-graduation-cap"></i>
+                      <span>Xem chế độ Sinh viên</span>
                     </button>
                     <button onclick="window.filterUsersByRole('student')" class="px-2.5 py-1.5 bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 rounded-lg text-xs font-bold transition" title="Xem tài khoản Sinh viên">
                       <i class="fa-solid fa-users"></i>
@@ -1993,7 +1993,7 @@
 
                 <!-- Link Sinh viên / Khách -->
                 <div class="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between hover:border-purple-400 hover:shadow-xs transition">
-                  <div class="cursor-pointer" onclick="window.openRoleLoginModal('student', 'simulation')" title="Bấm để đăng nhập tài khoản Sinh viên / Tra cứu">
+                  <div class="cursor-pointer" onclick="window.returnToGuestView(true)" title="Vào thẳng giao diện Sinh viên / Khách tra cứu (Không cần mật khẩu)">
                     <div class="flex items-center justify-between gap-1 mb-2">
                       <span class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/60">
                         <i class="fa-solid fa-graduation-cap text-[10px]"></i>
@@ -2002,14 +2002,14 @@
                       <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">student</span>
                     </div>
                     <div class="font-bold text-slate-900 text-xs">Sinh viên / Khách tra cứu</div>
-                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">Mở thẳng Sơ đồ 2D & Thời khóa biểu</p>
+                    <p class="text-[10px] text-slate-500 mt-1 leading-snug">Vào thẳng Sơ đồ 2D & Thời khóa biểu (Không cần đăng nhập)</p>
                   </div>
                   <div class="flex items-center space-x-1.5 mt-3 pt-2.5 border-t border-slate-100">
                     <button onclick="window.copyRoleAccessLink('student', 'simulation')" class="flex-1 py-1.5 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold rounded-lg text-[11px] transition flex items-center justify-center space-x-1 border border-purple-200/60" title="Sao chép link Web App cho Sinh viên/Khách">
                       <i class="fa-solid fa-copy"></i>
                       <span>Sao chép</span>
                     </button>
-                    <button onclick="window.openRoleLoginModal('student', 'simulation')" class="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Đăng nhập tài khoản Sinh viên tra cứu">
+                    <button onclick="window.returnToGuestView(true)" class="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center justify-center space-x-1" title="Vào thẳng giao diện Sinh viên (Không cần mật khẩu)">
                       <i class="fa-solid fa-arrow-right-to-bracket"></i>
                       <span>Vào</span>
                     </button>
@@ -18763,6 +18763,18 @@ function applyUrlParameters(params) {
     const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
     const targetNormRole = window.normalizeRole ? window.normalizeRole(targetAccount) : targetAccount;
 
+    // Nếu tham số là Sinh viên / Khách tra cứu: Vào thẳng ngay lập tức, không bắt đăng nhập
+    if (targetNormRole === 'student') {
+      if (typeof window.returnToGuestView === 'function') {
+        window.returnToGuestView(false);
+      }
+      if (tabParam) {
+        const tabLink = document.querySelector(`.nav-tab-link[data-tab="${tabParam.toLowerCase()}"]`);
+        if (tabLink) setTimeout(() => tabLink.click(), 80);
+      }
+      return;
+    }
+
     // Nếu người dùng chưa ở phiên vai trò này, bật hộp thoại đăng nhập bắt buộc
     if (curRole !== targetNormRole) {
       // Đảm bảo không hiển thị phân hệ quản lý thiết bị/tài khoản ở background trước khi xác thực
@@ -20248,6 +20260,18 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
 
   const normRole = aliasRoleMap[rawRole] || (window.normalizeRole ? window.normalizeRole(rawRole) : rawRole);
 
+  // BỎ HOÀN TOÀN CHỨC NĂNG ĐĂNG NHẬP Ở TÀI KHOẢN SINH VIÊN / KHÁCH TRA CỨU:
+  // Sinh viên tra cứu tự do (Sơ đồ 2D, Lịch thực hành) không cần tài khoản hay mật khẩu
+  if (normRole === 'student') {
+    if (typeof window.returnToGuestView === 'function') {
+      window.returnToGuestView(true);
+    }
+    if (targetTab && typeof window.switchTab === 'function') {
+      window.switchTab(targetTab);
+    }
+    return;
+  }
+
   const roleUiConfig = {
     lab_manager: {
       roleTitle: 'QUẢN LÝ PHÒNG MÁY',
@@ -20701,6 +20725,17 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
 
   const rawTerm = (username || '').trim();
   const cleanTerm = rawTerm.toLowerCase().replace(/^@+/, '');
+
+  // Sinh viên / Khách tra cứu tự do không cần đăng nhập
+  if (cleanTerm === 'student' || cleanTerm === 'sinhvien' || cleanTerm === 'khach' || cleanTerm === 'sv') {
+    if (typeof window.returnToGuestView === 'function') {
+      window.returnToGuestView(true);
+    }
+    if (explicitTargetTab && typeof window.switchTab === 'function') {
+      window.switchTab(explicitTargetTab);
+    }
+    return;
+  }
 
   // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa
   const aliasMap = {

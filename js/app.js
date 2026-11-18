@@ -4638,6 +4638,18 @@ function applyUrlParameters(params) {
     const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
     const targetNormRole = window.normalizeRole ? window.normalizeRole(targetAccount) : targetAccount;
 
+    // Nếu tham số là Sinh viên / Khách tra cứu: Vào thẳng ngay lập tức, không bắt đăng nhập
+    if (targetNormRole === 'student') {
+      if (typeof window.returnToGuestView === 'function') {
+        window.returnToGuestView(false);
+      }
+      if (tabParam) {
+        const tabLink = document.querySelector(`.nav-tab-link[data-tab="${tabParam.toLowerCase()}"]`);
+        if (tabLink) setTimeout(() => tabLink.click(), 80);
+      }
+      return;
+    }
+
     // Nếu người dùng chưa ở phiên vai trò này, bật hộp thoại đăng nhập bắt buộc
     if (curRole !== targetNormRole) {
       // Đảm bảo không hiển thị phân hệ quản lý thiết bị/tài khoản ở background trước khi xác thực
@@ -6123,6 +6135,18 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
 
   const normRole = aliasRoleMap[rawRole] || (window.normalizeRole ? window.normalizeRole(rawRole) : rawRole);
 
+  // BỎ HOÀN TOÀN CHỨC NĂNG ĐĂNG NHẬP Ở TÀI KHOẢN SINH VIÊN / KHÁCH TRA CỨU:
+  // Sinh viên tra cứu tự do (Sơ đồ 2D, Lịch thực hành) không cần tài khoản hay mật khẩu
+  if (normRole === 'student') {
+    if (typeof window.returnToGuestView === 'function') {
+      window.returnToGuestView(true);
+    }
+    if (targetTab && typeof window.switchTab === 'function') {
+      window.switchTab(targetTab);
+    }
+    return;
+  }
+
   const roleUiConfig = {
     lab_manager: {
       roleTitle: 'QUẢN LÝ PHÒNG MÁY',
@@ -6576,6 +6600,17 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
 
   const rawTerm = (username || '').trim();
   const cleanTerm = rawTerm.toLowerCase().replace(/^@+/, '');
+
+  // Sinh viên / Khách tra cứu tự do không cần đăng nhập
+  if (cleanTerm === 'student' || cleanTerm === 'sinhvien' || cleanTerm === 'khach' || cleanTerm === 'sv') {
+    if (typeof window.returnToGuestView === 'function') {
+      window.returnToGuestView(true);
+    }
+    if (explicitTargetTab && typeof window.switchTab === 'function') {
+      window.switchTab(explicitTargetTab);
+    }
+    return;
+  }
 
   // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa
   const aliasMap = {
