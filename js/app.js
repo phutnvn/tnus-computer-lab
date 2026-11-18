@@ -6437,7 +6437,7 @@ window.openRoleLoginModal = function(roleParam, targetTab) {
           return;
         }
         roleLoginSubmitted = true;
-        window.handleLoginSubmit(u, p, targetTab || ui.destTab);
+        window.handleLoginSubmit(u, p, targetTab || ui.destTab, normRole);
       };
 
       const btnSubmit = document.getElementById('btn-role-login-submit');
@@ -6680,8 +6680,9 @@ window.quickFillLogin = function(username, password) {
 
 /**
  * Xử lý xác thực đăng nhập tài khoản (Quản lý phòng máy, Giảng viên, Admin, Sinh viên)
+ * Cơ chế bảo mật: Chỉ cho phép đăng nhập tài khoản do Admin tạo thuộc đúng vai trò
  */
-window.handleLoginSubmit = function(username, password, explicitTargetTab = null) {
+window.handleLoginSubmit = function(username, password, explicitTargetTab = null, requiredRole = null) {
   if (!username) {
     Swal.fire({
       icon: 'warning',
@@ -6720,9 +6721,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     
     // Giảng viên
     'toannv': 'toannv',
-    'giangvien': 'toannv',
-    'teacher': 'toannv',
-    'gv': 'toannv',
     'anhnth': 'anhnth',
     'anhnt': 'anhnth',
     'tuananh': 'anhnth',
@@ -6771,21 +6769,14 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     user = (window.appState.users || []).find(u => 
       (u.username && u.username.toLowerCase().replace(/^@+/, '') === lookupKey) ||
       (lookupKey === 'linhtt' && (u.role === 'lab_manager' || u.username === 'qlphongmay')) ||
+      (lookupKey === 'anhnth' && u.role === 'teacher') ||
       (lookupKey === 'toannv' && u.role === 'teacher') ||
       (lookupKey === 'student' && u.role === 'student') ||
       (lookupKey === 'admin' && u.role === 'admin')
     );
   }
 
-  // 3. Nếu vẫn chưa thấy trong appState.users, tìm theo vai trò Quản lý hoặc Giảng viên
-  if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh' || cleanTerm === 'qlphongmay' || cleanTerm === 'manager' || cleanTerm === 'qlpm' || cleanTerm === 'quanly' || cleanTerm === 'quanlyphongmay')) {
-    user = (window.appState.users || []).find(u => u.role === 'lab_manager');
-  }
-  if (!user && (cleanTerm === 'toannv' || cleanTerm === 'toan' || cleanTerm === 'giangvien' || cleanTerm === 'teacher' || cleanTerm === 'gv')) {
-    user = (window.appState.users || []).find(u => u.role === 'teacher');
-  }
-
-  // 4. Nếu vẫn chưa thấy trong appState.users, tìm trong STANDARD_ROLE_ACCOUNTS mặc định của hệ thống
+  // 3. Nếu chưa có trong appState.users, kiểm tra tài khoản đại diện chuẩn của hệ thống
   if (!user && (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' || window.STANDARD_ROLE_ACCOUNTS)) {
     const standards = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : window.STANDARD_ROLE_ACCOUNTS;
     user = Object.values(standards).find(u => 
@@ -6797,9 +6788,6 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh' || cleanTerm === 'qlphongmay' || cleanTerm === 'manager' || cleanTerm === 'qlpm' || cleanTerm === 'quanly')) {
       user = standards.lab_manager;
     }
-    if (!user && (cleanTerm === 'toannv' || cleanTerm === 'toan' || cleanTerm === 'teacher' || cleanTerm === 'giangvien' || cleanTerm === 'gv')) {
-      user = standards.teacher;
-    }
     if (user) {
       user = { ...user };
       if (!window.appState.users.some(u => u.id === user.id || u.username === user.username)) {
@@ -6809,147 +6797,53 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
     }
   }
 
-  // 5. Nếu từ khóa là linhtt (ThS. Trần Thị Linh) mà chưa có trong bộ nhớ, tự động đồng bộ ngay lập tức:
-  if (!user && (cleanTerm === 'linhtt' || cleanTerm === 'linh')) {
-    user = {
-      id: 'USR-02',
-      username: 'linhtt',
-      name: 'ThS. Trần Thị Linh',
-      role: 'lab_manager',
-      roleName: 'Quản lý phòng máy',
-      email: 'linhtt@tnus.edu.vn',
-      phone: '0978.889.991',
-      department: 'Tổ Quản trị Phòng máy - Khoa Toán - Tin',
-      avatar: '🏢',
-      status: 'active',
-      initialPassword: 'Tnus@2026',
-      passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
-      salt: 'TNUS_KHOA_TOAN_TIN_2026',
-      failedLogins: 0,
-      createdAt: '2026-10-15',
-      lastLogin: '2026-11-18 08:00'
-    };
-    if (!window.appState.users.some(u => u.username === 'linhtt')) {
-      window.appState.users.push(user);
-      window.saveStateToLocalStorage();
-    }
-  }
-
-  // 5.1 Nếu từ khóa là toannv (TS. Nguyễn Văn Toàn) mà chưa có trong bộ nhớ, tự động đồng bộ ngay lập tức:
-  if (!user && (cleanTerm === 'toannv' || cleanTerm === 'toan' || cleanTerm === 'giangvien' || cleanTerm === 'teacher' || cleanTerm === 'gv')) {
-    user = {
-      id: 'USR-03',
-      username: 'toannv',
-      name: 'TS. Nguyễn Văn Toàn',
-      role: 'teacher',
-      roleName: 'Giảng viên',
-      email: 'toannv@tnus.edu.vn',
-      phone: '0912.345.678',
-      department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-      avatar: '👨‍🏫',
-      status: 'active',
-      initialPassword: 'Tnus@2026',
-      passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
-      salt: 'TNUS_KHOA_TOAN_TIN_2026',
-      failedLogins: 0,
-      createdAt: '2026-10-15',
-      lastLogin: '2026-11-18 07:45'
-    };
-    if (!window.appState.users.some(u => u.username === 'toannv')) {
-      window.appState.users.push(user);
-      window.saveStateToLocalStorage();
-    }
-  }
-
-  // 5.2 Nếu từ khóa là anhnth / anhnt (ThS. Nguyễn Tuấn Anh) mà chưa có trong bộ nhớ, tự động đồng bộ ngay lập tức:
-  if (!user && (cleanTerm === 'anhnth' || cleanTerm === 'anhnt' || cleanTerm === 'tuananh' || cleanTerm === 'nguyentuananh')) {
-    user = {
-      id: 'USR-04',
-      username: 'anhnth',
-      name: 'ThS. Nguyễn Tuấn Anh',
-      role: 'teacher',
-      roleName: 'Giảng viên',
-      email: 'anhnth@tnus.edu.vn',
-      phone: '0983.123.456',
-      department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-      avatar: '👨‍🏫',
-      status: 'active',
-      initialPassword: 'Tnus@2026',
-      passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
-      salt: 'TNUS_KHOA_TOAN_TIN_2026',
-      failedLogins: 0,
-      createdAt: '2026-10-15',
-      lastLogin: '2026-11-18 07:50'
-    };
-    if (!window.appState.users.some(u => u.username === 'anhnth')) {
-      window.appState.users.push(user);
-      window.saveStateToLocalStorage();
-    }
-  }
-
-  // 5.3 Tự động nhận diện và đồng bộ bất kỳ Giảng viên nào có trong Thời Khóa Biểu Khoa Toán - Tin TNUS:
-  if (!user && cleanTerm) {
-    const unaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
-    const cleanTermUnaccent = unaccent(cleanTerm);
-    
-    // Tìm trong lịch xem có giảng viên nào tương ứng không
-    const schedules = window.appState.schedules || (typeof INITIAL_SCHEDULES !== 'undefined' ? INITIAL_SCHEDULES : []);
-    const matchingSchedule = schedules.find(s => {
-      if (!s.lecturer) return false;
-      const cleanLec = s.lecturer.replace(/^MG:\s*/i, '').trim();
-      const cleanLecUnaccent = unaccent(cleanLec);
-      const parts = cleanLecUnaccent.split(/\s+/);
-      const lastName = parts[parts.length - 1];
-      const initials = parts.slice(0, -1).map(p => p[0]).join('');
-      const generatedUname = (lastName + initials);
-      return generatedUname === cleanTerm || 
-             generatedUname === cleanTermUnaccent || 
-             cleanLec.toLowerCase() === cleanTerm || 
-             cleanLecUnaccent === cleanTermUnaccent ||
-             cleanTerm.includes(lastName) ||
-             (cleanTerm.startsWith('anh') && cleanLecUnaccent.includes('anh'));
-    });
-
-    if (matchingSchedule) {
-      const cleanLecName = matchingSchedule.lecturer.replace(/^MG:\s*/i, '').trim();
-      const maxNum = (window.appState.users || []).reduce((max, u) => {
-        const m = (u.id || '').match(/USR-(\d+)/);
-        return m ? Math.max(max, parseInt(m[1], 10)) : max;
-      }, 5);
-      user = {
-        id: `USR-${(maxNum + 1).toString().padStart(2, '0')}`,
-        username: cleanTerm,
-        name: cleanLecName.startsWith('ThS') || cleanLecName.startsWith('TS') ? cleanLecName : `ThS. ${cleanLecName}`,
-        role: 'teacher',
-        roleName: 'Giảng viên',
-        email: `${cleanTerm}@tnus.edu.vn`,
-        phone: '0983.123.456',
-        department: 'Bộ môn Khoa học Máy tính - Khoa Toán - Tin, TNUS',
-        avatar: '👨‍🏫',
-        status: 'active',
-        initialPassword: 'Tnus@2026',
-        passwordHash: typeof hashPassword === 'function' ? hashPassword('Tnus@2026') : 'tnus@2026',
-        salt: 'TNUS_KHOA_TOAN_TIN_2026',
-        failedLogins: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        lastLogin: new Date().toISOString().replace('T', ' ').substring(0, 16)
-      };
-      window.appState.users.push(user);
-      window.saveStateToLocalStorage();
-    }
-  }
-
+  // 4. KIỂM TRA ĐIỀU KIỆN TÀI KHOẢN TỒN TẠI (Chỉ cho phép tài khoản do Admin tạo có trong hệ thống):
   if (!user) {
+    const isTeacherLogin = (requiredRole === 'teacher');
     Swal.fire({
       icon: 'error',
       title: 'Tài khoản không tồn tại',
       html: `
         <div class="text-xs text-slate-600 text-left space-y-2">
           <p>Không tìm thấy tài khoản <strong>"${username}"</strong> trong hệ thống phòng máy TNUS.</p>
-          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 text-2xs space-y-1">
-            <p>• Nếu bạn là Cán bộ / Giảng viên mới: Vui lòng liên hệ Admin <strong>ThS. Trịnh Minh Phú (0975.090.666)</strong> để được tạo tài khoản.</p>
-            <p>• Bạn có thể nhập Tên đăng nhập (Username), Email hoặc Mã tài khoản (USR-xx).</p>
+          <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-2xs space-y-1">
+            <p><strong>Cơ chế bảo mật:</strong> ${isTeacherLogin ? 'Chỉ những tài khoản Giảng viên do Quản trị viên (Admin) tạo mới được phép đăng nhập.' : 'Vui lòng sử dụng tài khoản do Quản trị viên cấp.'}</p>
+            <p>Liên hệ Admin <strong>ThS. Trịnh Minh Phú (0975.090.666)</strong> để được cấp tài khoản.</p>
           </div>
+        </div>
+      `,
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
+  // 5. CƠ CHẾ BẢO MẬT VAI TRÒ: CHỈ CHO PHÉP ĐĂNG NHẬP ĐÚNG PHÂN HỆ
+  const userNormRole = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
+  if (requiredRole === 'teacher' && userNormRole !== 'teacher') {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Không đúng vai trò Giảng viên',
+      html: `
+        <div class="text-xs text-slate-600 text-left space-y-2">
+          <p>Tài khoản <strong>${user.name}</strong> (@${user.username}) thuộc vai trò <strong>${user.roleName || user.role}</strong>.</p>
+          <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-2xs space-y-1">
+            <p><strong>Yêu cầu phân quyền:</strong> Phân hệ Giảng viên chỉ cho phép đăng nhập các tài khoản Giảng viên do Quản trị viên (Admin) tạo.</p>
+          </div>
+        </div>
+      `,
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
+  if (requiredRole === 'lab_manager' && userNormRole !== 'lab_manager') {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Không đúng vai trò Quản lý',
+      html: `
+        <div class="text-xs text-slate-600 text-left space-y-2">
+          <p>Tài khoản <strong>${user.name}</strong> (@${user.username}) thuộc vai trò <strong>${user.roleName || user.role}</strong>.</p>
+          <p class="text-slate-500">Phân hệ này chỉ dành riêng cho Cán bộ Quản lý phòng máy do Admin chỉ định.</p>
         </div>
       `,
       confirmButtonColor: '#2563eb'
