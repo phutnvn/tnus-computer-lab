@@ -20732,8 +20732,8 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
   const defaultPass = '';
 
   let userChipsHtml = '';
-  // Bỏ phần hiển thị gợi ý tài khoản tại giao diện đăng nhập giảng viên theo yêu cầu
-  if (normRole !== 'teacher' && roleUsers.length > 0) {
+  // Bỏ phần hiển thị gợi ý tài khoản tại giao diện đăng nhập giảng viên và quản lý phòng máy theo yêu cầu
+  if (normRole !== 'teacher' && normRole !== 'lab_manager' && roleUsers.length > 0) {
     const chips = roleUsers.map(u => {
       const uname = (u.username || '').replace(/^@+/, '');
       const uPass = u.initialPassword || 'Tnus@2026';
@@ -20769,25 +20769,25 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
       <div class="text-left select-none">
         <!-- Header gọn gàng, tinh tế -->
         <div class="flex items-center space-x-3 pb-3 border-b border-slate-100">
-          <div class="w-11 h-11 rounded-2xl text-white flex items-center justify-center text-xl shadow-md shrink-0 border ${normRole === 'teacher' ? 'bg-gradient-to-br from-emerald-500 to-teal-700 border-emerald-400/30 shadow-emerald-950/30' : 'border-indigo-400/30 shadow-indigo-950/30'}" style="background: ${ui.themeColor};">
+          <div class="w-11 h-11 rounded-2xl text-white flex items-center justify-center text-xl shadow-md shrink-0 border ${normRole === 'teacher' ? 'bg-gradient-to-br from-emerald-500 to-teal-700 border-emerald-400/30 shadow-emerald-950/30' : (normRole === 'lab_manager' ? 'bg-gradient-to-br from-indigo-500 to-blue-700 border-indigo-400/30 shadow-indigo-950/30' : 'border-blue-400/30 shadow-blue-950/30')}" style="${normRole !== 'teacher' && normRole !== 'lab_manager' ? `background: ${ui.themeColor};` : ''}">
             <i class="fa-solid ${ui.iconClass}"></i>
           </div>
           <div class="flex-1 min-w-0 pr-2">
             <div class="flex items-center justify-between gap-1">
-              <h3 class="text-sm font-extrabold text-slate-900 tracking-tight uppercase">${normRole === 'teacher' ? 'GIẢNG VIÊN THỰC HÀNH' : ui.roleTitle}</h3>
+              <h3 class="text-sm font-extrabold text-slate-900 tracking-tight uppercase">${normRole === 'teacher' ? 'GIẢNG VIÊN THỰC HÀNH' : (normRole === 'lab_manager' ? 'QUẢN LÝ PHÒNG MÁY' : ui.roleTitle)}</h3>
             </div>
-            <p class="text-[11px] ${normRole === 'teacher' ? 'text-emerald-700' : 'text-blue-700'} font-semibold truncate">Khoa Toán - Tin • Trường ĐH Khoa học (TNUS)</p>
+            <p class="text-[11px] ${normRole === 'teacher' ? 'text-emerald-700' : (normRole === 'lab_manager' ? 'text-indigo-700' : 'text-blue-700')} font-semibold truncate">Khoa Toán - Tin • Trường ĐH Khoa học (TNUS)</p>
           </div>
         </div>
 
         <!-- Phân hệ đích -->
         <div class="mt-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
           <span class="text-[11px] text-slate-600 font-medium flex items-center gap-1.5">
-            <i class="fa-solid fa-arrow-right-to-bracket ${normRole === 'teacher' ? 'text-emerald-600' : 'text-indigo-600'}"></i>
+            <i class="fa-solid fa-arrow-right-to-bracket ${normRole === 'teacher' ? 'text-emerald-600' : (normRole === 'lab_manager' ? 'text-indigo-600' : 'text-blue-600')}"></i>
             Phân hệ đích:
           </span>
-          <span class="text-[11px] font-bold ${normRole === 'teacher' ? 'text-emerald-800' : 'text-slate-800'} bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
-            ${normRole === 'teacher' ? 'Lịch Thực Hành & Giảng Dạy' : ui.destTabLabel}
+          <span class="text-[11px] font-bold ${normRole === 'teacher' ? 'text-emerald-800' : (normRole === 'lab_manager' ? 'text-indigo-800' : 'text-slate-800')} bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
+            ${normRole === 'teacher' ? 'Lịch Thực Hành & Giảng Dạy' : (normRole === 'lab_manager' ? 'Quản Lý Thiết Bị (104 máy)' : ui.destTabLabel)}
           </span>
         </div>
 
@@ -20831,9 +20831,9 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
 
         <!-- Nút hành động chính: Đăng nhập toàn chiều rộng -->
         <div class="mt-4 pt-2 border-t border-slate-100">
-          <button type="button" id="btn-role-login-submit" class="w-full py-2.5 px-4 text-white rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center gap-2 cursor-pointer ${normRole === 'teacher' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-950/20' : 'hover:opacity-95'}" style="${normRole !== 'teacher' ? `background: ${ui.themeColor};` : ''}">
+          <button type="button" id="btn-role-login-submit" class="w-full py-2.5 px-4 text-white rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center gap-2 cursor-pointer ${normRole === 'teacher' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-950/20' : (normRole === 'lab_manager' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-indigo-950/20' : 'hover:opacity-95')}" style="${normRole !== 'teacher' && normRole !== 'lab_manager' ? `background: ${ui.themeColor};` : ''}">
             <i class="fa-solid fa-right-to-bracket"></i>
-            <span>${normRole === 'teacher' ? 'Đăng Nhập Giảng Viên' : 'Đăng Nhập'}</span>
+            <span>${normRole === 'teacher' ? 'Đăng Nhập Giảng Viên' : (normRole === 'lab_manager' ? 'Đăng Nhập Quản Lý Phòng Máy' : 'Đăng Nhập')}</span>
           </button>
         </div>
 
@@ -20943,7 +20943,92 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
             container.insertBefore(bgLayer, container.firstChild);
           }
         } else if (normRole === 'lab_manager') {
-          container.style.background = 'radial-gradient(circle at 15% 15%, rgba(79, 70, 229, 0.28) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.22) 0%, transparent 50%), linear-gradient(145deg, #090e24 0%, #11183d 45%, #0b1129 100%)';
+          container.style.background = 'radial-gradient(circle at 12% 15%, rgba(99, 102, 241, 0.32) 0%, transparent 45%), radial-gradient(circle at 88% 85%, rgba(59, 130, 246, 0.26) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(67, 56, 202, 0.22) 0%, transparent 65%), linear-gradient(145deg, #070d24 0%, #0d1538 45%, #080f2b 100%)';
+
+          let bgLayer = container.querySelector('#lab-manager-login-bg-layer');
+          if (!bgLayer) {
+            bgLayer = document.createElement('div');
+            bgLayer.id = 'lab-manager-login-bg-layer';
+            bgLayer.className = 'absolute inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-8 z-0 overflow-hidden select-none';
+            bgLayer.innerHTML = `
+              <!-- Tech Grid subtle background overlay -->
+              <div class="absolute inset-0 opacity-[0.04]" style="background-image: linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(90deg, #6366f1 1px, transparent 1px); background-size: 36px 36px;"></div>
+
+              <!-- Ambient glowing light orbs -->
+              <div class="absolute -top-20 -left-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+              <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <!-- TOP BRANDING BAR -->
+              <div class="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between border-b border-indigo-500/20 pb-4">
+                <div class="flex items-center space-x-3.5">
+                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-700 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-950/50 border border-indigo-400/30">
+                    <i class="fa-solid fa-network-wired"></i>
+                  </div>
+                  <div>
+                    <div class="text-[11px] sm:text-xs uppercase tracking-widest font-black text-indigo-400">Khoa Toán - Tin • Trường Đại học Khoa học (TNUS)</div>
+                    <div class="text-sm sm:text-base font-extrabold text-white tracking-tight">CỔNG ĐĂNG NHẬP CÁN BỘ QUẢN LÝ PHÒNG MÁY</div>
+                  </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-2 text-xs text-indigo-300 bg-indigo-950/70 px-3.5 py-1.5 rounded-full border border-indigo-500/30 backdrop-blur-md">
+                  <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                  <span class="font-semibold">Trung Tâm Điều Hành 104 Máy Trạm (PM1 - PM4)</span>
+                </div>
+              </div>
+
+              <!-- MIDDLE FLANKING BADGES (Desktop) -->
+              <div class="relative z-10 w-full max-w-6xl mx-auto hidden lg:grid grid-cols-2 gap-8 items-center px-2">
+                <!-- Cột bên trái modal -->
+                <div class="space-y-3.5 max-w-xs text-left">
+                  <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-indigo-500/25 backdrop-blur-md shadow-xl space-y-1">
+                    <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <i class="fa-solid fa-desktop"></i>
+                      <span>Vận Hành 104 Máy Trạm</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">Giám sát trực quan trạng thái phần cứng, kết nối mạng LAN và hiện trạng 4 phòng thực hành tại Nhà A1.</p>
+                  </div>
+                  <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-blue-500/25 backdrop-blur-md shadow-xl space-y-1">
+                    <div class="text-[11px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <i class="fa-solid fa-bolt-lightning"></i>
+                      <span>Bật Nguồn WOL Tuần Tự</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">Kích hoạt nguồn đồng loạt từ xa thông minh với thuật toán giãn cách chống quá tải và sụt áp lưới điện.</p>
+                  </div>
+                </div>
+
+                <!-- Cột bên phải modal -->
+                <div class="space-y-3.5 max-w-xs ml-auto text-right">
+                  <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-indigo-500/25 backdrop-blur-md shadow-xl space-y-1">
+                    <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center justify-end gap-1.5">
+                      <span>Điều Phối & Duyệt Lịch Học</span>
+                      <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">Kiểm duyệt, xếp lịch và điều phối ca thực hành phòng máy theo tiến độ đào tạo các bộ môn.</p>
+                  </div>
+                  <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-amber-500/25 backdrop-blur-md shadow-xl space-y-1">
+                    <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-end gap-1.5">
+                      <span>Bảo Trì & Quản Lý Sự Cố</span>
+                      <i class="fa-solid fa-wrench"></i>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">Tiếp nhận phiếu báo hỏng, theo dõi tiến độ sửa chữa thiết bị và nghiệm thu vật tư máy tính.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BOTTOM FOOTER BAR -->
+              <div class="relative z-10 w-full max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between border-t border-indigo-500/20 pt-3 text-[11px] text-slate-400 gap-2">
+                <div class="flex items-center space-x-2">
+                  <i class="fa-solid fa-shield-halved text-indigo-400"></i>
+                  <span>Phòng Máy Tính Thực Hành TNUS • <strong>Tổ Quản Trị Phòng Máy, Khoa Toán - Tin</strong></span>
+                </div>
+                <div class="flex items-center space-x-1.5 text-indigo-300/90 font-medium">
+                  <i class="fa-solid fa-headset text-indigo-400"></i>
+                  <span>Quản trị viên hỗ trợ: <strong>ThS. Trịnh Minh Phú (0975.090.666)</strong></span>
+                </div>
+              </div>
+            `;
+            container.insertBefore(bgLayer, container.firstChild);
+          }
         } else {
           container.style.background = 'radial-gradient(circle at 15% 15%, rgba(37, 99, 235, 0.28) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(79, 70, 229, 0.22) 0%, transparent 50%), linear-gradient(145deg, #091224 0%, #0e1e3b 45%, #0a1326 100%)';
         }
@@ -20956,6 +21041,9 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
         if (normRole === 'teacher') {
           popup.style.boxShadow = '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(16, 185, 129, 0.35)';
           popup.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+        } else if (normRole === 'lab_manager') {
+          popup.style.boxShadow = '0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(99, 102, 241, 0.45), 0 0 45px -10px rgba(79, 70, 229, 0.35)';
+          popup.style.border = '1px solid rgba(129, 140, 248, 0.4)';
         } else {
           popup.style.boxShadow = '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(99, 102, 241, 0.35)';
           popup.style.border = '1px solid rgba(99, 102, 241, 0.3)';
