@@ -2461,6 +2461,15 @@ window.showUserProfileModal = function() {
             ${permsHtml}
           </div>
         </div>
+
+        <!-- Tùy chọn đăng xuất an toàn khỏi hệ thống -->
+        <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
+          <button type="button" onclick="Swal.close(); window.logoutUser();" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Đăng xuất phiên làm việc hiện tại">
+            <i class="fa-solid fa-power-off"></i>
+            <span>Đăng xuất phiên làm việc</span>
+          </button>
+          <span class="text-[10px] text-slate-400">Phiên bảo mật TNUS 2026</span>
+        </div>
       </div>
     `,
     showCancelButton: true,
@@ -2478,6 +2487,10 @@ window.showUserProfileModal = function() {
     if (result.isConfirmed && result.value) {
       user.phone = result.value.phone;
       user.email = result.value.email;
+      if (result.value.newPass) {
+        user.initialPassword = result.value.newPass;
+        user.passwordHash = typeof hashPassword === 'function' ? hashPassword(result.value.newPass, user.salt || 'TNUS_KHOA_TOAN_TIN_2026') : 'hashed_' + result.value.newPass;
+      }
       window.saveStateToLocalStorage();
       window.updateUserUI();
       window.logUserActivity('Cập nhật hồ sơ', `Cập nhật thông tin liên hệ của ${user.name}`);
@@ -5009,6 +5022,7 @@ window.applyRoleRestrictionsToUI = function() {
   const bannerContainer = document.getElementById('dynamic-role-alert-banner');
 
   // 0. BẢO MẬT & ĐIỀU KHIỂN HEADER THEO VAI TRÒ:
+  const isTeacher = (role === 'teacher');
   const isStudent = (role === 'student');
   const roleContainer = document.getElementById('header-role-switcher-container');
   const headerSelect = document.getElementById('user-role-select');
@@ -5017,8 +5031,8 @@ window.applyRoleRestrictionsToUI = function() {
   const roleLabel = document.getElementById('header-role-label');
 
   if (roleContainer) {
-    if (isStudent) {
-      // BỎ HOÀN TOÀN nút lệnh / hộp chọn vai trò ở giao diện Sinh viên
+    if (isStudent || isTeacher) {
+      // BỎ HOÀN TOÀN hộp chọn / nhãn vai trò ở giao diện Sinh viên và Giảng viên theo yêu cầu tối giản
       roleContainer.style.display = 'none';
     } else if (isAdmin) {
       roleContainer.style.display = '';
@@ -5043,13 +5057,13 @@ window.applyRoleRestrictionsToUI = function() {
   }
 
   // 0.1. ĐIỀU KHIỂN CÁC NÚT LỆNH TRÊN HEADER:
-  // - BỎ nút "Chức năng 4 vai trò" cho Sinh viên
+  // - Ẩn nút "Chức năng 4 vai trò" cho Sinh viên và Giảng viên
   // - Ẩn nút "Sao lưu" & "Reset mẫu" cho Sinh viên và các tài khoản không phải Admin
-  // - Ẩn nút "Đổi MK" cho Sinh viên
-  // - BỎ nút "Đăng nhập cán bộ" cho Sinh viên (khi cần đăng nhập chỉ dùng nút Đăng xuất)
+  // - Ẩn nút "Đổi MK" cho Sinh viên và Giảng viên
+  // - Ẩn nút "Đăng xuất" trên header cho Sinh viên và Giảng viên theo yêu cầu tối giản
   const rolesComparisonBtn = document.getElementById('btn-header-roles-comparison');
   if (rolesComparisonBtn) {
-    rolesComparisonBtn.style.display = isStudent ? 'none' : '';
+    rolesComparisonBtn.style.display = (isStudent || isTeacher) ? 'none' : '';
   }
 
   const backupControls = document.getElementById('header-backup-controls');
@@ -5063,7 +5077,7 @@ window.applyRoleRestrictionsToUI = function() {
 
   const changePwdBtn = document.getElementById('btn-header-change-password');
   if (changePwdBtn) {
-    changePwdBtn.style.display = isStudent ? 'none' : '';
+    changePwdBtn.style.display = (isStudent || isTeacher) ? 'none' : '';
   }
 
   const headerLoginBtn = document.getElementById('btn-header-login');
@@ -5074,14 +5088,14 @@ window.applyRoleRestrictionsToUI = function() {
 
   const userProfileBtn = document.getElementById('btn-user-profile-header');
   if (userProfileBtn) {
-    // Ẩn badge profile cho sinh viên để giao diện tối giản, tập trung học tập tra cứu
+    // Ẩn badge profile cho sinh viên để giao diện tối giản; hiển thị cho Giảng viên / Cán bộ
     userProfileBtn.style.display = isStudent ? 'none' : '';
   }
 
   const headerLogoutBtn = document.getElementById('btn-header-logout');
   if (headerLogoutBtn) {
-    if (isStudent) {
-      // Giao diện tài khoản Sinh viên: BỎ nút lệnh Đăng xuất theo yêu cầu
+    if (isStudent || isTeacher) {
+      // Giao diện tài khoản Giảng viên và Sinh viên: ẨN nút Đăng xuất trên header theo yêu cầu tối giản
       headerLogoutBtn.style.display = 'none';
     } else {
       headerLogoutBtn.style.display = '';
@@ -5141,11 +5155,13 @@ window.applyRoleRestrictionsToUI = function() {
     }
 
     if (computersTabLink) {
-      computersTabLink.style.display = '';
-      if (role === 'teacher') {
+      if (isTeacher) {
+        // Ẩn hoàn toàn Phân hệ Quản lý Thiết bị cho Giảng viên theo yêu cầu tối giản
+        computersTabLink.style.display = 'none';
         computersTabLink.classList.add('opacity-40', 'pointer-events-none');
         computersTabLink.title = '[🔒 Bị khóa] Phân hệ Quản lý Thiết bị chỉ dành cho Cán bộ Quản lý và Quản trị viên';
       } else {
+        computersTabLink.style.display = '';
         computersTabLink.classList.remove('opacity-40', 'pointer-events-none');
         computersTabLink.title = 'Quản lý Thiết bị (104 máy)';
       }
@@ -5267,8 +5283,34 @@ window.applyRoleRestrictionsToUI = function() {
       const resetText = document.getElementById('btn-scenario-reset-text');
       if (resetText) resetText.classList.remove('hidden');
     }
+  } else if (isTeacher) {
+    // Với Giảng viên: TỐI GIẢN TOÀN DIỆN, CHỈ HIỂN THỊ CÁC CÔNG CỤ GIẢNG DẠY
+    if (scenarioLabel) scenarioLabel.textContent = 'Công cụ giảng dạy:';
+    if (findAvailBtn) findAvailBtn.classList.add('hidden');
+    if (reportFaultBtn) reportFaultBtn.classList.add('hidden');
+    const resetText = document.getElementById('btn-scenario-reset-text');
+    if (resetText) resetText.classList.add('hidden');
+
+    // Ẩn hoàn toàn các nút không thuộc thẩm quyền của Giảng viên (Bật tắt nguồn WOL, Thử nghiệm sự cố, Khôi phục hệ thống)
+    if (wolBtn) wolBtn.classList.add('hidden');
+    if (faultBtn) faultBtn.classList.add('hidden');
+    if (resetBtn) resetBtn.classList.add('hidden');
+
+    // Hiển thị các công cụ giảng dạy trực tuyến & quản lý lớp học tập trung
+    if (broadcastBtn) {
+      broadcastBtn.classList.remove('hidden', 'opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+      broadcastBtn.title = 'Phát bài giảng & đề thi trực tuyến (UDP Multicast)';
+    }
+    if (lockBtn) {
+      lockBtn.classList.remove('hidden', 'opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+      lockBtn.title = 'Khóa / Mở màn hình sinh viên tập trung nghe giảng';
+    }
+    if (pingBtn) {
+      pingBtn.classList.remove('hidden', 'opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+      pingBtn.title = 'Kiểm tra độ trễ mạng ICMP phòng máy';
+    }
   } else {
-    // Với Admin / Cán bộ / Giảng viên:
+    // Với Admin / Quản lý phòng máy:
     if (scenarioLabel) scenarioLabel.textContent = 'Thực nghiệm:';
     if (findAvailBtn) findAvailBtn.classList.add('hidden');
     if (reportFaultBtn) reportFaultBtn.classList.add('hidden');
@@ -5279,6 +5321,7 @@ window.applyRoleRestrictionsToUI = function() {
     if (broadcastBtn) broadcastBtn.classList.remove('hidden');
     if (lockBtn) lockBtn.classList.remove('hidden');
     if (faultBtn) faultBtn.classList.remove('hidden');
+    if (resetBtn) resetBtn.classList.remove('hidden');
 
     applyBtnState(wolBtn, canControlPower, 'Kích hoạt Wake-on-LAN tuần tự', 'Chỉ Quản trị viên và Quản lý phòng mới có quyền điều khiển nguồn Wake-on-LAN');
     applyBtnState(broadcastBtn, canBroadcast, 'Phát bài giảng & đề thi (UDP Multicast)', 'Chỉ Quản trị viên, Quản lý phòng và Giảng viên mới có quyền phát bài giảng');
@@ -5319,6 +5362,17 @@ window.applyRoleRestrictionsToUI = function() {
 
   // Nút trong Tab 4 (Schedule)
   applyBtnState(document.getElementById('btn-add-schedule'), canCreateSchedule, 'Đăng ký ca thực hành mới', 'Chỉ Giảng viên và Quản lý phòng máy mới có quyền xếp lịch dạy');
+
+  // Ẩn các nút không thuộc thẩm quyền của Giảng viên trong Phân hệ Lịch Thực hành (Tab 4):
+  const importSchBtn = document.getElementById('wrapper-import-schedule') || document.getElementById('input-import-schedule')?.closest('label');
+  if (importSchBtn) {
+    importSchBtn.style.display = (role === 'admin' || role === 'lab_manager') ? '' : 'none';
+  }
+
+  const schSimControls = document.getElementById('sch-simulation-controls');
+  if (schSimControls) {
+    schSimControls.style.display = (role === 'admin' || role === 'lab_manager') ? '' : 'none';
+  }
 
   // Nút trong Tab 5 (Maintenance)
   applyBtnState(document.getElementById('btn-create-ticket'), canCreateTicket, 'Gửi báo cáo sự cố', 'Chế độ sinh viên chỉ có quyền tra cứu thông tin');

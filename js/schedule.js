@@ -579,9 +579,9 @@ class ScheduleManager {
             </div>
           </div>
 
-          ${!isStudent ? `
-          <!-- Các nút mô phỏng & điều khiển nhanh (Dành riêng cho Cán bộ) -->
-          <div class="flex flex-wrap items-center gap-1.5 text-xs">
+          ${canConfigAuto ? `
+          <!-- Các nút mô phỏng & điều khiển nhanh (Dành riêng cho Quản lý phòng & Quản trị viên) -->
+          <div id="sch-simulation-controls" class="flex flex-wrap items-center gap-1.5 text-xs">
             <span class="text-slate-400 font-semibold text-[11px] mr-1 hidden sm:inline">Mô phỏng giờ:</span>
             <button onclick="window.scheduleManager.setSimulatedTime(null)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded font-medium transition" title="Dùng giờ thực tế hệ thống">
               ⏱ Thực tế
@@ -598,11 +598,10 @@ class ScheduleManager {
             <button onclick="window.scheduleManager.setSimulatedTime('15:30')" class="px-2 py-1 bg-indigo-900/60 hover:bg-indigo-800 border border-indigo-500/50 text-indigo-200 rounded font-mono font-bold transition" title="Thử nghiệm vào Ca 4 chiều">
               15:30 (Ca 4)
             </button>
-            ${canConfigAuto ? `
             <button onclick="window.scheduleManager.openAutoShiftSettingsModal()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition flex items-center space-x-1 shadow-xs ml-1" title="Cài đặt cơ chế tự động">
               <i class="fa-solid fa-gear"></i>
               <span>Cài đặt</span>
-            </button>` : ''}
+            </button>
           </div>` : ''}
         </div>
 
@@ -703,7 +702,7 @@ class ScheduleManager {
 
               ${canImportSchedule ? `
               <!-- Nhập Excel -->
-              <label class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
+              <label id="wrapper-import-schedule" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
                 <i class="fa-solid fa-file-import text-blue-600"></i>
                 <span>Nhập TKB Excel</span>
                 <input type="file" id="input-import-schedule" accept=".xlsx, .xls, .csv" class="hidden">
