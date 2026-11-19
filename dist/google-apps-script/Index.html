@@ -586,7 +586,7 @@
           </button>
 
           <!-- User Badge -->
-          <button id="btn-user-profile-header" onclick="window.showUserProfileModal && window.showUserProfileModal()" class="flex items-center space-x-2 pl-1 hover:bg-slate-100 p-1.5 rounded-xl transition text-left focus:outline-none" title="Xem hồ sơ cá nhân & Đổi mật khẩu">
+          <button id="btn-user-profile-header" onclick="window.showUserProfileModal && window.showUserProfileModal()" class="flex items-center space-x-2 pl-1 hover:bg-slate-100 p-1.5 rounded-xl transition text-left focus:outline-none cursor-pointer" title="Xem hồ sơ cán bộ, Đổi mật khẩu & Đăng xuất">
             <div id="user-header-badge-avatar" class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
               👨‍💼
             </div>
@@ -15179,11 +15179,11 @@ window.updateUserUI = function() {
   if (badgeAvatar) badgeAvatar.textContent = u.avatar || '👤';
 
   // KIỂM SOÁT BẢO MẬT & ĐIỀU KHIỂN HEADER:
-  // - Sinh viên: BỎ HOÀN TOÀN nút lệnh / hộp chọn vai trò (ẩn roleContainer)
-  // - Admin: Hiển thị dropdown chuyển đổi vai trò
-  // - Quản lý phòng máy, Giảng viên: Hiển thị huy hiệu vai trò tĩnh cố định
+  // - Chỉ Quản trị viên (Admin) mới hiển thị hộp chọn chuyển đổi vai trò trên header.
+  // - Tất cả các tài khoản phân quyền khác (Giảng viên, Quản lý phòng máy, Sinh viên): 
+  //   Ẩn hoàn toàn roleContainer để giao diện tối giản, thoáng đãng; danh tính và vai trò đã hiển thị trên User Badge góc phải.
   if (roleContainer && roleContainer.style) {
-    roleContainer.style.display = isStudent ? 'none' : '';
+    roleContainer.style.display = isAdmin ? '' : 'none';
   }
 
   if (select && select.style) {
@@ -15193,19 +15193,11 @@ window.updateUserUI = function() {
       select.removeAttribute('disabled');
       if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
       if (roleLabel && roleLabel.style) roleLabel.style.display = '';
-    } else if (isStudent) {
+    } else {
       select.style.display = 'none';
       select.setAttribute('disabled', 'true');
       if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
       if (roleLabel && roleLabel.style) roleLabel.style.display = 'none';
-    } else {
-      select.style.display = 'none';
-      select.setAttribute('disabled', 'true');
-      if (staticBadge && staticBadge.style) {
-        staticBadge.style.display = '';
-        if (staticName) staticName.textContent = u.roleName || role;
-      }
-      if (roleLabel && roleLabel.style) roleLabel.style.display = '';
     }
   }
 
@@ -19209,53 +19201,49 @@ window.applyRoleRestrictionsToUI = function() {
   const roleLabel = document.getElementById('header-role-label');
 
   if (roleContainer) {
-    if (isStudent || isTeacher) {
-      // BỎ HOÀN TOÀN hộp chọn / nhãn vai trò ở giao diện Sinh viên và Giảng viên theo yêu cầu tối giản
+    if (!isAdmin) {
+      // BỎ HOÀN TOÀN hộp chọn / nhãn vai trò ở giao diện Giảng viên, Quản lý phòng máy và Sinh viên theo yêu cầu tối giản
       roleContainer.style.display = 'none';
-    } else if (isAdmin) {
-      roleContainer.style.display = '';
-      if (headerSelect) {
-        headerSelect.style.display = '';
-        headerSelect.removeAttribute('disabled');
-      }
-      if (staticBadge) staticBadge.style.display = 'none';
-      if (roleLabel) roleLabel.style.display = '';
-    } else {
-      roleContainer.style.display = '';
       if (headerSelect) {
         headerSelect.style.display = 'none';
         headerSelect.setAttribute('disabled', 'true');
       }
-      if (staticBadge) {
-        staticBadge.style.display = '';
-        if (staticName) staticName.textContent = u.roleName || role;
+      if (staticBadge) staticBadge.style.display = 'none';
+      if (roleLabel) roleLabel.style.display = 'none';
+    } else {
+      roleContainer.style.display = '';
+      if (headerSelect) {
+        headerSelect.style.display = '';
+        headerSelect.removeAttribute('disabled');
+        headerSelect.value = role;
       }
+      if (staticBadge) staticBadge.style.display = 'none';
       if (roleLabel) roleLabel.style.display = '';
     }
   }
 
   // 0.1. ĐIỀU KHIỂN CÁC NÚT LỆNH TRÊN HEADER:
-  // - Ẩn nút "Chức năng 4 vai trò" cho Sinh viên và Giảng viên
-  // - Ẩn nút "Sao lưu" & "Reset mẫu" cho Sinh viên và các tài khoản không phải Admin
-  // - Ẩn nút "Đổi MK" cho Sinh viên và Giảng viên
-  // - Ẩn nút "Đăng xuất" trên header cho Sinh viên và Giảng viên theo yêu cầu tối giản
+  // - Ẩn nút "Chức năng 4 vai trò" cho tất cả tài khoản không phải Admin (Giảng viên, Quản lý phòng máy, Sinh viên)
+  // - Ẩn nút "Sao lưu" & "Reset mẫu" cho các tài khoản không phải Admin
+  // - Ẩn nút "Đổi MK" trên Header cho Giảng viên, Quản lý phòng máy, Sinh viên (đã tích hợp trong Modal Hồ sơ cá nhân khi bấm vào avatar)
+  // - Ẩn nút "Đăng xuất" trên Header cho Giảng viên, Quản lý phòng máy, Sinh viên theo yêu cầu tối giản
   const rolesComparisonBtn = document.getElementById('btn-header-roles-comparison');
   if (rolesComparisonBtn) {
-    rolesComparisonBtn.style.display = (isStudent || isTeacher) ? 'none' : '';
+    rolesComparisonBtn.style.display = isAdmin ? '' : 'none';
   }
 
   const backupControls = document.getElementById('header-backup-controls');
   const backupDivider = document.getElementById('header-backup-divider');
   if (backupControls) {
-    backupControls.style.display = (isStudent || !isAdmin) ? 'none' : '';
+    backupControls.style.display = isAdmin ? '' : 'none';
   }
   if (backupDivider) {
-    backupDivider.style.display = (isStudent || !isAdmin) ? 'none' : '';
+    backupDivider.style.display = isAdmin ? '' : 'none';
   }
 
   const changePwdBtn = document.getElementById('btn-header-change-password');
   if (changePwdBtn) {
-    changePwdBtn.style.display = (isStudent || isTeacher) ? 'none' : '';
+    changePwdBtn.style.display = isAdmin ? '' : 'none';
   }
 
   const headerLoginBtn = document.getElementById('btn-header-login');
@@ -19272,8 +19260,8 @@ window.applyRoleRestrictionsToUI = function() {
 
   const headerLogoutBtn = document.getElementById('btn-header-logout');
   if (headerLogoutBtn) {
-    if (isStudent || isTeacher) {
-      // Giao diện tài khoản Giảng viên và Sinh viên: ẨN nút Đăng xuất trên header theo yêu cầu tối giản
+    if (!isAdmin) {
+      // Giao diện tài khoản Giảng viên, Quản lý phòng máy và Sinh viên: ẨN nút Đăng xuất trên header theo yêu cầu tối giản
       headerLogoutBtn.style.display = 'none';
     } else {
       headerLogoutBtn.style.display = '';
