@@ -1236,106 +1236,115 @@
         <!-- ==================== TAB 6: PHÂN QUYỀN & TÀI KHOẢN ==================== -->
         <section id="tab-pane-users" class="tab-content-panel hidden space-y-5">
           <!-- 1. HEADER BANNER & KPI SUMMARY -->
-          <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
-            <div class="absolute -right-6 -bottom-6 w-44 h-44 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+          <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 rounded-2xl p-5 text-white shadow-lg border border-indigo-500/20 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute top-0 right-1/3 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
             <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <div class="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-[11px] font-semibold mb-2">
-                  <i class="fa-solid fa-shield-halved"></i>
-                  <span>Hệ Thống Phân Quyền Vai Trò Tập Trung (RBAC 3.0 Enterprise) • TNUS</span>
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/25 text-blue-200 text-[11px] font-semibold mb-2 backdrop-blur-md">
+                  <i class="fa-solid fa-shield-halved text-blue-400"></i>
+                  <span>Khoa Toán - Tin • Trường ĐH Khoa học (TNUS) • RBAC 3.0 Enterprise</span>
                 </div>
-                <h2 class="text-xl md:text-2xl font-black tracking-tight">Quản Trị Người Dùng & Phân Quyền Chức Năng</h2>
-                <p class="text-xs text-blue-200/90 mt-1 max-w-2xl">
-                  Quản lý định danh tài khoản, phân quyền 7 hành động độc lập trên 6 module nghiệp vụ (Tổng quan, 2D, Thiết bị, TKB, Sự cố, Người dùng) và kiểm soát nhật ký an ninh.
+                <h2 class="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                  <span>Quản Trị Người Dùng & Ma Trận Phân Quyền</span>
+                </h2>
+                <p class="text-xs text-blue-200/90 mt-1 max-w-2xl leading-relaxed">
+                  Thiết lập định danh tài khoản, điều phối ma trận 7 thẩm quyền độc lập trên toàn bộ 6 phân hệ nghiệp vụ phòng máy và giám sát nhật ký an ninh tập trung.
                 </p>
               </div>
 
-              <!-- Thẻ hiển thị tài khoản hiện hành -->
-              <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 flex items-center space-x-3 shrink-0">
-                <div id="user-header-avatar" class="w-11 h-11 rounded-xl bg-blue-500 text-white flex items-center justify-center text-2xl shadow">
+              <!-- Thẻ hiển thị tài khoản Quản trị viên hiện hành -->
+              <div onclick="window.showUserProfileModal && window.showUserProfileModal()" class="bg-white/10 hover:bg-white/15 backdrop-blur-md rounded-2xl p-3 border border-white/15 flex items-center space-x-3 shrink-0 cursor-pointer transition shadow-md group" title="Bấm để xem hồ sơ Quản trị viên & đổi mật khẩu">
+                <div id="user-header-avatar" class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-md border border-white/20 group-hover:scale-105 transition">
                   👨‍💼
                 </div>
                 <div>
-                  <div class="text-[10px] uppercase font-bold text-blue-200 tracking-wider">Đang đăng nhập</div>
-                  <div id="user-header-name" class="font-extrabold text-sm text-white">ThS. Trịnh Minh Phú</div>
+                  <div class="text-[10px] uppercase font-bold text-blue-300 tracking-wider flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Đang đăng nhập</span>
+                  </div>
+                  <div id="user-header-name" class="font-black text-sm text-white group-hover:text-blue-200 transition">ThS. Trịnh Minh Phú</div>
                   <div id="user-header-role" class="text-xs text-emerald-300 font-semibold flex items-center gap-1">
-                    <i class="fa-solid fa-circle-check text-[10px]"></i>
-                    <span>Quản trị viên (Admin)</span>
+                    <i class="fa-solid fa-user-shield text-[10px]"></i>
+                    <span>Admin (Toàn quyền 42/42)</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 2. KPI THỐNG KÊ TÀI KHOẢN TẬP TRUNG (4 VAI TRÒ CHUẨN) -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div onclick="window.filterUsersByRole('all')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition cursor-pointer group" title="Bấm để xem tất cả tài khoản">
+          <!-- 2. KPI THỐNG KÊ TÀI KHOẢN TẬP TRUNG (4 VAI TRÒ CHUẨN TNUS) -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="user-kpi-cards-container">
+            <div id="kpi-card-all" onclick="window.filterUsersByRole('all')" class="bg-white p-3.5 rounded-2xl border-2 border-slate-200 shadow-xs hover:border-blue-500 hover:shadow-md transition cursor-pointer group flex flex-col justify-between" title="Bấm để xem tất cả tài khoản">
               <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition flex items-center justify-between">
                 <span>Tổng Tài Khoản</span>
-                <i class="fa-solid fa-users text-slate-400 text-[10px] group-hover:text-blue-600"></i>
+                <i class="fa-solid fa-users text-slate-400 text-xs group-hover:text-blue-600"></i>
               </div>
-              <div class="text-xl font-black text-slate-800 mt-0.5"><span id="user-kpi-total">1</span> <span class="text-xs font-semibold text-slate-500">user</span></div>
-              <div class="text-[10px] text-blue-600 font-medium mt-1">Đã cấp phát hệ thống</div>
+              <div class="text-2xl font-black text-slate-900 mt-1"><span id="user-kpi-total">4</span> <span class="text-xs font-semibold text-slate-400">user</span></div>
+              <div class="text-[11px] text-blue-600 font-semibold mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-layer-group text-[10px]"></i>
+                <span>Tất cả cán bộ & SV</span>
+              </div>
             </div>
 
-            <div onclick="window.filterUsersByRole('admin')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Quản trị viên (Admin)">
-              <div class="text-[10px] font-bold text-blue-600 uppercase tracking-wider flex items-center justify-between">
+            <div id="kpi-card-admin" onclick="window.filterUsersByRole('admin')" class="bg-white p-3.5 rounded-2xl border-2 border-blue-200 shadow-xs hover:border-blue-600 hover:shadow-md transition cursor-pointer group flex flex-col justify-between" title="Bấm để lọc Quản trị viên (Admin)">
+              <div class="text-[10px] font-bold text-blue-700 uppercase tracking-wider flex items-center justify-between">
                 <span>Quản Trị Viên</span>
-                <i class="fa-solid fa-user-shield text-blue-400 text-[10px]"></i>
+                <i class="fa-solid fa-user-shield text-blue-500 text-xs"></i>
               </div>
-              <div class="text-xl font-black text-blue-700 mt-0.5"><span id="user-kpi-admin">1</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
-              <div class="text-[10px] text-slate-500 font-medium mt-1">Admin toàn quyền</div>
+              <div class="text-2xl font-black text-blue-700 mt-1"><span id="user-kpi-admin">1</span> <span class="text-xs font-semibold text-slate-400">người</span></div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1 truncate">Admin toàn quyền 42/42</div>
             </div>
 
-            <div onclick="window.filterUsersByRole('lab_manager')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Quản lý phòng máy">
-              <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider flex items-center justify-between">
+            <div id="kpi-card-lab_manager" onclick="window.filterUsersByRole('lab_manager')" class="bg-white p-3.5 rounded-2xl border-2 border-indigo-200 shadow-xs hover:border-indigo-600 hover:shadow-md transition cursor-pointer group flex flex-col justify-between" title="Bấm để lọc Quản lý phòng máy">
+              <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider flex items-center justify-between">
                 <span>QL Phòng Máy</span>
-                <i class="fa-solid fa-desktop text-indigo-400 text-[10px]"></i>
+                <i class="fa-solid fa-desktop text-indigo-500 text-xs"></i>
               </div>
-              <div class="text-xl font-black text-indigo-700 mt-0.5"><span id="user-kpi-manager">0</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
-              <div class="text-[10px] text-slate-500 font-medium mt-1">Điều phối máy & bảo trì</div>
+              <div class="text-2xl font-black text-indigo-700 mt-1"><span id="user-kpi-manager">1</span> <span class="text-xs font-semibold text-slate-400">người</span></div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1 truncate">Quản lý 104 máy & TKB</div>
             </div>
 
-            <div onclick="window.filterUsersByRole('teacher')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-emerald-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Giảng viên">
-              <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider flex items-center justify-between">
+            <div id="kpi-card-teacher" onclick="window.filterUsersByRole('teacher')" class="bg-white p-3.5 rounded-2xl border-2 border-emerald-200 shadow-xs hover:border-emerald-600 hover:shadow-md transition cursor-pointer group flex flex-col justify-between" title="Bấm để lọc Giảng viên">
+              <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider flex items-center justify-between">
                 <span>Giảng Viên</span>
-                <i class="fa-solid fa-chalkboard-user text-emerald-400 text-[10px]"></i>
+                <i class="fa-solid fa-chalkboard-user text-emerald-500 text-xs"></i>
               </div>
-              <div class="text-xl font-black text-emerald-700 mt-0.5"><span id="user-kpi-teacher">0</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
-              <div class="text-[10px] text-slate-500 font-medium mt-1">Dạy thực hành & báo hỏng</div>
+              <div class="text-2xl font-black text-emerald-700 mt-1"><span id="user-kpi-teacher">1</span> <span class="text-xs font-semibold text-slate-400">người</span></div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1 truncate">Dạy học & báo hỏng</div>
             </div>
 
-            <div onclick="window.filterUsersByRole('student')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs hover:border-purple-400 hover:shadow-md transition cursor-pointer group" title="Bấm để lọc Sinh viên / Khách">
-              <div class="text-[10px] font-bold text-purple-600 uppercase tracking-wider flex items-center justify-between">
+            <div id="kpi-card-student" onclick="window.filterUsersByRole('student')" class="bg-white p-3.5 rounded-2xl border-2 border-purple-200 shadow-xs hover:border-purple-600 hover:shadow-md transition cursor-pointer group flex flex-col justify-between" title="Bấm để lọc Sinh viên / Khách">
+              <div class="text-[10px] font-bold text-purple-700 uppercase tracking-wider flex items-center justify-between">
                 <span>Sinh Viên / Khách</span>
-                <i class="fa-solid fa-graduation-cap text-purple-400 text-[10px]"></i>
+                <i class="fa-solid fa-graduation-cap text-purple-500 text-xs"></i>
               </div>
-              <div class="text-xl font-black text-purple-700 mt-0.5"><span id="user-kpi-student">0</span> <span class="text-xs font-semibold text-slate-500">người</span></div>
-              <div class="text-[10px] text-slate-500 font-medium mt-1">Chế độ xem (Read-only)</div>
+              <div class="text-2xl font-black text-purple-700 mt-1"><span id="user-kpi-student">1</span> <span class="text-xs font-semibold text-slate-400">người</span></div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1 truncate">Tra cứu an toàn (Read-only)</div>
             </div>
           </div>
 
-          <!-- THANH ĐIỀU HƯỚNG SUB-TABS TRONG QUẢN TRỊ PHÂN QUYỀN -->
-          <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
-            <button onclick="window.switchRbacSubTab('users')" id="btn-subtab-users" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-blue-600 text-white shadow-xs">
-              <i class="fa-solid fa-users"></i>
-              <span>Danh Sách Người Dùng</span>
+          <!-- 3. THANH ĐIỀU HƯỚNG PHÂN HỆ RBAC HIỆN ĐẠI (SEGMENTED CONTROL - KHÔNG RỚT DÒNG) -->
+          <div class="p-1.5 bg-slate-100 rounded-2xl border border-slate-200 flex items-center gap-1.5 overflow-x-auto scrollbar-none shadow-2xs">
+            <button onclick="window.switchRbacSubTab('users')" id="btn-subtab-users" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap shrink-0 bg-white text-blue-700 shadow-xs border border-slate-200/80 cursor-pointer">
+              <i class="fa-solid fa-users text-blue-600"></i>
+              <span>Tài Khoản Người Dùng</span>
             </button>
-            <button onclick="window.switchRbacSubTab('matrix')" id="btn-subtab-matrix" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200">
-              <i class="fa-solid fa-table-cells-large"></i>
-              <span>Ma Trận Phân Quyền (Checkbox Matrix)</span>
+            <button onclick="window.switchRbacSubTab('matrix')" id="btn-subtab-matrix" class="px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900 hover:bg-white/60 cursor-pointer">
+              <i class="fa-solid fa-table-cells-large text-indigo-500"></i>
+              <span>Ma Trận Quyền Hạn (RBAC)</span>
             </button>
-            <button onclick="window.switchRbacSubTab('roles')" id="btn-subtab-roles" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200">
-              <i class="fa-solid fa-id-badge"></i>
-              <span>Cấu Trúc Vai Trò & Quyền Hạn</span>
+            <button onclick="window.switchRbacSubTab('roles')" id="btn-subtab-roles" class="px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900 hover:bg-white/60 cursor-pointer">
+              <i class="fa-solid fa-id-badge text-purple-500"></i>
+              <span>Cấu Trúc 4 Vai Trò</span>
             </button>
-            <button onclick="window.switchRbacSubTab('audit')" id="btn-subtab-audit" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200">
-              <i class="fa-solid fa-clock-rotate-left"></i>
-              <span>Nhật Ký Kiểm Toán (Audit Trail)</span>
+            <button onclick="window.switchRbacSubTab('audit')" id="btn-subtab-audit" class="px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900 hover:bg-white/60 cursor-pointer">
+              <i class="fa-solid fa-clock-rotate-left text-emerald-500"></i>
+              <span>Nhật Ký An Ninh</span>
             </button>
-            <button onclick="window.switchRbacSubTab('direct_links')" id="btn-subtab-direct_links" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200">
-              <i class="fa-solid fa-link"></i>
-              <span>Link Phân Quyền Web App</span>
+            <button onclick="window.switchRbacSubTab('direct_links')" id="btn-subtab-direct_links" class="px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900 hover:bg-white/60 cursor-pointer">
+              <i class="fa-solid fa-link text-blue-500"></i>
+              <span>Liên Kết Đăng Nhập Nhanh</span>
             </button>
           </div>
 
@@ -1603,16 +1612,16 @@
                     <i class="fa-solid fa-id-badge"></i>
                   </div>
                   <div>
-                    <h3 class="text-sm font-bold text-slate-800">Cấu Trúc & Phân Cấp Chức Năng 5 Loại Tài Khoản</h3>
+                    <h3 class="text-sm font-bold text-slate-800">Cấu Trúc & Phân Cấp Chức Năng 4 Loại Tài Khoản</h3>
                     <p class="text-[11px] text-slate-500">Mô hình phân cấp thẩm quyền chuẩn hóa tại Khoa Toán - Tin • Trường Đại học Khoa học (TNUS)</p>
                   </div>
                 </div>
                 <div class="text-xs text-slate-500">
-                  <span class="font-bold text-slate-700">5 nhóm vai trò</span> • Phân quyền ma trận 7 hành động độc lập
+                  <span class="font-bold text-slate-700">4 nhóm vai trò chuẩn hóa</span> • Phân quyền ma trận 7 hành động độc lập
                 </div>
               </div>
 
-              <!-- BẢNG SO SÁNH MA TRẬN NĂNG LỰC 5 VAI TRÒ -->
+              <!-- BẢNG SO SÁNH MA TRẬN NĂNG LỰC 4 VAI TRÒ CHUẨN TNUS -->
               <div class="bg-slate-50/70 rounded-xl p-3.5 border border-slate-200">
                 <div class="text-xs font-black text-slate-800 uppercase tracking-wider mb-2 flex items-center justify-between">
                   <span class="flex items-center gap-1.5 text-blue-700">
@@ -15391,6 +15400,18 @@ window.initUserModule = function() {
 
   if (roleFilter) {
     roleFilter.addEventListener('change', () => {
+      const currentVal = roleFilter.value || 'all';
+      const roleKeys = ['all', 'admin', 'lab_manager', 'teacher', 'student'];
+      roleKeys.forEach(r => {
+        const card = document.getElementById(`kpi-card-${r}`);
+        if (card) {
+          if (r === currentVal) {
+            card.classList.add('ring-2', 'ring-blue-500', 'ring-offset-1', 'shadow-md');
+          } else {
+            card.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-1', 'shadow-md');
+          }
+        }
+      });
       window.renderUserAccountsTable();
     });
   }
@@ -15421,6 +15442,19 @@ window.resetUserFilters = function() {
   if (roleFilter) roleFilter.value = 'all';
   if (statusFilter) statusFilter.value = 'all';
   if (window.userPagination) window.userPagination.page = 1;
+
+  const roleKeys = ['all', 'admin', 'lab_manager', 'teacher', 'student'];
+  roleKeys.forEach(r => {
+    const card = document.getElementById(`kpi-card-${r}`);
+    if (card) {
+      if (r === 'all') {
+        card.classList.add('ring-2', 'ring-blue-500', 'ring-offset-1', 'shadow-md');
+      } else {
+        card.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-1', 'shadow-md');
+      }
+    }
+  });
+
   window.renderUserAccountsTable();
   window.updateUserKPIs();
   Swal.fire({
@@ -19836,15 +19870,15 @@ window.userPagination = {
 window.switchRbacSubTab = function(subTabId) {
   window.rbacCurrentSubTab = subTabId;
 
-  // Cập nhật giao diện nút tab
+  // Cập nhật giao diện nút tab theo chuẩn segmented control hiện đại
   const btnIds = ['users', 'matrix', 'roles', 'audit', 'direct_links'];
   btnIds.forEach(id => {
     const btn = document.getElementById(`btn-subtab-${id}`);
     if (btn) {
       if (id === subTabId) {
-        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-blue-600 text-white shadow-xs';
+        btn.className = 'px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center space-x-1.5 whitespace-nowrap shrink-0 bg-white text-blue-700 shadow-xs border border-slate-200/80 cursor-pointer';
       } else {
-        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200';
+        btn.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900 hover:bg-white/60 cursor-pointer';
       }
     }
   });
@@ -20170,6 +20204,20 @@ window.filterUsersByRole = function(roleId) {
     roleFilter.value = roleId;
   }
   if (window.userPagination) window.userPagination.page = 1;
+
+  // Cập nhật chỉ báo viền active trên thẻ KPI
+  const roleKeys = ['all', 'admin', 'lab_manager', 'teacher', 'student'];
+  roleKeys.forEach(r => {
+    const card = document.getElementById(`kpi-card-${r}`);
+    if (card) {
+      if (r === roleId) {
+        card.classList.add('ring-2', 'ring-blue-500', 'ring-offset-1', 'shadow-md');
+      } else {
+        card.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-1', 'shadow-md');
+      }
+    }
+  });
+
   window.renderUserAccountsTable();
 };
 
