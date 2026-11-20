@@ -384,9 +384,9 @@
 
           <!-- 3. KHỐI GIÁM SÁT 4 PHÒNG MÁY TRỰC QUAN (LIVE LAB MONITOR CARDS) -->
           <div>
-            <div class="flex items-center justify-between mb-3.5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5">
               <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
                   <i class="fa-solid fa-server"></i>
                 </div>
                 <div>
@@ -396,142 +396,183 @@
                   <p class="text-[11px] text-slate-500">Giám sát cấu hình phần cứng, mạng LAN và tình trạng hoạt động thực tế</p>
                 </div>
               </div>
-              <span class="text-xs text-slate-500 font-medium hidden sm:inline flex items-center gap-1.5">
-                <i class="fa-solid fa-hand-pointer text-blue-500"></i>Nhấp vào phòng để mở sơ đồ 2D chi tiết
+              <span class="self-start sm:self-auto inline-flex items-center gap-1.5 text-xs text-slate-600 font-medium bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
+                <i class="fa-regular fa-hand-pointer text-blue-600"></i>
+                <span>Nhấp vào phòng để mở sơ đồ 2D</span>
               </span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               
               <!-- PM1 -->
-              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition-all duration-200 p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM1')">
+              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-md transition-all duration-200 p-4 sm:p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM1')">
                 <div>
-                  <div class="flex items-center justify-between mb-2.5">
+                  <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center space-x-2">
-                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span class="font-black text-slate-800 text-base group-hover:text-blue-600 transition-colors">PM 1</span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                      <span class="font-black text-slate-900 text-base group-hover:text-blue-600 transition-colors">PM 1</span>
+                      <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Hoạt động</span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">A1-503</span>
+                    <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">A1-503</span>
                   </div>
                   
-                  <div class="text-xs font-bold text-slate-800 mb-0.5">30 Máy đồng bộ FPT Elead</div>
-                  <div class="text-[11px] text-slate-500 line-clamp-1 mb-3">Core i5-14400 • RAM 16GB • SSD 256GB NVMe</div>
+                  <div class="mt-2 min-h-[42px]">
+                    <div class="text-xs font-bold text-slate-800">30 Máy đồng bộ FPT Elead</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5 leading-snug">Core i5-14400 • RAM 16GB • SSD 256GB NVMe</div>
+                  </div>
 
                   <!-- Mini status segmented bar -->
-                  <div class="mb-2.5">
+                  <div class="my-2.5">
                     <div id="lab-minibar-pm1" class="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 shadow-inner">
                       <!-- Render động qua JS -->
                     </div>
                   </div>
 
-                  <div id="lab-summary-counts-pm1" class="text-[11px] text-slate-600 font-medium">
-                    <!-- Render động qua JS (Không dùng emoji) -->
+                  <div id="lab-summary-counts-pm1">
+                    <!-- Render động qua JS 4 ô chỉ số -->
                   </div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div class="text-[11px] text-slate-500 truncate" title="ThS. Trịnh Minh Phú (0975.090.666)">
-                    <i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>ThS. Trịnh Minh Phú <span class="font-mono text-slate-400 text-[10px]">• 0975.090.666</span>
+                <div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-bold text-slate-800 truncate flex items-center gap-1.5" title="ThS. Trịnh Minh Phú">
+                      <i class="fa-solid fa-user-tie text-blue-600 text-[10px] shrink-0"></i>
+                      <span class="truncate">ThS. Trịnh Minh Phú</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono font-medium mt-0.5">
+                      0975.090.666
+                    </div>
                   </div>
                   <button onclick="event.stopPropagation(); window.navigateToLab('PM1')" 
-                    class="px-2.5 py-1 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 rounded-lg font-bold text-[11px] transition shadow-2xs flex items-center gap-1">
-                    Sơ đồ 2D <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200/80 hover:border-blue-600 rounded-xl font-bold text-xs transition-all shadow-2xs flex items-center gap-1.5 group-hover:bg-blue-600 group-hover:text-white">
+                    <span>Sơ đồ 2D</span>
+                    <i class="fa-solid fa-chevron-right text-[9px]"></i>
                   </button>
                 </div>
               </div>
 
               <!-- PM2 -->
-              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-indigo-400 hover:shadow-md transition-all duration-200 p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM2')">
+              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-indigo-400 hover:shadow-md transition-all duration-200 p-4 sm:p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM2')">
                 <div>
-                  <div class="flex items-center justify-between mb-2.5">
+                  <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center space-x-2">
-                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span class="font-black text-slate-800 text-base group-hover:text-indigo-600 transition-colors">PM 2</span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                      <span class="font-black text-slate-900 text-base group-hover:text-indigo-600 transition-colors">PM 2</span>
+                      <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Hoạt động</span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">A1-504</span>
+                    <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">A1-504</span>
                   </div>
                   
-                  <div class="text-xs font-bold text-slate-800 mb-0.5">26 Máy (20 Asus + 6 FPT Elead)</div>
-                  <div class="text-[11px] text-slate-500 line-clamp-1 mb-3">Khu A: i5-11400/8GB • Khu B: i5-14400/16GB</div>
+                  <div class="mt-2 min-h-[42px]">
+                    <div class="text-xs font-bold text-slate-800">26 Máy (20 Asus + 6 FPT Elead)</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5 leading-snug">Khu A: i5-11400/8GB • Khu B: i5-14400/16GB</div>
+                  </div>
 
-                  <div class="mb-2.5">
+                  <div class="my-2.5">
                     <div id="lab-minibar-pm2" class="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 shadow-inner"></div>
                   </div>
 
-                  <div id="lab-summary-counts-pm2" class="text-[11px] text-slate-600 font-medium"></div>
+                  <div id="lab-summary-counts-pm2"></div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div class="text-[11px] text-slate-500 truncate" title="ThS. Trịnh Minh Phú (0975.090.666)">
-                    <i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>ThS. Trịnh Minh Phú <span class="font-mono text-slate-400 text-[10px]">• 0975.090.666</span>
+                <div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-bold text-slate-800 truncate flex items-center gap-1.5" title="ThS. Trịnh Minh Phú">
+                      <i class="fa-solid fa-user-tie text-indigo-600 text-[10px] shrink-0"></i>
+                      <span class="truncate">ThS. Trịnh Minh Phú</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono font-medium mt-0.5">
+                      0975.090.666
+                    </div>
                   </div>
                   <button onclick="event.stopPropagation(); window.navigateToLab('PM2')" 
-                    class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 rounded-lg font-bold text-[11px] transition shadow-2xs flex items-center gap-1">
-                    Sơ đồ 2D <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200/80 hover:border-indigo-600 rounded-xl font-bold text-xs transition-all shadow-2xs flex items-center gap-1.5 group-hover:bg-indigo-600 group-hover:text-white">
+                    <span>Sơ đồ 2D</span>
+                    <i class="fa-solid fa-chevron-right text-[9px]"></i>
                   </button>
                 </div>
               </div>
 
               <!-- PM3 -->
-              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-cyan-400 hover:shadow-md transition-all duration-200 p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM3')">
+              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-cyan-400 hover:shadow-md transition-all duration-200 p-4 sm:p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM3')">
                 <div>
-                  <div class="flex items-center justify-between mb-2.5">
+                  <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center space-x-2">
-                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span class="font-black text-slate-800 text-base group-hover:text-cyan-600 transition-colors">PM 3</span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                      <span class="font-black text-slate-900 text-base group-hover:text-cyan-600 transition-colors">PM 3</span>
+                      <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Hoạt động</span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">A1-505</span>
+                    <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">A1-505</span>
                   </div>
                   
-                  <div class="text-xs font-bold text-slate-800 mb-0.5">24 Máy đồng bộ Dell OptiPlex</div>
-                  <div class="text-[11px] text-slate-500 line-clamp-1 mb-3">Core i5-10505 3.20GHz • RAM 8GB • SSD NVMe</div>
+                  <div class="mt-2 min-h-[42px]">
+                    <div class="text-xs font-bold text-slate-800">24 Máy đồng bộ Dell OptiPlex</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5 leading-snug">Core i5-10505 3.20GHz • RAM 8GB • SSD NVMe</div>
+                  </div>
 
-                  <div class="mb-2.5">
+                  <div class="my-2.5">
                     <div id="lab-minibar-pm3" class="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 shadow-inner"></div>
                   </div>
 
-                  <div id="lab-summary-counts-pm3" class="text-[11px] text-slate-600 font-medium"></div>
+                  <div id="lab-summary-counts-pm3"></div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div class="text-[11px] text-slate-500 truncate" title="ThS. Trịnh Minh Phú (0975.090.666)">
-                    <i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>ThS. Trịnh Minh Phú <span class="font-mono text-slate-400 text-[10px]">• 0975.090.666</span>
+                <div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-bold text-slate-800 truncate flex items-center gap-1.5" title="ThS. Trịnh Minh Phú">
+                      <i class="fa-solid fa-user-tie text-cyan-600 text-[10px] shrink-0"></i>
+                      <span class="truncate">ThS. Trịnh Minh Phú</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono font-medium mt-0.5">
+                      0975.090.666
+                    </div>
                   </div>
                   <button onclick="event.stopPropagation(); window.navigateToLab('PM3')" 
-                    class="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-600 hover:text-white text-cyan-700 rounded-lg font-bold text-[11px] transition shadow-2xs flex items-center gap-1">
-                    Sơ đồ 2D <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 bg-cyan-50 hover:bg-cyan-600 text-cyan-700 hover:text-white border border-cyan-200/80 hover:border-cyan-600 rounded-xl font-bold text-xs transition-all shadow-2xs flex items-center gap-1.5 group-hover:bg-cyan-600 group-hover:text-white">
+                    <span>Sơ đồ 2D</span>
+                    <i class="fa-solid fa-chevron-right text-[9px]"></i>
                   </button>
                 </div>
               </div>
 
               <!-- PM4 -->
-              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-teal-400 hover:shadow-md transition-all duration-200 p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM4')">
+              <div class="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-teal-400 hover:shadow-md transition-all duration-200 p-4 sm:p-4.5 flex flex-col justify-between group cursor-pointer" onclick="window.navigateToLab('PM4')">
                 <div>
-                  <div class="flex items-center justify-between mb-2.5">
+                  <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center space-x-2">
-                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span class="font-black text-slate-800 text-base group-hover:text-teal-600 transition-colors">PM 4</span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                      <span class="font-black text-slate-900 text-base group-hover:text-teal-600 transition-colors">PM 4</span>
+                      <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Hoạt động</span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-teal-50 text-teal-700 border border-teal-200">A1-506</span>
+                    <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">A1-506</span>
                   </div>
                   
-                  <div class="text-xs font-bold text-slate-800 mb-0.5">24 Máy đồng bộ Dell OptiPlex</div>
-                  <div class="text-[11px] text-slate-500 line-clamp-1 mb-3">Core i5-10505 3.20GHz • RAM 8GB • SSD NVMe</div>
+                  <div class="mt-2 min-h-[42px]">
+                    <div class="text-xs font-bold text-slate-800">24 Máy đồng bộ Dell OptiPlex</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5 leading-snug">Core i5-10505 3.20GHz • RAM 8GB • SSD NVMe</div>
+                  </div>
 
-                  <div class="mb-2.5">
+                  <div class="my-2.5">
                     <div id="lab-minibar-pm4" class="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 shadow-inner"></div>
                   </div>
 
-                  <div id="lab-summary-counts-pm4" class="text-[11px] text-slate-600 font-medium"></div>
+                  <div id="lab-summary-counts-pm4"></div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div class="text-[11px] text-slate-500 truncate" title="ThS. Trịnh Minh Phú (0975.090.666)">
-                    <i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>ThS. Trịnh Minh Phú <span class="font-mono text-slate-400 text-[10px]">• 0975.090.666</span>
+                <div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-bold text-slate-800 truncate flex items-center gap-1.5" title="ThS. Trịnh Minh Phú">
+                      <i class="fa-solid fa-user-tie text-teal-600 text-[10px] shrink-0"></i>
+                      <span class="truncate">ThS. Trịnh Minh Phú</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono font-medium mt-0.5">
+                      0975.090.666
+                    </div>
                   </div>
                   <button onclick="event.stopPropagation(); window.navigateToLab('PM4')" 
-                    class="px-2.5 py-1 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-700 rounded-lg font-bold text-[11px] transition shadow-2xs flex items-center gap-1">
-                    Sơ đồ 2D <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                    class="shrink-0 whitespace-nowrap px-3 py-1.5 bg-teal-50 hover:bg-teal-600 text-teal-700 hover:text-white border border-teal-200/80 hover:border-teal-600 rounded-xl font-bold text-xs transition-all shadow-2xs flex items-center gap-1.5 group-hover:bg-teal-600 group-hover:text-white">
+                    <span>Sơ đồ 2D</span>
+                    <i class="fa-solid fa-chevron-right text-[9px]"></i>
                   </button>
                 </div>
               </div>

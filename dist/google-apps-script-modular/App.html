@@ -286,13 +286,30 @@ window.updateDashboardKPIs = function() {
 
     const countEl = document.getElementById(`lab-summary-counts-${labId.toLowerCase()}`);
     if (countEl) {
+      const cols = lInactive > 0 ? 'grid-cols-5' : 'grid-cols-4';
       countEl.innerHTML = `
-        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold">
-          <span class="inline-flex items-center gap-1 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>${lGood} tốt</span>
-          <span class="inline-flex items-center gap-1 text-blue-700"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>${lInUse} dùng</span>
-          <span class="inline-flex items-center gap-1 text-amber-700"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>${lWarn} cần KT</span>
-          <span class="inline-flex items-center gap-1 text-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>${lBroken} hỏng</span>
-          ${lInactive > 0 ? `<span class="inline-flex items-center gap-1 text-slate-500"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>${lInactive} nghỉ</span>` : ''}
+        <div class="grid ${cols} gap-1 py-1.5 px-1 bg-slate-50/90 rounded-xl border border-slate-100 text-center shadow-2xs">
+          <div title="Tốt: ${lGood} máy">
+            <div class="text-[10px] text-slate-500 font-medium">Tốt</div>
+            <div class="text-xs font-black text-emerald-600 leading-tight">${lGood}</div>
+          </div>
+          <div class="border-l border-slate-200/80" title="Đang dùng: ${lInUse} máy">
+            <div class="text-[10px] text-slate-500 font-medium">Dùng</div>
+            <div class="text-xs font-black text-blue-600 leading-tight">${lInUse}</div>
+          </div>
+          <div class="border-l border-slate-200/80" title="Cần kiểm tra: ${lWarn} máy">
+            <div class="text-[10px] text-slate-500 font-medium">Cần KT</div>
+            <div class="text-xs font-black ${lWarn > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400'} leading-tight">${lWarn}</div>
+          </div>
+          <div class="border-l border-slate-200/80" title="Đang hỏng: ${lBroken} máy">
+            <div class="text-[10px] text-slate-500 font-medium">Hỏng</div>
+            <div class="text-xs font-black ${lBroken > 0 ? 'text-rose-600 font-extrabold' : 'text-slate-400'} leading-tight">${lBroken}</div>
+          </div>
+          ${lInactive > 0 ? `
+          <div class="border-l border-slate-200/80" title="Ngừng dùng: ${lInactive} máy">
+            <div class="text-[10px] text-slate-500 font-medium">Nghỉ</div>
+            <div class="text-xs font-black text-slate-400 leading-tight">${lInactive}</div>
+          </div>` : ''}
         </div>
       `;
     }
