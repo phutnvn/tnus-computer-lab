@@ -6980,19 +6980,80 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
 
         // Cơ chế kiểm tra trực tiếp ngay trên modal: cho phép thử lại ngay mà không bị đóng modal (áp dụng đồng bộ mọi vai trò)
         const cleanU = u.toLowerCase().replace(/^@+/, '');
-        let matchUser = (window.appState.users || []).find(user => 
-          (user.username && user.username.toLowerCase().replace(/^@+/, '') === cleanU) ||
-          (user.id && user.id.toLowerCase() === cleanU) ||
-          (user.email && user.email.toLowerCase() === cleanU) ||
-          (user.name && user.name.toLowerCase().trim() === cleanU)
-        );
+
+        // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa đăng nhập
+        const aliasMap = {
+          // Quản lý phòng máy
+          'linhtt': 'linhtt',
+          'linh': 'linhtt',
+          'qlphongmay': 'linhtt',
+          'qlpm': 'linhtt',
+          'manager': 'linhtt',
+          'lab_manager': 'linhtt',
+          'quanly': 'linhtt',
+          'quanlyphongmay': 'linhtt',
+
+          // Giảng viên
+          'thuta': 'thuta',
+          'teacher': 'thuta',
+          'giangvien': 'thuta',
+          'gv': 'thuta',
+          'anhthu': 'thuta',
+          'trinhanhthu': 'thuta',
+
+          // Sinh viên / Khách
+          'student': 'student',
+          'sinhvien': 'student',
+          'sv': 'student',
+          'khach': 'student',
+
+          // Quản trị viên
+          'admin': 'admin',
+          'quantri': 'admin',
+          'quantrivien': 'admin',
+          'phutm': 'admin'
+        };
+
+        const targetAlias = aliasMap[cleanU] || cleanU;
+        const unaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+        const cleanTermUnaccent = unaccent(cleanU);
+
+        let matchUser = (window.appState.users || []).find(user => {
+          const uName = (user.username || '').toLowerCase().replace(/^@+/, '');
+          const uId = (user.id || '').toLowerCase();
+          const uEmail = (user.email || '').toLowerCase();
+          const uFullName = (user.name || '').toLowerCase().trim();
+          const uFullNameUnaccent = unaccent(user.name);
+          return (uName === cleanU || uName === targetAlias || uId === cleanU || uEmail === cleanU || uFullName === cleanU || uFullNameUnaccent === cleanTermUnaccent);
+        });
+
+        // Nếu người dùng nhập từ khóa vai trò ("manager", "qlpm", "lab_manager", "quanly") tại phân hệ Quản lý phòng máy
+        if (!matchUser && (normRole === 'lab_manager') && (cleanU === 'manager' || cleanU === 'qlpm' || cleanU === 'lab_manager' || cleanU === 'quanly' || cleanU === 'linhtt' || cleanU === 'linh')) {
+          matchUser = (window.appState.users || []).find(user => {
+            const r = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
+            return r === 'lab_manager';
+          });
+        }
+
+        // Nếu người dùng nhập từ khóa vai trò ("teacher", "giangvien", "gv", "thuta") tại phân hệ Giảng viên
+        if (!matchUser && (normRole === 'teacher') && (cleanU === 'teacher' || cleanU === 'giangvien' || cleanU === 'gv' || cleanU === 'thuta' || cleanU === 'anhthu')) {
+          matchUser = (window.appState.users || []).find(user => {
+            const r = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
+            return r === 'teacher';
+          });
+        }
 
         // Nếu chưa có trong danh sách lưu cục bộ nhưng khớp với tài khoản chuẩn hệ thống
         if (!matchUser) {
           const standards = (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined') ? STANDARD_ROLE_ACCOUNTS : (window.STANDARD_ROLE_ACCOUNTS || {});
           if (standards && standards[normRole]) {
             const stdAcc = standards[normRole];
-            if (cleanU === (stdAcc.username || '').toLowerCase() || cleanU === (stdAcc.id || '').toLowerCase() || cleanU === (stdAcc.email || '').toLowerCase()) {
+            const stdUsername = (stdAcc.username || '').toLowerCase();
+            const stdId = (stdAcc.id || '').toLowerCase();
+            const stdEmail = (stdAcc.email || '').toLowerCase();
+            if (cleanU === stdUsername || targetAlias === stdUsername || cleanU === stdId || cleanU === stdEmail || 
+                (normRole === 'lab_manager' && (cleanU === 'manager' || cleanU === 'qlpm' || cleanU === 'quanly' || cleanU === 'linhtt' || cleanU === 'linh')) ||
+                (normRole === 'teacher' && (cleanU === 'teacher' || cleanU === 'giangvien' || cleanU === 'gv' || cleanU === 'thuta'))) {
               matchUser = { ...stdAcc };
               if (!window.appState.users.some(usr => usr.username === matchUser.username || usr.id === matchUser.id)) {
                 window.appState.users.push(matchUser);
