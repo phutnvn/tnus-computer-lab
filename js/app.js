@@ -644,6 +644,18 @@ window.switchTab = function(targetTab) {
       if (typeof window.updateUserKPIs === 'function') window.updateUserKPIs();
       if (typeof window.renderActivityLogs === 'function') window.renderActivityLogs();
     }
+
+    // 4. Tự động điều khiển hiển thị nút lệnh vai trò và chức năng 4 vai trò trên Header theo phân hệ
+    const headerRoleBox = document.getElementById('header-role-switcher-container');
+    const headerRolesCompBtn = document.getElementById('btn-header-roles-comparison');
+    if (headerRolesCompBtn) headerRolesCompBtn.style.display = 'none';
+    if (headerRoleBox) {
+      if (role === 'admin' && targetTab !== 'users') {
+        headerRoleBox.style.display = '';
+      } else {
+        headerRoleBox.style.display = 'none';
+      }
+    }
   } catch (err) {
     console.warn(`[Navigation] Cảnh báo kích hoạt dữ liệu tab ${targetTab}:`, err);
   }
@@ -1001,16 +1013,15 @@ window.updateUserUI = function() {
   if (badgeAvatar) badgeAvatar.textContent = u.avatar || '👤';
 
   // KIỂM SOÁT BẢO MẬT & ĐIỀU KHIỂN HEADER:
-  // - Chỉ Quản trị viên (Admin) mới hiển thị hộp chọn chuyển đổi vai trò trên header.
-  // - Tất cả các tài khoản phân quyền khác (Giảng viên, Quản lý phòng máy, Sinh viên): 
-  //   Ẩn hoàn toàn roleContainer để giao diện tối giản, thoáng đãng; danh tính và vai trò đã hiển thị trên User Badge góc phải.
+  // - Ẩn roleContainer cho mọi vai trò không phải Admin, VÀ ẩn luôn tại giao diện phân quyền của Admin theo yêu cầu
+  const isUsersTab = (window.appState && window.appState.currentTab === 'users');
   if (roleContainer && roleContainer.style) {
-    roleContainer.style.display = isAdmin ? '' : 'none';
+    roleContainer.style.display = (isAdmin && !isUsersTab) ? '' : 'none';
   }
 
   if (select && select.style) {
     select.value = role;
-    if (isAdmin) {
+    if (isAdmin && !isUsersTab) {
       select.style.display = '';
       select.removeAttribute('disabled');
       if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
@@ -5041,6 +5052,7 @@ window.applyRoleRestrictionsToUI = function() {
   // 0. BẢO MẬT & ĐIỀU KHIỂN HEADER THEO VAI TRÒ:
   const isTeacher = (role === 'teacher');
   const isStudent = (role === 'student');
+  const isUsersTab = (window.appState && window.appState.currentTab === 'users');
   const roleContainer = document.getElementById('header-role-switcher-container');
   const headerSelect = document.getElementById('user-role-select');
   const staticBadge = document.getElementById('header-role-static-badge');
@@ -5048,8 +5060,9 @@ window.applyRoleRestrictionsToUI = function() {
   const roleLabel = document.getElementById('header-role-label');
 
   if (roleContainer) {
-    if (!isAdmin) {
-      // BỎ HOÀN TOÀN hộp chọn / nhãn vai trò ở giao diện Giảng viên, Quản lý phòng máy và Sinh viên theo yêu cầu tối giản
+    if (!isAdmin || isUsersTab) {
+      // BỎ HOÀN TOÀN hộp chọn / nhãn vai trò ở giao diện Giảng viên, Quản lý phòng máy, Sinh viên
+      // VÀ tại giao diện phân quyền của tài khoản Admin theo yêu cầu
       roleContainer.style.display = 'none';
       if (headerSelect) {
         headerSelect.style.display = 'none';
@@ -5070,13 +5083,13 @@ window.applyRoleRestrictionsToUI = function() {
   }
 
   // 0.1. ĐIỀU KHIỂN CÁC NÚT LỆNH TRÊN HEADER:
-  // - Ẩn nút "Chức năng 4 vai trò" cho tất cả tài khoản không phải Admin (Giảng viên, Quản lý phòng máy, Sinh viên)
+  // - BỎ HOÀN TOÀN nút "Chức năng 4 vai trò" trên Header: Đã tích hợp đầy đủ trong Phân hệ Quản trị & Ma trận phân quyền Tab 6
   // - Ẩn nút "Sao lưu" & "Reset mẫu" cho các tài khoản không phải Admin
   // - Ẩn nút "Đổi MK" trên Header cho Giảng viên, Quản lý phòng máy, Sinh viên (đã tích hợp trong Modal Hồ sơ cá nhân khi bấm vào avatar)
   // - Ẩn nút "Đăng xuất" trên Header cho Giảng viên, Quản lý phòng máy, Sinh viên theo yêu cầu tối giản
   const rolesComparisonBtn = document.getElementById('btn-header-roles-comparison');
   if (rolesComparisonBtn) {
-    rolesComparisonBtn.style.display = isAdmin ? '' : 'none';
+    rolesComparisonBtn.style.display = 'none';
   }
 
   const backupControls = document.getElementById('header-backup-controls');
