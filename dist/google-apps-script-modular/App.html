@@ -854,6 +854,84 @@ const RBAC_LEGACY_MAP = {
   broadcast_screen: 'simulation.manage'
 };
 
+// =========================================================================
+// MÃ HÓA & GIẢI MÃ THÔNG TIN TÀI KHOẢN AN TOÀN URL-SAFE
+// Cho phép bàn giao liên kết đăng nhập hoạt động 100% trên MỌI thiết bị / trình duyệt
+// =========================================================================
+window.encodeUserPayload = function(user) {
+  if (!user) return '';
+  try {
+    const payload = {
+      id: user.id,
+      u: (user.username || '').replace(/^@+/, ''),
+      n: user.name || '',
+      r: user.role || 'teacher',
+      rn: user.roleName || '',
+      d: user.department || '',
+      e: user.email || '',
+      p: user.phone || '',
+      av: user.avatar || '👨‍🏫',
+      pw: user.initialPassword || 'Tnus@2026',
+      pwh: user.passwordHash || '',
+      s: user.salt || 'TNUS_KHOA_TOAN_TIN_2026',
+      ts: Date.now()
+    };
+    const jsonStr = JSON.stringify(payload);
+    let b64 = '';
+    if (typeof Buffer !== 'undefined') {
+      b64 = Buffer.from(jsonStr, 'utf8').toString('base64');
+    } else {
+      b64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+    }
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) {
+    console.warn('Lỗi encodeUserPayload:', e);
+    return '';
+  }
+};
+
+window.decodeUserPayload = function(tokenStr) {
+  if (!tokenStr) return null;
+  try {
+    let b64 = tokenStr.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    let jsonStr = '';
+    if (typeof Buffer !== 'undefined') {
+      jsonStr = Buffer.from(b64, 'base64').toString('utf8');
+    } else {
+      jsonStr = decodeURIComponent(Array.prototype.map.call(atob(b64), (c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    }
+    const data = JSON.parse(jsonStr);
+    if (!data || !data.u || !data.r) return null;
+    const salt = data.s || 'TNUS_KHOA_TOAN_TIN_2026';
+    const initPw = data.pw || 'Tnus@2026';
+    const pwh = data.pwh || (typeof hashPassword === 'function' ? hashPassword(initPw, salt) : '');
+    const defaultPerms = (typeof DEFAULT_ROLE_PERMISSIONS !== 'undefined' && DEFAULT_ROLE_PERMISSIONS[data.r]) ? [...DEFAULT_ROLE_PERMISSIONS[data.r]] : [];
+    return {
+      id: data.id || `USR-${Date.now().toString().slice(-4)}`,
+      username: data.u,
+      name: data.n || data.u,
+      role: data.r,
+      roleName: data.rn || (data.r === 'teacher' ? 'Giảng viên' : (data.r === 'lab_manager' ? 'Quản lý phòng máy' : data.r)),
+      department: data.d || 'Khoa Toán - Tin, TNUS',
+      email: data.e || `${data.u}@tnus.edu.vn`,
+      phone: data.p || '',
+      avatar: data.av || '👨‍🏫',
+      status: 'active',
+      initialPassword: initPw,
+      passwordHash: pwh,
+      salt: salt,
+      permissions: defaultPerms,
+      failedLogins: 0,
+      createdAt: new Date().toISOString().split('T')[0],
+      lastLogin: 'Chưa đăng nhập'
+    };
+  } catch (e) {
+    console.warn('Lỗi decodeUserPayload:', e);
+    return null;
+  }
+};
+
 // Chuẩn hóa mã vai trò và xử lý các bí danh URL (manager -> lab_manager, staff -> lab_manager)
 window.normalizeRole = function(r) {
   if (!r) return 'student';
@@ -1517,6 +1595,68 @@ window.renderUserAccountsTable = function() {
       </tr>
     `;
   }).join('');
+
+  if (typeof window.updateRoleAccessCards === 'function') {
+    window.updateRoleAccessCards();
+  }
+};
+
+// Cập nhật thẻ hiển thị vai trò Giảng viên tại phân hệ Link Phân Quyền Web App (Tab 6)
+window.updateRoleAccessCards = function() {
+  const users = window.appState.users || [];
+  const teachers = users.filter(u => {
+    const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+    return r === 'teacher' && (u.status || 'active') === 'active';
+  });
+
+  const nameEl = document.getElementById('role-access-teacher-name');
+  const countEl = document.getElementById('role-access-teacher-count');
+  const descEl = document.getElementById('role-access-teacher-desc');
+  const btnEnter = document.getElementById('btn-role-access-teacher-enter');
+
+  if (teachers.length > 0) {
+    // Ưu tiên tài khoản giảng viên mới nhất được thêm vào
+    const latestTeacher = teachers[teachers.length - 1];
+    const cleanU = (latestTeacher.username || '').replace(/^@+/, '');
+    if (nameEl) {
+      nameEl.innerHTML = `<span>${latestTeacher.name}</span> <span class="text-[10px] text-emerald-600 font-mono font-normal">(@${cleanU})</span>`;
+    }
+    if (countEl) {
+      countEl.textContent = teachers.length > 1 ? `${teachers.length} tài khoản` : 'teacher';
+      countEl.title = `Hệ thống có ${teachers.length} tài khoản Giảng viên khả dụng`;
+    }
+    if (descEl) {
+      descEl.textContent = teachers.length > 1 
+        ? `${teachers.length} Giảng viên đã cấp quyền • Mở TKB & vào ca dạy` 
+        : 'Mở thẳng Thời khóa biểu & vào ca dạy';
+    }
+    if (btnEnter) {
+      btnEnter.title = `Đăng nhập tài khoản Giảng viên (${latestTeacher.name} - @${cleanU})`;
+    }
+  }
+};
+
+// Mở modal đăng nhập cho Giảng viên hiện hành / mới nhất
+window.openCurrentTeacherLoginModal = function() {
+  const users = window.appState.users || [];
+  const teachers = users.filter(u => {
+    const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+    return r === 'teacher' && (u.status || 'active') === 'active';
+  });
+
+  if (teachers.length === 0) {
+    window.openRoleLoginModal('teacher', 'schedule', 'thuta');
+    return;
+  }
+  if (teachers.length === 1) {
+    const cleanU = (teachers[0].username || '').replace(/^@+/, '');
+    window.openRoleLoginModal('teacher', 'schedule', cleanU);
+    return;
+  }
+  // Nếu có nhiều giảng viên, ưu tiên tài khoản mới nhất do Admin tạo
+  const latestTeacher = teachers[teachers.length - 1];
+  const cleanU = (latestTeacher.username || '').replace(/^@+/, '');
+  window.openRoleLoginModal('teacher', 'schedule', cleanU);
 };
 
 // Cập nhật thống kê KPI tài khoản
@@ -1554,7 +1694,8 @@ window.copyUserCredentials = function(userId) {
   const baseUrl = (typeof window.getCanonicalAppUrl === 'function' ? window.getCanonicalAppUrl() : (window.location.origin + window.location.pathname)).split('?')[0].split('#')[0];
   const userNormRole = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
   const userDestTab = (userNormRole === 'teacher' ? 'schedule' : (userNormRole === 'lab_manager' ? 'computers' : (userNormRole === 'student' ? 'schedule' : 'dashboard')));
-  const directLoginUrl = `${baseUrl}?role=${userNormRole}&user=${cleanUname}&tab=${userDestTab}`;
+  const uToken = (typeof window.encodeUserPayload === 'function') ? window.encodeUserPayload(user) : '';
+  const directLoginUrl = `${baseUrl}?role=${userNormRole}&user=${cleanUname}&tab=${userDestTab}${uToken ? '&u_data=' + uToken : ''}`;
 
   const textToCopy = 
 `KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
@@ -2033,12 +2174,14 @@ window.showAddUserModal = function() {
       window.logUserActivity('Thêm tài khoản', `Tạo tài khoản mới ${newUser.name} (@${newUser.username}) với vai trò ${newUser.roleName}`);
       window.renderUserAccountsTable();
       window.updateUserKPIs();
+      if (typeof window.updateRoleAccessCards === 'function') window.updateRoleAccessCards();
 
       // Hiển thị Card bàn giao tài khoản kèm nút Sao chép 1-click
       const baseUrl = (typeof window.getCanonicalAppUrl === 'function' ? window.getCanonicalAppUrl() : (window.location.origin + window.location.pathname)).split('?')[0].split('#')[0];
       const newRoleNorm = window.normalizeRole ? window.normalizeRole(newUser.role) : newUser.role;
       const newDestTab = (newRoleNorm === 'teacher' ? 'schedule' : (newRoleNorm === 'lab_manager' ? 'computers' : (newRoleNorm === 'student' ? 'schedule' : 'dashboard')));
-      const directLoginUrl = `${baseUrl}?role=${newRoleNorm}&user=${newUser.username}&tab=${newDestTab}`;
+      const uToken = (typeof window.encodeUserPayload === 'function') ? window.encodeUserPayload(newUser) : '';
+      const directLoginUrl = `${baseUrl}?role=${newRoleNorm}&user=${newUser.username}&tab=${newDestTab}${uToken ? '&u_data=' + uToken : ''}`;
       const textToCopy = 
 `KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
 THÔNG TIN TÀI KHOẢN HỆ THỐNG PHÒNG MÁY:
@@ -4802,19 +4945,51 @@ window.saveCustomWebAppUrl = function(url, showToast = false) {
 };
 
 // Thực thi sao chép liên kết vào clipboard
-window.executeCopyLink = function(baseUrl, role, defaultTab) {
-  const fullUrl = `${baseUrl}?role=${role}${defaultTab ? '&tab=' + defaultTab : ''}`;
+window.executeCopyLink = function(baseUrl, role, defaultTab, targetUser = null) {
+  let userParamStr = '';
+  let tokenStr = '';
+  let effectiveUser = targetUser;
+
+  if (!effectiveUser && role === 'teacher') {
+    const teachers = (window.appState.users || []).filter(u => {
+      const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+      return r === 'teacher' && (u.status || 'active') === 'active';
+    });
+    if (teachers.length > 0) {
+      effectiveUser = teachers[teachers.length - 1]; // Ưu tiên tài khoản giảng viên mới nhất
+    }
+  } else if (!effectiveUser && role === 'lab_manager') {
+    const managers = (window.appState.users || []).filter(u => {
+      const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+      return r === 'lab_manager' && (u.status || 'active') === 'active';
+    });
+    if (managers.length > 0) {
+      effectiveUser = managers[0];
+    }
+  }
+
+  if (effectiveUser && role !== 'student' && role !== 'admin') {
+    const cleanU = (effectiveUser.username || '').replace(/^@+/, '');
+    userParamStr = `&user=${cleanU}`;
+    if (typeof window.encodeUserPayload === 'function') {
+      const tok = window.encodeUserPayload(effectiveUser);
+      if (tok) tokenStr = `&u_data=${tok}`;
+    }
+  }
+
+  const fullUrl = `${baseUrl}?role=${role}${defaultTab ? '&tab=' + defaultTab : ''}${userParamStr}${tokenStr}`;
 
   const showSuccessDialog = () => {
     if (typeof Swal !== 'undefined') {
+      const userDesc = effectiveUser ? ` cho <strong>${effectiveUser.name}</strong> (@${(effectiveUser.username || '').replace(/^@+/, '')})` : '';
       Swal.fire({
         icon: 'success',
         title: `Đã sao chép link [${role.toUpperCase()}]!`,
         html: `
           <div class="text-left text-xs space-y-2">
-            <p>Liên kết đăng nhập trực tiếp cho vai trò <strong>${role}</strong>:</p>
+            <p>Liên kết đăng nhập trực tiếp${userDesc}:</p>
             <div class="p-2.5 bg-slate-100 rounded-lg font-mono text-blue-700 break-all select-all text-[11px] border border-slate-200">${fullUrl}</div>
-            <p class="text-slate-500 text-[10px]">Người nhận nhấp vào liên kết này hệ thống sẽ tự động hiển thị Giao diện Đăng Nhập đúng vai trò và mở đúng phân hệ làm việc.</p>
+            <p class="text-slate-500 text-[10px]">Người nhận nhấp vào liên kết này hệ thống sẽ tự động đồng bộ tài khoản, hiển thị Giao diện Đăng Nhập và mở đúng phân hệ làm việc.</p>
           </div>
         `,
         timer: 6000,
@@ -4826,7 +5001,7 @@ window.executeCopyLink = function(baseUrl, role, defaultTab) {
       }).then(res => {
         if (res.isConfirmed) {
           if (typeof window.openRoleLoginModal === 'function') {
-            window.openRoleLoginModal(role, defaultTab);
+            window.openRoleLoginModal(role, defaultTab, effectiveUser ? effectiveUser.username : '');
           }
         }
       });
@@ -4894,6 +5069,58 @@ window.copyRoleAccessLink = function(role, defaultTab = 'dashboard') {
   }
 
   baseUrl = baseUrl.split('?')[0].split('#')[0];
+
+  // Nếu là Giảng viên và có nhiều hơn 1 tài khoản giảng viên, cho Admin chọn tài khoản cần sao chép
+  if (role === 'teacher') {
+    const teachers = (window.appState.users || []).filter(u => {
+      const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
+      return r === 'teacher' && (u.status || 'active') === 'active';
+    });
+
+    if (teachers.length > 1) {
+      const optionsHtml = teachers.map((t, idx) => `
+        <label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-200 hover:bg-emerald-50/60 cursor-pointer text-left transition ${idx === teachers.length - 1 ? 'bg-emerald-50/40 border-emerald-300' : ''}">
+          <input type="radio" name="swal-select-teacher" value="${t.id}" ${idx === teachers.length - 1 ? 'checked' : ''} class="text-emerald-600 focus:ring-emerald-500">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <span>${t.name}</span>
+              <span class="font-mono text-emerald-700 text-[11px]">(@${(t.username || '').replace(/^@+/, '')})</span>
+              ${idx === teachers.length - 1 ? '<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1 rounded font-bold">Mới tạo</span>' : ''}
+            </div>
+            <div class="text-[10px] text-slate-500 truncate">${t.department || 'Khoa Toán - Tin, TNUS'}</div>
+          </div>
+        </label>
+      `).join('');
+
+      Swal.fire({
+        title: 'Sao Chép Link Đăng Nhập Giảng Viên',
+        html: `
+          <div class="text-left text-xs space-y-2 mt-1">
+            <p class="text-slate-600">Hệ thống có ${teachers.length} tài khoản Giảng viên. Chọn tài khoản cần bàn giao liên kết đăng nhập:</p>
+            <div class="space-y-1.5 max-h-56 overflow-y-auto pt-1 font-sans">
+              ${optionsHtml}
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-regular fa-copy mr-1.5"></i>Sao chép Link',
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#059669',
+        cancelButtonColor: '#64748b',
+        preConfirm: () => {
+          const selected = document.querySelector('input[name="swal-select-teacher"]:checked')?.value;
+          return selected || teachers[teachers.length - 1].id;
+        }
+      }).then(res => {
+        if (res.isConfirmed && res.value) {
+          const chosen = teachers.find(t => t.id === res.value) || teachers[teachers.length - 1];
+          window.executeCopyLink(baseUrl, role, defaultTab, chosen);
+        }
+      });
+      return;
+    }
+  }
+
   window.executeCopyLink(baseUrl, role, defaultTab);
 };
 
@@ -4901,8 +5128,41 @@ window.copyRoleAccessLink = function(role, defaultTab = 'dashboard') {
 function applyUrlParameters(params) {
   if (!params) return;
 
+  // 0. ĐỒNG BỘ TÀI KHOẢN TỪ TOKEN / U_DATA TRUYỀN QUA LIÊN KẾT (NẾU CÓ)
+  let syncedUser = null;
+  const rawToken = params.u_data || params.token;
+  if (rawToken && typeof window.decodeUserPayload === 'function') {
+    syncedUser = window.decodeUserPayload(rawToken);
+    if (syncedUser && syncedUser.username) {
+      if (!Array.isArray(window.appState.users)) window.appState.users = [];
+      const cleanSyncU = syncedUser.username.toLowerCase().replace(/^@+/, '');
+      const existingIdx = window.appState.users.findIndex(u => 
+        (u.username && u.username.toLowerCase().replace(/^@+/, '') === cleanSyncU) ||
+        (u.id && u.id === syncedUser.id)
+      );
+      if (existingIdx >= 0) {
+        window.appState.users[existingIdx] = { ...window.appState.users[existingIdx], ...syncedUser };
+      } else {
+        window.appState.users.push(syncedUser);
+      }
+      if (typeof window.saveStateToLocalStorage === 'function') {
+        window.saveStateToLocalStorage();
+      }
+      if (typeof window.renderUserAccountsTable === 'function') {
+        window.renderUserAccountsTable();
+      }
+      if (typeof window.updateUserKPIs === 'function') {
+        window.updateUserKPIs();
+      }
+      if (typeof window.updateRoleAccessCards === 'function') {
+        window.updateRoleAccessCards();
+      }
+      console.log('[Auth Link Sync] Đã đồng bộ tài khoản từ liên kết:', syncedUser.name, syncedUser.username);
+    }
+  }
+
   const roleParam = params.role;
-  const userParam = params.user;
+  const userParam = params.user || (syncedUser ? syncedUser.username : null);
   const tabParam = params.tab;
   const labParam = params.lab;
 
@@ -4916,7 +5176,7 @@ function applyUrlParameters(params) {
     const curUser = window.appState.currentUser;
     const curRole = window.normalizeRole ? window.normalizeRole(curUser?.role) : curUser?.role;
     const targetNormRole = window.normalizeRole ? window.normalizeRole(targetAccount) : targetAccount;
-    const specificUser = (userParam && userParam !== targetNormRole) ? userParam : (params.username || '');
+    const specificUser = (userParam && userParam !== targetNormRole) ? userParam : (params.username || (syncedUser ? syncedUser.username : ''));
 
     // Nếu tham số là Sinh viên / Khách tra cứu: Vào thẳng ngay lập tức, không bắt đăng nhập
     if (targetNormRole === 'student') {
@@ -6608,8 +6868,15 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
     roleUsers = [stdAcc];
   }
 
-  // Tên đăng nhập lấy từ prefillUsername nếu được truyền vào từ link chia sẻ, hoặc để trống tự nhập
-  const defaultUsername = (prefillUsername || '').replace(/^@+/, '');
+  // Tên đăng nhập lấy từ prefillUsername nếu được truyền vào từ link chia sẻ, hoặc ưu tiên tài khoản mới nhất
+  let defaultUsername = (prefillUsername || '').replace(/^@+/, '');
+  if (!defaultUsername && roleUsers.length > 0) {
+    if (normRole === 'teacher') {
+      defaultUsername = (roleUsers[roleUsers.length - 1].username || '').replace(/^@+/, '');
+    } else if (normRole === 'lab_manager') {
+      defaultUsername = (roleUsers[0].username || '').replace(/^@+/, '');
+    }
+  }
   const defaultPass = '';
 
   let userChipsHtml = '';
@@ -6683,8 +6950,11 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
                 Do Admin cấp
               </span>
             </label>
-            <input type="text" id="role-login-username" value="${defaultUsername}" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." autocomplete="off"
+            <input type="text" id="role-login-username" value="${defaultUsername}" placeholder="Nhập tên đăng nhập do Quản trị viên cấp..." autocomplete="off" list="role-login-usernames-list"
               class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 ${normRole === 'teacher' ? 'focus:ring-emerald-500 focus:border-emerald-500' : 'focus:ring-indigo-500 focus:border-indigo-500'} focus:outline-none transition">
+            <datalist id="role-login-usernames-list">
+              ${roleUsers.map(u => `<option value="${(u.username || '').replace(/^@+/, '')}">${u.name}${u.department ? ' - ' + u.department : ''}</option>`).join('')}
+            </datalist>
           </div>
 
           <div>
@@ -6979,7 +7249,7 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
         }
 
         // Cơ chế kiểm tra trực tiếp ngay trên modal: cho phép thử lại ngay mà không bị đóng modal (áp dụng đồng bộ mọi vai trò)
-        const cleanU = u.toLowerCase().replace(/^@+/, '');
+        const cleanU = u.toLowerCase().replace(/^@+/, '').trim();
 
         // Bản đồ bí danh các vai trò tài khoản để nhận dạng linh hoạt mọi từ khóa đăng nhập
         const aliasMap = {
@@ -6995,9 +7265,6 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
 
           // Giảng viên
           'thuta': 'thuta',
-          'teacher': 'thuta',
-          'giangvien': 'thuta',
-          'gv': 'thuta',
           'anhthu': 'thuta',
           'trinhanhthu': 'thuta',
 
@@ -7018,32 +7285,54 @@ window.openRoleLoginModal = function(roleParam, targetTab, prefillUsername = '')
         const unaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
         const cleanTermUnaccent = unaccent(cleanU);
 
+        // 1. Tìm chính xác theo Username, ID, Email trong appState.users
         let matchUser = (window.appState.users || []).find(user => {
           const uName = (user.username || '').toLowerCase().replace(/^@+/, '');
           const uId = (user.id || '').toLowerCase();
           const uEmail = (user.email || '').toLowerCase();
-          const uFullName = (user.name || '').toLowerCase().trim();
-          const uFullNameUnaccent = unaccent(user.name);
-          return (uName === cleanU || uName === targetAlias || uId === cleanU || uEmail === cleanU || uFullName === cleanU || uFullNameUnaccent === cleanTermUnaccent);
+          return (uName === cleanU || uName === targetAlias || uId === cleanU || uEmail === cleanU);
         });
 
-        // Nếu người dùng nhập từ khóa vai trò ("manager", "qlpm", "lab_manager", "quanly") tại phân hệ Quản lý phòng máy
-        if (!matchUser && (normRole === 'lab_manager') && (cleanU === 'manager' || cleanU === 'qlpm' || cleanU === 'lab_manager' || cleanU === 'quanly' || cleanU === 'linhtt' || cleanU === 'linh')) {
+        // 1.1 Tìm linh hoạt theo Họ và Tên (bỏ chức danh ThS, TS, PGS, GS, CN, KS và so sánh cả có dấu lẫn không dấu)
+        if (!matchUser) {
           matchUser = (window.appState.users || []).find(user => {
-            const r = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
-            return r === 'lab_manager';
+            if (!user.name) return false;
+            const nLower = user.name.toLowerCase().trim();
+            const nNoTitle = nLower.replace(/^(ths|ts|pgs|gs|cn|ks)\.?\s+/i, '').trim();
+            const nUnaccent = unaccent(user.name);
+            const nNoTitleUnaccent = unaccent(nNoTitle);
+            return (
+              nLower === cleanU || 
+              nNoTitle === cleanU || 
+              nUnaccent === cleanTermUnaccent || 
+              nNoTitleUnaccent === cleanTermUnaccent
+            );
           });
         }
 
-        // Nếu người dùng nhập từ khóa vai trò ("teacher", "giangvien", "gv", "thuta") tại phân hệ Giảng viên
+        // 1.2 Nếu người dùng nhập từ khóa vai trò ("teacher", "giangvien", "gv", "thuta") tại phân hệ Giảng viên
         if (!matchUser && (normRole === 'teacher') && (cleanU === 'teacher' || cleanU === 'giangvien' || cleanU === 'gv' || cleanU === 'thuta' || cleanU === 'anhthu')) {
-          matchUser = (window.appState.users || []).find(user => {
+          const teachers = (window.appState.users || []).filter(user => {
             const r = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
-            return r === 'teacher';
+            return r === 'teacher' && (user.status || 'active') === 'active';
           });
+          if (teachers.length > 0) {
+            matchUser = teachers.find(t => (t.username || '').toLowerCase().replace(/^@+/, '') === cleanU) || teachers[teachers.length - 1];
+          }
         }
 
-        // Nếu chưa có trong danh sách lưu cục bộ nhưng khớp với tài khoản chuẩn hệ thống
+        // 1.3 Nếu người dùng nhập từ khóa vai trò ("manager", "qlpm", "lab_manager", "quanly") tại phân hệ Quản lý phòng máy
+        if (!matchUser && (normRole === 'lab_manager') && (cleanU === 'manager' || cleanU === 'qlpm' || cleanU === 'lab_manager' || cleanU === 'quanly' || cleanU === 'linhtt' || cleanU === 'linh')) {
+          const managers = (window.appState.users || []).filter(user => {
+            const r = window.normalizeRole ? window.normalizeRole(user.role) : user.role;
+            return r === 'lab_manager' && (user.status || 'active') === 'active';
+          });
+          if (managers.length > 0) {
+            matchUser = managers[0];
+          }
+        }
+
+        // 1.4 Nếu chưa có trong danh sách lưu cục bộ nhưng khớp với tài khoản chuẩn hệ thống
         if (!matchUser) {
           const standards = (typeof STANDARD_ROLE_ACCOUNTS !== 'undefined') ? STANDARD_ROLE_ACCOUNTS : (window.STANDARD_ROLE_ACCOUNTS || {});
           if (standards && standards[normRole]) {
@@ -7425,10 +7714,13 @@ window.handleLoginSubmit = function(username, password, explicitTargetTab = null
 
   // 1.2 Nếu người dùng nhập từ khóa chung "teacher" / "giangvien" / "gv", tìm tài khoản Giảng viên do Admin tạo trong appState.users
   if (!user && (cleanTerm === 'teacher' || cleanTerm === 'giangvien' || cleanTerm === 'gv')) {
-    user = (window.appState.users || []).find(u => {
+    const teachers = (window.appState.users || []).filter(u => {
       const r = window.normalizeRole ? window.normalizeRole(u.role) : u.role;
       return r === 'teacher' && (u.status || 'active') === 'active';
     });
+    if (teachers.length > 0) {
+      user = teachers[teachers.length - 1]; // Ưu tiên tài khoản Giảng viên mới nhất do Admin tạo
+    }
   }
 
   // 2. Nếu chưa thấy, thử tìm theo bí danh trong appState.users
