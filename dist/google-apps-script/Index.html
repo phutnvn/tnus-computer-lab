@@ -8655,24 +8655,186 @@ const INITIAL_SCHEDULES = [
   }
 ];
 
-// Tự động bổ sung tiến trình lịch thực hành tuần 13 (16/11/2026 - 21/11/2026) theo thời gian thực
-(function() {
-  const WEEK13_DATE_MAP = {
-    '2026-11-09': '2026-11-16',
-    '2026-11-10': '2026-11-17',
-    '2026-11-11': '2026-11-18',
-    '2026-11-12': '2026-11-19',
-    '2026-11-13': '2026-11-20',
-    '2026-11-14': '2026-11-21'
+// =============================================================================
+// BỘ TIỆN ÍCH QUẢN LÝ THỜI GIAN & TỰ ĐỘNG SINH LỊCH THỰC HÀNH HỌC KỲ (TNUS)
+// =============================================================================
+function parseShiftTiming(shiftStr) {
+  const periodTimes = {
+    '1': { start: '07:00', end: '07:50' },
+    '2': { start: '08:00', end: '08:50' },
+    '3': { start: '09:00', end: '09:50' },
+    '4': { start: '10:00', end: '10:50' },
+    '5': { start: '11:00', end: '11:50' },
+    '6': { start: '13:00', end: '13:50' },
+    '7': { start: '14:00', end: '14:50' },
+    '8': { start: '15:00', end: '15:50' },
+    '9': { start: '16:00', end: '16:50' },
+    '10': { start: '17:00', end: '17:50' },
+    '11': { start: '18:00', end: '18:50' },
+    '12': { start: '19:00', end: '19:50' }
   };
-  const week13Items = INITIAL_SCHEDULES.filter(s => WEEK13_DATE_MAP[s.date]).map(s => {
+
+  let startTime = '07:00';
+  let endTime = '11:50';
+  let startPeriod = '1';
+  let endPeriod = '5';
+
+  if (!shiftStr) {
+    return { startTime, endTime, startPeriod, endPeriod, shift: '07:00 - 11:50 (Tiết 1-5)' };
+  }
+
+  const str = String(shiftStr).trim();
+
+  // 1. Phân tích mẫu giờ HH:MM - HH:MM
+  const timeMatch = str.match(/(\d{1,2})[:h](\d{2})?\s*[-–—]\s*(\d{1,2})[:h](\d{2})?/i);
+  if (timeMatch) {
+    const h1 = String(timeMatch[1]).padStart(2, '0');
+    const m1 = String(timeMatch[2] || '00').padStart(2, '0');
+    const h2 = String(timeMatch[3]).padStart(2, '0');
+    const m2 = String(timeMatch[4] || '00').padStart(2, '0');
+    startTime = `${h1}:${m1}`;
+    endTime = `${h2}:${m2}`;
+  }
+
+  // 2. Phân tích Tiết học (Tiết X-Y hoặc Tiết X,Y,Z)
+  const periodRangeMatch = str.match(/ti[ếe]t\s*(\d{1,2})\s*[-–—]\s*(\d{1,2})/i);
+  if (periodRangeMatch) {
+    startPeriod = String(parseInt(periodRangeMatch[1], 10));
+    endPeriod = String(parseInt(periodRangeMatch[2], 10));
+    if (!timeMatch && periodTimes[startPeriod] && periodTimes[endPeriod]) {
+      startTime = periodTimes[startPeriod].start;
+      endTime = periodTimes[endPeriod].end;
+    }
+  } else {
+    const periodListMatch = str.match(/ti[ếe]t\s*([\d\s,]+)/i);
+    if (periodListMatch) {
+      const nums = periodListMatch[1].split(/[,\s]+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n) && n > 0);
+      if (nums.length > 0) {
+        startPeriod = String(Math.min(...nums));
+        endPeriod = String(Math.max(...nums));
+        if (!timeMatch && periodTimes[startPeriod] && periodTimes[endPeriod]) {
+          startTime = periodTimes[startPeriod].start;
+          endTime = periodTimes[endPeriod].end;
+        }
+      }
+    }
+  }
+
+  // 3. Nếu chưa có tiết nhưng có giờ, suy luận tiết từ giờ
+  if (!periodRangeMatch && !str.toLowerCase().includes('tiết')) {
+    const [sH] = startTime.split(':').map(Number);
+    if (sH < 12) {
+      if (startTime <= '07:15') startPeriod = '1';
+      else if (startTime <= '08:15') startPeriod = '2';
+      else if (startTime <= '09:15') startPeriod = '3';
+      else if (startTime <= '10:15') startPeriod = '4';
+      else startPeriod = '5';
+
+      if (endTime >= '11:40') endPeriod = '5';
+      else if (endTime >= '10:40') endPeriod = '4';
+      else if (endTime >= '09:40') endPeriod = '3';
+      else if (endTime >= '08:40') endPeriod = '2';
+      else endPeriod = '1';
+    } else {
+      if (startTime <= '13:15') startPeriod = '6';
+      else if (startTime <= '14:15') startPeriod = '7';
+      else if (startTime <= '15:15') startPeriod = '8';
+      else if (startTime <= '16:15') startPeriod = '9';
+      else startPeriod = '10';
+
+      if (endTime >= '17:40') endPeriod = '10';
+      else if (endTime >= '16:40') endPeriod = '9';
+      else if (endTime >= '15:40') endPeriod = '8';
+      else if (endTime >= '14:40') endPeriod = '7';
+      else endPeriod = '6';
+    }
+  }
+
+  let formattedShift = str;
+  if (!formattedShift.includes('Tiết') && !formattedShift.includes('tiết')) {
+    formattedShift = `${startTime} - ${endTime} (Tiết ${startPeriod}-${endPeriod})`;
+  }
+
+  return { startTime, endTime, startPeriod, endPeriod, shift: formattedShift };
+}
+
+// Hàm cộng ngày định dạng YYYY-MM-DD
+function addDaysToDate(dateStr, days) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  const resY = dt.getFullYear();
+  const resM = String(dt.getMonth() + 1).padStart(2, '0');
+  const resD = String(dt.getDate()).padStart(2, '0');
+  return `${resY}-${resM}-${resD}`;
+}
+
+// Hàm lấy ngày Thứ Hai của tuần chứa một ngày bất kỳ (YYYY-MM-DD)
+function getMondayOfDateStr(targetDateStr) {
+  let d;
+  if (targetDateStr) {
+    const [y, m, dt] = targetDateStr.split('-').map(Number);
+    d = new Date(y, m - 1, dt);
+  } else {
+    d = new Date();
+  }
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d);
+  monday.setDate(diff);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, '0');
+  const dt = String(monday.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dt}`;
+}
+
+// Hàm sinh danh sách ca học cho một tuần bất kỳ từ tập gốc 100 ca thực hành
+function generateWeekSchedulesFromBase(baseSchedules, mondayTargetStr, weekPrefix) {
+  const baseItems = baseSchedules.filter(s => s.date >= '2026-11-09' && s.date <= '2026-11-14');
+  if (baseItems.length === 0) return [];
+
+  const dayOffsets = {
+    '2026-11-09': 0, // Thứ 2
+    '2026-11-10': 1, // Thứ 3
+    '2026-11-11': 2, // Thứ 4
+    '2026-11-12': 3, // Thứ 5
+    '2026-11-13': 4, // Thứ 6
+    '2026-11-14': 5  // Thứ 7
+  };
+
+  return baseItems.map(s => {
+    const offset = dayOffsets[s.date] !== undefined ? dayOffsets[s.date] : 0;
+    const itemDate = addDaysToDate(mondayTargetStr, offset);
     const item = Object.assign({}, s);
-    item.id = s.id.replace('LICH-', 'LICH-W13-');
-    item.date = WEEK13_DATE_MAP[s.date];
+    const prefix = weekPrefix || `W-${mondayTargetStr.replace(/-/g, '')}`;
+    item.id = s.id.replace('LICH-', `LICH-${prefix}-`);
+    item.date = itemDate;
     item.status = 'Chưa diễn ra';
+    const timing = parseShiftTiming(s.shift || `${s.startTime} - ${s.endTime}`);
+    item.startTime = s.startTime || timing.startTime;
+    item.endTime = s.endTime || timing.endTime;
+    item.startPeriod = s.startPeriod || timing.startPeriod;
+    item.endPeriod = s.endPeriod || timing.endPeriod;
     return item;
   });
-  INITIAL_SCHEDULES.push(...week13Items);
+}
+
+// Tự động mở rộng và nhân bản lịch thực hành cho toàn bộ Học kỳ I 2026-2027 (Tuần 12 đến Tuần 17, 09/11 đến 19/12/2026)
+(function() {
+  const baseItems = INITIAL_SCHEDULES.filter(s => s.date >= '2026-11-09' && s.date <= '2026-11-14');
+  if (baseItems.length === 0) return;
+
+  const semesterWeeks = [
+    { name: 'W13', monday: '2026-11-16' },
+    { name: 'W14', monday: '2026-11-23' }, // Tuần hiện tại
+    { name: 'W15', monday: '2026-11-30' },
+    { name: 'W16', monday: '2026-12-07' },
+    { name: 'W17', monday: '2026-12-14' }  // Đến hết tuần 19/12/2026
+  ];
+
+  semesterWeeks.forEach(w => {
+    const weekItems = generateWeekSchedulesFromBase(baseItems, w.monday, w.name);
+    INITIAL_SCHEDULES.push(...weekItems);
+  });
 })();
 
 const INITIAL_MAINTENANCE = [
@@ -9111,6 +9273,10 @@ if (typeof window !== 'undefined') {
   window.STANDARD_ROLE_ACCOUNTS = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : {};
   window.hashPassword = typeof hashPassword !== 'undefined' ? hashPassword : null;
   window.verifyPassword = typeof verifyPassword !== 'undefined' ? verifyPassword : null;
+  window.parseShiftTiming = typeof parseShiftTiming !== 'undefined' ? parseShiftTiming : null;
+  window.addDaysToDate = typeof addDaysToDate !== 'undefined' ? addDaysToDate : null;
+  window.getMondayOfDateStr = typeof getMondayOfDateStr !== 'undefined' ? getMondayOfDateStr : null;
+  window.generateWeekSchedulesFromBase = typeof generateWeekSchedulesFromBase !== 'undefined' ? generateWeekSchedulesFromBase : null;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -9129,7 +9295,11 @@ if (typeof module !== 'undefined' && module.exports) {
     STANDARD_ROLE_ACCOUNTS,
     TNUS_PERIODS,
     hashPassword,
-    verifyPassword
+    verifyPassword,
+    parseShiftTiming,
+    addDaysToDate,
+    getMondayOfDateStr,
+    generateWeekSchedulesFromBase
   };
 }
 
@@ -10961,6 +11131,146 @@ class ScheduleManager {
     }, 10000);
   }
 
+  // Phân tích và chuẩn hóa chuỗi Ca học / Tiết học theo khung giờ chuẩn TNUS
+  parseShiftTiming(shiftStr) {
+    if (typeof window.parseShiftTiming === 'function') {
+      return window.parseShiftTiming(shiftStr);
+    }
+    const periodTimes = {
+      '1': { start: '07:00', end: '07:50' },
+      '2': { start: '08:00', end: '08:50' },
+      '3': { start: '09:00', end: '09:50' },
+      '4': { start: '10:00', end: '10:50' },
+      '5': { start: '11:00', end: '11:50' },
+      '6': { start: '13:00', end: '13:50' },
+      '7': { start: '14:00', end: '14:50' },
+      '8': { start: '15:00', end: '15:50' },
+      '9': { start: '16:00', end: '16:50' },
+      '10': { start: '17:00', end: '17:50' },
+      '11': { start: '18:00', end: '18:50' },
+      '12': { start: '19:00', end: '19:50' }
+    };
+
+    let startTime = '07:00';
+    let endTime = '11:50';
+    let startPeriod = '1';
+    let endPeriod = '5';
+
+    if (!shiftStr) return { startTime, endTime, startPeriod, endPeriod, shift: '07:00 - 11:50 (Tiết 1-5)' };
+
+    const str = String(shiftStr).trim();
+    const timeMatch = str.match(/(\d{1,2})[:h](\d{2})?\s*[-–—]\s*(\d{1,2})[:h](\d{2})?/i);
+    if (timeMatch) {
+      const h1 = String(timeMatch[1]).padStart(2, '0');
+      const m1 = String(timeMatch[2] || '00').padStart(2, '0');
+      const h2 = String(timeMatch[3]).padStart(2, '0');
+      const m2 = String(timeMatch[4] || '00').padStart(2, '0');
+      startTime = `${h1}:${m1}`;
+      endTime = `${h2}:${m2}`;
+    }
+
+    const periodRangeMatch = str.match(/ti[ếe]t\s*(\d{1,2})\s*[-–—]\s*(\d{1,2})/i);
+    if (periodRangeMatch) {
+      startPeriod = String(parseInt(periodRangeMatch[1], 10));
+      endPeriod = String(parseInt(periodRangeMatch[2], 10));
+      if (!timeMatch && periodTimes[startPeriod] && periodTimes[endPeriod]) {
+        startTime = periodTimes[startPeriod].start;
+        endTime = periodTimes[endPeriod].end;
+      }
+    }
+
+    let formattedShift = str;
+    if (!formattedShift.includes('Tiết') && !formattedShift.includes('tiết')) {
+      formattedShift = `${startTime} - ${endTime} (Tiết ${startPeriod}-${endPeriod})`;
+    }
+    return { startTime, endTime, startPeriod, endPeriod, shift: formattedShift };
+  }
+
+  // TỰ ĐỘNG ĐỒNG BỘ LỊCH THỰC HÀNH THEO DỮ LIỆU ĐÃ ĐƯA LÊN
+  syncSemesterSchedulesAuto(showNotice = false) {
+    if (!window.appState) return;
+    if (!Array.isArray(window.appState.schedules)) window.appState.schedules = [];
+
+    let countAdded = 0;
+    let countNormalized = 0;
+
+    // 1. Đồng bộ các ca chuẩn từ INITIAL_SCHEDULES nếu bị thiếu
+    if (typeof INITIAL_SCHEDULES !== 'undefined' && Array.isArray(INITIAL_SCHEDULES)) {
+      const existingIds = new Set(window.appState.schedules.map(s => s.id));
+      INITIAL_SCHEDULES.forEach(s => {
+        if (!existingIds.has(s.id)) {
+          window.appState.schedules.push(Object.assign({}, s));
+          existingIds.add(s.id);
+          countAdded++;
+        }
+      });
+    }
+
+    // 2. Kiểm tra tuần hiện tại của đồng hồ hệ thống
+    const now = new Date();
+    const curToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const curMonday = typeof window.getMondayOfDateStr === 'function' ? window.getMondayOfDateStr(curToday) : '2026-11-23';
+    const curSaturday = typeof window.addDaysToDate === 'function' ? window.addDaysToDate(curMonday, 5) : '2026-11-28';
+
+    const hasThisWeek = window.appState.schedules.some(s => s.date >= curMonday && s.date <= curSaturday);
+    if (!hasThisWeek && typeof window.generateWeekSchedulesFromBase === 'function' && typeof INITIAL_SCHEDULES !== 'undefined') {
+      const weekItems = window.generateWeekSchedulesFromBase(INITIAL_SCHEDULES, curMonday, `W-${curMonday.replace(/-/g, '')}`);
+      window.appState.schedules.push(...weekItems);
+      countAdded += weekItems.length;
+    }
+
+    // 3. Chuẩn hóa 100% ca học: đảm bảo startTime, endTime, startPeriod, endPeriod
+    window.appState.schedules.forEach(s => {
+      const timing = this.parseShiftTiming(s.shift || `${s.startTime || '07:00'} - ${s.endTime || '11:50'}`);
+      if (!s.startTime || !s.endTime || !s.startPeriod || !s.endPeriod || s.shift !== timing.shift) {
+        s.shift = timing.shift;
+        s.startTime = timing.startTime;
+        s.endTime = timing.endTime;
+        s.startPeriod = timing.startPeriod;
+        s.endPeriod = timing.endPeriod;
+        countNormalized++;
+      }
+    });
+
+    // 4. Lưu vào LocalStorage
+    if (typeof window.saveStateToLocalStorage === 'function') {
+      window.saveStateToLocalStorage();
+    }
+
+    // 5. Cập nhật UI & Trạng thái tức thời
+    this.renderView();
+    this.checkAndAutoActivateShifts();
+
+    if (typeof window.updateDashboardKPIs === 'function') {
+      window.updateDashboardKPIs();
+    }
+    if (typeof renderDashboardTodaySchedules === 'function') {
+      renderDashboardTodaySchedules();
+    }
+    if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
+      window.labSimulation.loadLab(window.labSimulation.currentLabId);
+    }
+
+    if (showNotice && typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'success',
+        title: 'Cập nhật lịch tự động thành công!',
+        html: `
+          <div class="text-left text-xs space-y-1.5 pt-1">
+            <p>Hệ thống đã đồng bộ thời khóa biểu theo đúng dữ liệu học kỳ:</p>
+            <p class="text-blue-600 font-bold">• Bổ sung ca học mới: +${countAdded} ca</p>
+            <p class="text-emerald-600 font-bold">• Chuẩn hóa tiết học & thời gian: ${countNormalized} ca</p>
+            <p class="text-slate-600 pt-1">• Tuần hiện tại: <strong>${curMonday} đến ${curSaturday}</strong></p>
+            <p class="text-slate-500 pt-2 border-t mt-2">Tổng số ca học sẵn sàng vận hành: <strong>${window.appState.schedules.length} ca</strong></p>
+          </div>
+        `,
+        timer: 3500,
+        showConfirmButton: true,
+        confirmButtonText: 'Đóng'
+      });
+    }
+  }
+
   // Thuật toán cốt lõi: Quét thời gian & Tự động vào ca / Trả phòng
   checkAndAutoActivateShifts() {
     if (!window.autoShiftConfig.enabled) {
@@ -10974,6 +11284,14 @@ class ScheduleManager {
     const d = String(now.getDate()).padStart(2, '0');
     const actualToday = `${y}-${m}-${d}`;
     this.todayStr = actualToday;
+
+    // Tự động kiểm tra nếu ngày hôm nay chưa có ca học nào, thử đồng bộ tự động một lần
+    const currentSchedules = window.appState.schedules || [];
+    if (!currentSchedules.some(s => s.date === actualToday) && !this._hasAutoSyncedToday) {
+      this._hasAutoSyncedToday = true;
+      this.syncSemesterSchedulesAuto(false);
+      return;
+    }
 
     // Lấy thời gian hiện tại (hoặc giờ mô phỏng nếu người dùng đang thử nghiệm)
     let currentTimeStr = '';
@@ -11075,6 +11393,9 @@ class ScheduleManager {
       this.updateKPIs();
       if (typeof window.updateDashboardKPIs === 'function') {
         window.updateDashboardKPIs();
+      }
+      if (typeof renderDashboardTodaySchedules === 'function') {
+        renderDashboardTodaySchedules();
       }
       if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
         window.labSimulation.loadLab(window.labSimulation.currentLabId);
@@ -11550,6 +11871,14 @@ class ScheduleManager {
               </button>
 
               ${canImportSchedule ? `
+              <!-- Tự động cập nhật lịch theo dữ liệu đào tạo đưa lên -->
+              <button id="btn-sync-auto-schedule" onclick="window.scheduleManager.syncSemesterSchedulesAuto(true)" 
+                class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs" 
+                title="Tự động đồng bộ lịch thực hành học kỳ và tuần hiện tại theo dữ liệu đã đưa lên">
+                <i class="fa-solid fa-arrows-rotate text-blue-600"></i>
+                <span>Cập Nhật Lịch Tự Động</span>
+              </button>
+
               <!-- Nhập Excel -->
               <label id="wrapper-import-schedule" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
                 <i class="fa-solid fa-file-import text-blue-600"></i>
@@ -12452,11 +12781,16 @@ class ScheduleManager {
         }
 
         const newId = `LICH-NEW-${Date.now().toString().slice(-4)}-${labId}`;
+        const timing = this.parseShiftTiming(shift);
         return {
           id: newId,
           labId,
           date,
-          shift,
+          shift: timing.shift,
+          startTime: timing.startTime,
+          endTime: timing.endTime,
+          startPeriod: timing.startPeriod,
+          endPeriod: timing.endPeriod,
           courseCode,
           subject,
           className,
@@ -12474,6 +12808,11 @@ class ScheduleManager {
         this.renderMainContent();
         this.updateKPIs();
         this.checkAndAutoActivateShifts();
+        if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs();
+        if (typeof renderDashboardTodaySchedules === 'function') renderDashboardTodaySchedules();
+        if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
+          window.labSimulation.loadLab(window.labSimulation.currentLabId);
+        }
         Swal.fire({
           icon: 'success',
           title: 'Xếp lịch thành công!',
@@ -12663,7 +13002,22 @@ class ScheduleManager {
           return false;
         }
 
-        return { labId, date, shift, subject, courseCode, className, lecturer, studentCount, note };
+        const timing = this.parseShiftTiming(shift);
+        return {
+          labId,
+          date,
+          shift: timing.shift,
+          startTime: timing.startTime,
+          endTime: timing.endTime,
+          startPeriod: timing.startPeriod,
+          endPeriod: timing.endPeriod,
+          subject,
+          courseCode,
+          className,
+          lecturer,
+          studentCount,
+          note
+        };
       }
     }).then(res => {
       if (res.isConfirmed && res.value) {
@@ -12672,6 +13026,11 @@ class ScheduleManager {
         this.renderMainContent();
         this.updateKPIs();
         this.checkAndAutoActivateShifts();
+        if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs();
+        if (typeof renderDashboardTodaySchedules === 'function') renderDashboardTodaySchedules();
+        if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
+          window.labSimulation.loadLab(window.labSimulation.currentLabId);
+        }
         Swal.fire('Thành công', 'Đã lưu thông tin điều chỉnh ca học.', 'success');
       }
     });
@@ -12908,8 +13267,26 @@ class ScheduleManager {
           const lecturer = (row['Giảng viên giảng dạy'] || row['Giảng viên'] || row['lecturer'] || 'ThS. Trịnh Minh Phú').toString().trim();
           const studentCount = parseInt(row['Sĩ số SV'] || row['Sĩ số'] || row['studentCount'] || 24, 10);
           const note = (row['Ghi chú'] || row['Yêu cầu'] || row['note'] || '').toString().trim();
+          const timing = this.parseShiftTiming(shift);
 
-          const conflict = window.appState.schedules.find(s => s.labId === labId && s.date === date && s.shift === shift);
+          // Tự động suy luận trạng thái ca học dựa trên ngày và giờ thực tế
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          const curTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          let initialStatus = 'Chưa diễn ra';
+          if (date < todayStr) {
+            initialStatus = 'Đã hoàn thành';
+          } else if (date === todayStr) {
+            if (curTimeStr >= timing.endTime) {
+              initialStatus = 'Đã hoàn thành';
+            } else if (curTimeStr >= timing.startTime && curTimeStr < timing.endTime) {
+              initialStatus = 'Đang diễn ra';
+            } else {
+              initialStatus = 'Sắp diễn ra';
+            }
+          }
+
+          const conflict = window.appState.schedules.find(s => s.labId === labId && s.date === date && s.shift === timing.shift);
           if (conflict) {
             conflictCount++;
           } else {
@@ -12917,14 +13294,18 @@ class ScheduleManager {
               id: `LICH-IMP-${Date.now().toString().slice(-4)}-${idx}`,
               labId,
               date,
-              shift,
+              shift: timing.shift,
+              startTime: timing.startTime,
+              endTime: timing.endTime,
+              startPeriod: timing.startPeriod,
+              endPeriod: timing.endPeriod,
               courseCode,
               subject,
               className,
               lecturer,
               studentCount,
               note,
-              status: 'Sắp diễn ra',
+              status: initialStatus,
               type: 'Thực hành chính khóa'
             });
             addedCount++;
@@ -12935,6 +13316,11 @@ class ScheduleManager {
         this.renderMainContent();
         this.updateKPIs();
         this.checkAndAutoActivateShifts();
+        if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs();
+        if (typeof renderDashboardTodaySchedules === 'function') renderDashboardTodaySchedules();
+        if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
+          window.labSimulation.loadLab(window.labSimulation.currentLabId);
+        }
 
         Swal.fire({
           icon: 'success',
@@ -14301,38 +14687,40 @@ function loadState() {
       window.appState.labs = INITIAL_LABS;
       window.appState.computers = parsed.computers || INITIAL_COMPUTERS;
       window.appState.schedules = parsed.schedules || INITIAL_SCHEDULES;
-      // Luôn đồng bộ bổ sung lịch học tuần 13 (16/11 - 21/11/2026) theo thời gian thực nếu dữ liệu lưu cục bộ chưa có
-      if (!window.appState.schedules.some(s => s.date === '2026-11-17')) {
-        const w13Items = INITIAL_SCHEDULES.filter(s => s.date >= '2026-11-16' && s.date <= '2026-11-21');
-        window.appState.schedules = window.appState.schedules.concat(w13Items);
+      // Luôn tự động đồng bộ đầy đủ lịch thực hành học kỳ và tuần hiện tại theo dữ liệu đào tạo đưa lên
+      if (!Array.isArray(window.appState.schedules) || window.appState.schedules.length === 0) {
+        window.appState.schedules = [...INITIAL_SCHEDULES];
+      } else {
+        // Tự động bổ sung các ca học còn thiếu từ INITIAL_SCHEDULES (Tuần 13, 14, 15, 16, 17)
+        const existingIds = new Set(window.appState.schedules.map(s => s.id));
+        const missingFromInit = INITIAL_SCHEDULES.filter(s => !existingIds.has(s.id));
+        if (missingFromInit.length > 0) {
+          window.appState.schedules = window.appState.schedules.concat(missingFromInit);
+        }
+      }
+
+      // Đảm bảo tuần hiện hành luôn có lịch thực hành tự động cập nhật
+      const now = new Date();
+      const curToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const curMonday = typeof getMondayOfDateStr === 'function' ? getMondayOfDateStr(curToday) : '2026-11-23';
+      const curSaturday = typeof addDaysToDate === 'function' ? addDaysToDate(curMonday, 5) : '2026-11-28';
+      const hasCurrentWeekSchedule = window.appState.schedules.some(s => s.date >= curMonday && s.date <= curSaturday);
+
+      if (!hasCurrentWeekSchedule && typeof generateWeekSchedulesFromBase === 'function') {
+        const curWeekItems = generateWeekSchedulesFromBase(INITIAL_SCHEDULES, curMonday, 'AUTO');
+        window.appState.schedules = window.appState.schedules.concat(curWeekItems);
       }
 
       // Chuẩn hóa và nâng cấp toàn bộ ca học theo bảng Tiết học TNUS chuẩn thời gian thực (Sáng 07:00-11:50, Chiều 13:00-17:50)
       if (Array.isArray(window.appState.schedules)) {
         window.appState.schedules.forEach(s => {
-          if (!s.shift) return;
-          if (s.shift.includes('07:24 - 09:14')) {
-            s.shift = '07:00 - 08:50 (Tiết 1-2)'; s.startTime = '07:00'; s.endTime = '08:50'; s.startPeriod = '1'; s.endPeriod = '2';
-          } else if (s.shift.includes('09:24 - 11:14')) {
-            s.shift = '09:00 - 10:50 (Tiết 3-4)'; s.startTime = '09:00'; s.endTime = '10:50'; s.startPeriod = '3'; s.endPeriod = '4';
-          } else if (s.shift.includes('07:24 - 12:14')) {
-            s.shift = '07:00 - 11:50 (Tiết 1-5)'; s.startTime = '07:00'; s.endTime = '11:50'; s.startPeriod = '1'; s.endPeriod = '5';
-          } else if (s.shift.includes('07:24 - 10:14')) {
-            s.shift = '07:00 - 09:50 (Tiết 1-3)'; s.startTime = '07:00'; s.endTime = '09:50'; s.startPeriod = '1'; s.endPeriod = '3';
-          } else if (s.shift.includes('09:24 - 12:14')) {
-            s.shift = '09:00 - 11:50 (Tiết 3-5)'; s.startTime = '09:00'; s.endTime = '11:50'; s.startPeriod = '3'; s.endPeriod = '5';
-          } else if (s.shift.includes('11:24 - 13:14')) {
-            s.shift = '11:00 - 13:50 (Tiết 5-6)'; s.startTime = '11:00'; s.endTime = '13:50'; s.startPeriod = '5'; s.endPeriod = '6';
-          } else if (s.shift.includes('13:24 - 15:14')) {
-            s.shift = '13:00 - 14:50 (Tiết 6-7)'; s.startTime = '13:00'; s.endTime = '14:50'; s.startPeriod = '6'; s.endPeriod = '7';
-          } else if (s.shift.includes('13:24 - 16:14')) {
-            s.shift = '13:00 - 15:50 (Tiết 6-8)'; s.startTime = '13:00'; s.endTime = '15:50'; s.startPeriod = '6'; s.endPeriod = '8';
-          } else if (s.shift.includes('15:24 - 17:14')) {
-            s.shift = '15:00 - 16:50 (Tiết 8-9)'; s.startTime = '15:00'; s.endTime = '16:50'; s.startPeriod = '8'; s.endPeriod = '9';
-          } else if (s.shift.includes('13:24 - 18:14')) {
-            s.shift = '13:00 - 17:50 (Tiết 6-10)'; s.startTime = '13:00'; s.endTime = '17:50'; s.startPeriod = '6'; s.endPeriod = '10';
-          } else if (s.shift.includes('16:24 - 19:14')) {
-            s.shift = '17:00 - 19:50 (Tiết 10-12)'; s.startTime = '17:00'; s.endTime = '19:50'; s.startPeriod = '10'; endPeriod = '12';
+          if (typeof parseShiftTiming === 'function') {
+            const timing = parseShiftTiming(s.shift || `${s.startTime || '07:00'} - ${s.endTime || '11:50'}`);
+            s.shift = timing.shift;
+            s.startTime = s.startTime || timing.startTime;
+            s.endTime = s.endTime || timing.endTime;
+            s.startPeriod = s.startPeriod || timing.startPeriod;
+            s.endPeriod = s.endPeriod || timing.endPeriod;
           }
         });
       }

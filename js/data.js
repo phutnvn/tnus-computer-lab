@@ -6486,24 +6486,186 @@ const INITIAL_SCHEDULES = [
   }
 ];
 
-// Tự động bổ sung tiến trình lịch thực hành tuần 13 (16/11/2026 - 21/11/2026) theo thời gian thực
-(function() {
-  const WEEK13_DATE_MAP = {
-    '2026-11-09': '2026-11-16',
-    '2026-11-10': '2026-11-17',
-    '2026-11-11': '2026-11-18',
-    '2026-11-12': '2026-11-19',
-    '2026-11-13': '2026-11-20',
-    '2026-11-14': '2026-11-21'
+// =============================================================================
+// BỘ TIỆN ÍCH QUẢN LÝ THỜI GIAN & TỰ ĐỘNG SINH LỊCH THỰC HÀNH HỌC KỲ (TNUS)
+// =============================================================================
+function parseShiftTiming(shiftStr) {
+  const periodTimes = {
+    '1': { start: '07:00', end: '07:50' },
+    '2': { start: '08:00', end: '08:50' },
+    '3': { start: '09:00', end: '09:50' },
+    '4': { start: '10:00', end: '10:50' },
+    '5': { start: '11:00', end: '11:50' },
+    '6': { start: '13:00', end: '13:50' },
+    '7': { start: '14:00', end: '14:50' },
+    '8': { start: '15:00', end: '15:50' },
+    '9': { start: '16:00', end: '16:50' },
+    '10': { start: '17:00', end: '17:50' },
+    '11': { start: '18:00', end: '18:50' },
+    '12': { start: '19:00', end: '19:50' }
   };
-  const week13Items = INITIAL_SCHEDULES.filter(s => WEEK13_DATE_MAP[s.date]).map(s => {
+
+  let startTime = '07:00';
+  let endTime = '11:50';
+  let startPeriod = '1';
+  let endPeriod = '5';
+
+  if (!shiftStr) {
+    return { startTime, endTime, startPeriod, endPeriod, shift: '07:00 - 11:50 (Tiết 1-5)' };
+  }
+
+  const str = String(shiftStr).trim();
+
+  // 1. Phân tích mẫu giờ HH:MM - HH:MM
+  const timeMatch = str.match(/(\d{1,2})[:h](\d{2})?\s*[-–—]\s*(\d{1,2})[:h](\d{2})?/i);
+  if (timeMatch) {
+    const h1 = String(timeMatch[1]).padStart(2, '0');
+    const m1 = String(timeMatch[2] || '00').padStart(2, '0');
+    const h2 = String(timeMatch[3]).padStart(2, '0');
+    const m2 = String(timeMatch[4] || '00').padStart(2, '0');
+    startTime = `${h1}:${m1}`;
+    endTime = `${h2}:${m2}`;
+  }
+
+  // 2. Phân tích Tiết học (Tiết X-Y hoặc Tiết X,Y,Z)
+  const periodRangeMatch = str.match(/ti[ếe]t\s*(\d{1,2})\s*[-–—]\s*(\d{1,2})/i);
+  if (periodRangeMatch) {
+    startPeriod = String(parseInt(periodRangeMatch[1], 10));
+    endPeriod = String(parseInt(periodRangeMatch[2], 10));
+    if (!timeMatch && periodTimes[startPeriod] && periodTimes[endPeriod]) {
+      startTime = periodTimes[startPeriod].start;
+      endTime = periodTimes[endPeriod].end;
+    }
+  } else {
+    const periodListMatch = str.match(/ti[ếe]t\s*([\d\s,]+)/i);
+    if (periodListMatch) {
+      const nums = periodListMatch[1].split(/[,\s]+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n) && n > 0);
+      if (nums.length > 0) {
+        startPeriod = String(Math.min(...nums));
+        endPeriod = String(Math.max(...nums));
+        if (!timeMatch && periodTimes[startPeriod] && periodTimes[endPeriod]) {
+          startTime = periodTimes[startPeriod].start;
+          endTime = periodTimes[endPeriod].end;
+        }
+      }
+    }
+  }
+
+  // 3. Nếu chưa có tiết nhưng có giờ, suy luận tiết từ giờ
+  if (!periodRangeMatch && !str.toLowerCase().includes('tiết')) {
+    const [sH] = startTime.split(':').map(Number);
+    if (sH < 12) {
+      if (startTime <= '07:15') startPeriod = '1';
+      else if (startTime <= '08:15') startPeriod = '2';
+      else if (startTime <= '09:15') startPeriod = '3';
+      else if (startTime <= '10:15') startPeriod = '4';
+      else startPeriod = '5';
+
+      if (endTime >= '11:40') endPeriod = '5';
+      else if (endTime >= '10:40') endPeriod = '4';
+      else if (endTime >= '09:40') endPeriod = '3';
+      else if (endTime >= '08:40') endPeriod = '2';
+      else endPeriod = '1';
+    } else {
+      if (startTime <= '13:15') startPeriod = '6';
+      else if (startTime <= '14:15') startPeriod = '7';
+      else if (startTime <= '15:15') startPeriod = '8';
+      else if (startTime <= '16:15') startPeriod = '9';
+      else startPeriod = '10';
+
+      if (endTime >= '17:40') endPeriod = '10';
+      else if (endTime >= '16:40') endPeriod = '9';
+      else if (endTime >= '15:40') endPeriod = '8';
+      else if (endTime >= '14:40') endPeriod = '7';
+      else endPeriod = '6';
+    }
+  }
+
+  let formattedShift = str;
+  if (!formattedShift.includes('Tiết') && !formattedShift.includes('tiết')) {
+    formattedShift = `${startTime} - ${endTime} (Tiết ${startPeriod}-${endPeriod})`;
+  }
+
+  return { startTime, endTime, startPeriod, endPeriod, shift: formattedShift };
+}
+
+// Hàm cộng ngày định dạng YYYY-MM-DD
+function addDaysToDate(dateStr, days) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  const resY = dt.getFullYear();
+  const resM = String(dt.getMonth() + 1).padStart(2, '0');
+  const resD = String(dt.getDate()).padStart(2, '0');
+  return `${resY}-${resM}-${resD}`;
+}
+
+// Hàm lấy ngày Thứ Hai của tuần chứa một ngày bất kỳ (YYYY-MM-DD)
+function getMondayOfDateStr(targetDateStr) {
+  let d;
+  if (targetDateStr) {
+    const [y, m, dt] = targetDateStr.split('-').map(Number);
+    d = new Date(y, m - 1, dt);
+  } else {
+    d = new Date();
+  }
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d);
+  monday.setDate(diff);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, '0');
+  const dt = String(monday.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dt}`;
+}
+
+// Hàm sinh danh sách ca học cho một tuần bất kỳ từ tập gốc 100 ca thực hành
+function generateWeekSchedulesFromBase(baseSchedules, mondayTargetStr, weekPrefix) {
+  const baseItems = baseSchedules.filter(s => s.date >= '2026-11-09' && s.date <= '2026-11-14');
+  if (baseItems.length === 0) return [];
+
+  const dayOffsets = {
+    '2026-11-09': 0, // Thứ 2
+    '2026-11-10': 1, // Thứ 3
+    '2026-11-11': 2, // Thứ 4
+    '2026-11-12': 3, // Thứ 5
+    '2026-11-13': 4, // Thứ 6
+    '2026-11-14': 5  // Thứ 7
+  };
+
+  return baseItems.map(s => {
+    const offset = dayOffsets[s.date] !== undefined ? dayOffsets[s.date] : 0;
+    const itemDate = addDaysToDate(mondayTargetStr, offset);
     const item = Object.assign({}, s);
-    item.id = s.id.replace('LICH-', 'LICH-W13-');
-    item.date = WEEK13_DATE_MAP[s.date];
+    const prefix = weekPrefix || `W-${mondayTargetStr.replace(/-/g, '')}`;
+    item.id = s.id.replace('LICH-', `LICH-${prefix}-`);
+    item.date = itemDate;
     item.status = 'Chưa diễn ra';
+    const timing = parseShiftTiming(s.shift || `${s.startTime} - ${s.endTime}`);
+    item.startTime = s.startTime || timing.startTime;
+    item.endTime = s.endTime || timing.endTime;
+    item.startPeriod = s.startPeriod || timing.startPeriod;
+    item.endPeriod = s.endPeriod || timing.endPeriod;
     return item;
   });
-  INITIAL_SCHEDULES.push(...week13Items);
+}
+
+// Tự động mở rộng và nhân bản lịch thực hành cho toàn bộ Học kỳ I 2026-2027 (Tuần 12 đến Tuần 17, 09/11 đến 19/12/2026)
+(function() {
+  const baseItems = INITIAL_SCHEDULES.filter(s => s.date >= '2026-11-09' && s.date <= '2026-11-14');
+  if (baseItems.length === 0) return;
+
+  const semesterWeeks = [
+    { name: 'W13', monday: '2026-11-16' },
+    { name: 'W14', monday: '2026-11-23' }, // Tuần hiện tại
+    { name: 'W15', monday: '2026-11-30' },
+    { name: 'W16', monday: '2026-12-07' },
+    { name: 'W17', monday: '2026-12-14' }  // Đến hết tuần 19/12/2026
+  ];
+
+  semesterWeeks.forEach(w => {
+    const weekItems = generateWeekSchedulesFromBase(baseItems, w.monday, w.name);
+    INITIAL_SCHEDULES.push(...weekItems);
+  });
 })();
 
 const INITIAL_MAINTENANCE = [
@@ -6942,6 +7104,10 @@ if (typeof window !== 'undefined') {
   window.STANDARD_ROLE_ACCOUNTS = typeof STANDARD_ROLE_ACCOUNTS !== 'undefined' ? STANDARD_ROLE_ACCOUNTS : {};
   window.hashPassword = typeof hashPassword !== 'undefined' ? hashPassword : null;
   window.verifyPassword = typeof verifyPassword !== 'undefined' ? verifyPassword : null;
+  window.parseShiftTiming = typeof parseShiftTiming !== 'undefined' ? parseShiftTiming : null;
+  window.addDaysToDate = typeof addDaysToDate !== 'undefined' ? addDaysToDate : null;
+  window.getMondayOfDateStr = typeof getMondayOfDateStr !== 'undefined' ? getMondayOfDateStr : null;
+  window.generateWeekSchedulesFromBase = typeof generateWeekSchedulesFromBase !== 'undefined' ? generateWeekSchedulesFromBase : null;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -6960,6 +7126,10 @@ if (typeof module !== 'undefined' && module.exports) {
     STANDARD_ROLE_ACCOUNTS,
     TNUS_PERIODS,
     hashPassword,
-    verifyPassword
+    verifyPassword,
+    parseShiftTiming,
+    addDaysToDate,
+    getMondayOfDateStr,
+    generateWeekSchedulesFromBase
   };
 }

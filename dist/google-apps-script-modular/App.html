@@ -47,38 +47,40 @@ function loadState() {
       window.appState.labs = INITIAL_LABS;
       window.appState.computers = parsed.computers || INITIAL_COMPUTERS;
       window.appState.schedules = parsed.schedules || INITIAL_SCHEDULES;
-      // Luôn đồng bộ bổ sung lịch học tuần 13 (16/11 - 21/11/2026) theo thời gian thực nếu dữ liệu lưu cục bộ chưa có
-      if (!window.appState.schedules.some(s => s.date === '2026-11-17')) {
-        const w13Items = INITIAL_SCHEDULES.filter(s => s.date >= '2026-11-16' && s.date <= '2026-11-21');
-        window.appState.schedules = window.appState.schedules.concat(w13Items);
+      // Luôn tự động đồng bộ đầy đủ lịch thực hành học kỳ và tuần hiện tại theo dữ liệu đào tạo đưa lên
+      if (!Array.isArray(window.appState.schedules) || window.appState.schedules.length === 0) {
+        window.appState.schedules = [...INITIAL_SCHEDULES];
+      } else {
+        // Tự động bổ sung các ca học còn thiếu từ INITIAL_SCHEDULES (Tuần 13, 14, 15, 16, 17)
+        const existingIds = new Set(window.appState.schedules.map(s => s.id));
+        const missingFromInit = INITIAL_SCHEDULES.filter(s => !existingIds.has(s.id));
+        if (missingFromInit.length > 0) {
+          window.appState.schedules = window.appState.schedules.concat(missingFromInit);
+        }
+      }
+
+      // Đảm bảo tuần hiện hành luôn có lịch thực hành tự động cập nhật
+      const now = new Date();
+      const curToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const curMonday = typeof getMondayOfDateStr === 'function' ? getMondayOfDateStr(curToday) : '2026-11-23';
+      const curSaturday = typeof addDaysToDate === 'function' ? addDaysToDate(curMonday, 5) : '2026-11-28';
+      const hasCurrentWeekSchedule = window.appState.schedules.some(s => s.date >= curMonday && s.date <= curSaturday);
+
+      if (!hasCurrentWeekSchedule && typeof generateWeekSchedulesFromBase === 'function') {
+        const curWeekItems = generateWeekSchedulesFromBase(INITIAL_SCHEDULES, curMonday, 'AUTO');
+        window.appState.schedules = window.appState.schedules.concat(curWeekItems);
       }
 
       // Chuẩn hóa và nâng cấp toàn bộ ca học theo bảng Tiết học TNUS chuẩn thời gian thực (Sáng 07:00-11:50, Chiều 13:00-17:50)
       if (Array.isArray(window.appState.schedules)) {
         window.appState.schedules.forEach(s => {
-          if (!s.shift) return;
-          if (s.shift.includes('07:24 - 09:14')) {
-            s.shift = '07:00 - 08:50 (Tiết 1-2)'; s.startTime = '07:00'; s.endTime = '08:50'; s.startPeriod = '1'; s.endPeriod = '2';
-          } else if (s.shift.includes('09:24 - 11:14')) {
-            s.shift = '09:00 - 10:50 (Tiết 3-4)'; s.startTime = '09:00'; s.endTime = '10:50'; s.startPeriod = '3'; s.endPeriod = '4';
-          } else if (s.shift.includes('07:24 - 12:14')) {
-            s.shift = '07:00 - 11:50 (Tiết 1-5)'; s.startTime = '07:00'; s.endTime = '11:50'; s.startPeriod = '1'; s.endPeriod = '5';
-          } else if (s.shift.includes('07:24 - 10:14')) {
-            s.shift = '07:00 - 09:50 (Tiết 1-3)'; s.startTime = '07:00'; s.endTime = '09:50'; s.startPeriod = '1'; s.endPeriod = '3';
-          } else if (s.shift.includes('09:24 - 12:14')) {
-            s.shift = '09:00 - 11:50 (Tiết 3-5)'; s.startTime = '09:00'; s.endTime = '11:50'; s.startPeriod = '3'; s.endPeriod = '5';
-          } else if (s.shift.includes('11:24 - 13:14')) {
-            s.shift = '11:00 - 13:50 (Tiết 5-6)'; s.startTime = '11:00'; s.endTime = '13:50'; s.startPeriod = '5'; s.endPeriod = '6';
-          } else if (s.shift.includes('13:24 - 15:14')) {
-            s.shift = '13:00 - 14:50 (Tiết 6-7)'; s.startTime = '13:00'; s.endTime = '14:50'; s.startPeriod = '6'; s.endPeriod = '7';
-          } else if (s.shift.includes('13:24 - 16:14')) {
-            s.shift = '13:00 - 15:50 (Tiết 6-8)'; s.startTime = '13:00'; s.endTime = '15:50'; s.startPeriod = '6'; s.endPeriod = '8';
-          } else if (s.shift.includes('15:24 - 17:14')) {
-            s.shift = '15:00 - 16:50 (Tiết 8-9)'; s.startTime = '15:00'; s.endTime = '16:50'; s.startPeriod = '8'; s.endPeriod = '9';
-          } else if (s.shift.includes('13:24 - 18:14')) {
-            s.shift = '13:00 - 17:50 (Tiết 6-10)'; s.startTime = '13:00'; s.endTime = '17:50'; s.startPeriod = '6'; s.endPeriod = '10';
-          } else if (s.shift.includes('16:24 - 19:14')) {
-            s.shift = '17:00 - 19:50 (Tiết 10-12)'; s.startTime = '17:00'; s.endTime = '19:50'; s.startPeriod = '10'; endPeriod = '12';
+          if (typeof parseShiftTiming === 'function') {
+            const timing = parseShiftTiming(s.shift || `${s.startTime || '07:00'} - ${s.endTime || '11:50'}`);
+            s.shift = timing.shift;
+            s.startTime = s.startTime || timing.startTime;
+            s.endTime = s.endTime || timing.endTime;
+            s.startPeriod = s.startPeriod || timing.startPeriod;
+            s.endPeriod = s.endPeriod || timing.endPeriod;
           }
         });
       }
