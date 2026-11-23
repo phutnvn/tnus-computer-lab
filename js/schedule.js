@@ -1247,15 +1247,13 @@ class ScheduleManager {
       { id: 'PM4', name: 'PM4 (A1-506)', cap: 24, brand: 'Dell OptiPlex Core i5', badge: 'bg-teal-50 text-teal-700 border-teal-200' }
     ];
 
-    // Khung các ca thực hành chuẩn trong ngày theo quy định tiết học TNUS (Sáng 5 tiết: 7h-11h50, Chiều 5 tiết: 13h-17h50)
+    // Khung các ca thực hành chuẩn trong ngày theo quy định tiết học TNUS (Sáng: Ca 1, Ca 2; Chiều: Ca 3, Ca 4; Tối: Ca 5)
     const timeSlots = [
       { id: 'shift-1', label: 'Ca 1 (Sáng)', time: '07:00 - 08:50', periods: 'Tiết 1-2', session: 'Sáng', start: '07:00', end: '08:50' },
       { id: 'shift-2', label: 'Ca 2 (Sáng)', time: '09:00 - 10:50', periods: 'Tiết 3-4', session: 'Sáng', start: '09:00', end: '10:50' },
-      { id: 'shift-full-am', label: 'Ca Dài (Sáng)', time: '07:00 - 11:50', periods: 'Tiết 1-5', session: 'Sáng', start: '07:00', end: '11:50' },
       { id: 'shift-mid', label: 'Ca Chuyển Tiếp', time: '11:00 - 13:50', periods: 'Tiết 5-6', session: 'Trưa', start: '11:00', end: '13:50' },
       { id: 'shift-3', label: 'Ca 3 (Chiều)', time: '13:00 - 14:50', periods: 'Tiết 6-7', session: 'Chiều', start: '13:00', end: '14:50' },
       { id: 'shift-4', label: 'Ca 4 (Chiều)', time: '15:00 - 16:50', periods: 'Tiết 8-9', session: 'Chiều', start: '15:00', end: '16:50' },
-      { id: 'shift-full-pm', label: 'Ca Dài (Chiều)', time: '13:00 - 17:50', periods: 'Tiết 6-10', session: 'Chiều', start: '13:00', end: '17:50' },
       { id: 'shift-5', label: 'Ca 5 (Tối)', time: '17:00 - 19:50', periods: 'Tiết 10-12', session: 'Tối', start: '17:00', end: '19:50' }
     ];
 
@@ -1326,14 +1324,12 @@ class ScheduleManager {
                         if (s.labId !== lab.id) return false;
                         const sShift = (s.shift || '').toLowerCase();
                         if (s.startTime && slot.start && s.startTime === slot.start) return true;
-                        if (slot.time.includes('07:00 - 08:50') && (sShift.includes('07:00 - 08:50') || sShift.includes('tiết 1-2'))) return true;
-                        if (slot.time.includes('09:00 - 10:50') && (sShift.includes('09:00 - 10:50') || sShift.includes('tiết 3-4'))) return true;
-                        if (slot.time.includes('07:00 - 11:50') && (sShift.includes('07:00 - 11:50') || sShift.includes('tiết 1-5'))) return true;
-                        if (slot.time.includes('11:00 - 13:50') && (sShift.includes('11:00 - 13:50') || sShift.includes('tiết 5-6'))) return true;
-                        if (slot.time.includes('13:00 - 14:50') && (sShift.includes('13:00 - 14:50') || sShift.includes('tiết 6-7') || sShift.includes('tiết 7-8'))) return true;
-                        if (slot.time.includes('15:00 - 16:50') && (sShift.includes('15:00 - 16:50') || sShift.includes('tiết 8-9') || sShift.includes('tiết 9-10'))) return true;
-                        if (slot.time.includes('13:00 - 17:50') && (sShift.includes('13:00 - 17:50') || sShift.includes('tiết 6-10') || sShift.includes('tiết 7-11'))) return true;
-                        if (slot.time.includes('17:00 - 19:50') && (sShift.includes('17:00 - 19:50') || sShift.includes('tiết 10-12'))) return true;
+                        if (slot.id === 'shift-1' && (sShift.includes('07:00 - 08:50') || sShift.includes('tiết 1-2') || sShift.includes('tiết 1-5') || sShift.includes('07:00 - 11:50'))) return true;
+                        if (slot.id === 'shift-2' && (sShift.includes('09:00 - 10:50') || sShift.includes('tiết 3-4') || sShift.includes('tiết 3-5') || sShift.includes('09:00 - 11:50'))) return true;
+                        if (slot.id === 'shift-mid' && (sShift.includes('11:00 - 13:50') || sShift.includes('tiết 5-6'))) return true;
+                        if (slot.id === 'shift-3' && (sShift.includes('13:00 - 14:50') || sShift.includes('tiết 6-7') || sShift.includes('tiết 6-10') || sShift.includes('tiết 7-8') || sShift.includes('13:00 - 17:50'))) return true;
+                        if (slot.id === 'shift-4' && (sShift.includes('15:00 - 16:50') || sShift.includes('tiết 8-9') || sShift.includes('tiết 8-10') || sShift.includes('tiết 9-10') || sShift.includes('15:00 - 17:50'))) return true;
+                        if (slot.id === 'shift-5' && (sShift.includes('17:00 - 19:50') || sShift.includes('tiết 10-12') || sShift.includes('tiết 11-12'))) return true;
                         return false;
                       });
 
@@ -1798,11 +1794,9 @@ class ScheduleManager {
               <select id="modal-sch-shift" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
                 <option value="07:00 - 08:50 (Tiết 1-2)" ${prefillShift && (prefillShift.includes('07:00') || prefillShift.includes('Tiết 1-2')) ? 'selected' : ''}>Sáng: 07:00 - 08:50 (Tiết 1-2)</option>
                 <option value="09:00 - 10:50 (Tiết 3-4)" ${prefillShift && (prefillShift.includes('09:00') || prefillShift.includes('Tiết 3-4')) ? 'selected' : ''}>Sáng: 09:00 - 10:50 (Tiết 3-4)</option>
-                <option value="07:00 - 11:50 (Tiết 1-5)" ${prefillShift && (prefillShift.includes('11:50') || prefillShift.includes('Tiết 1-5')) ? 'selected' : ''}>Sáng: 07:00 - 11:50 (Tiết 1-5 Suốt Sáng)</option>
                 <option value="11:00 - 13:50 (Tiết 5-6)" ${prefillShift && (prefillShift.includes('11:00') || prefillShift.includes('Tiết 5-6')) ? 'selected' : ''}>Trưa: 11:00 - 13:50 (Tiết 5-6 Chuyển Tiếp)</option>
                 <option value="13:00 - 14:50 (Tiết 6-7)" ${prefillShift && (prefillShift.includes('13:00') || prefillShift.includes('Tiết 6-7')) ? 'selected' : ''}>Chiều: 13:00 - 14:50 (Tiết 6-7)</option>
                 <option value="15:00 - 16:50 (Tiết 8-9)" ${prefillShift && (prefillShift.includes('15:00') || prefillShift.includes('Tiết 8-9')) ? 'selected' : ''}>Chiều: 15:00 - 16:50 (Tiết 8-9)</option>
-                <option value="13:00 - 17:50 (Tiết 6-10)" ${prefillShift && (prefillShift.includes('17:50') || prefillShift.includes('Tiết 6-10')) ? 'selected' : ''}>Chiều: 13:00 - 17:50 (Tiết 6-10 Suốt Chiều)</option>
                 <option value="17:00 - 19:50 (Tiết 10-12)" ${prefillShift && (prefillShift.includes('17:00') || prefillShift.includes('Tiết 10-12')) ? 'selected' : ''}>Tối: 17:00 - 19:50 (Tiết 10-12 Ca Tối)</option>
               </select>
             </div>
@@ -2036,11 +2030,9 @@ class ScheduleManager {
               <select id="edit-sch-shift" class="w-full p-2 bg-white border border-slate-300 rounded font-semibold text-slate-800">
                 <option value="07:00 - 08:50 (Tiết 1-2)" ${item.shift.includes('07:00') || item.shift.includes('Tiết 1-2') ? 'selected' : ''}>Sáng: 07:00 - 08:50 (Tiết 1-2)</option>
                 <option value="09:00 - 10:50 (Tiết 3-4)" ${item.shift.includes('09:00') || item.shift.includes('Tiết 3-4') ? 'selected' : ''}>Sáng: 09:00 - 10:50 (Tiết 3-4)</option>
-                <option value="07:00 - 11:50 (Tiết 1-5)" ${item.shift.includes('11:50') || item.shift.includes('Tiết 1-5') ? 'selected' : ''}>Sáng: 07:00 - 11:50 (Tiết 1-5 Suốt Sáng)</option>
                 <option value="11:00 - 13:50 (Tiết 5-6)" ${item.shift.includes('11:00') || item.shift.includes('Tiết 5-6') ? 'selected' : ''}>Trưa: 11:00 - 13:50 (Tiết 5-6 Chuyển Tiếp)</option>
                 <option value="13:00 - 14:50 (Tiết 6-7)" ${item.shift.includes('14:50') || item.shift.includes('Tiết 6-7') ? 'selected' : ''}>Chiều: 13:00 - 14:50 (Tiết 6-7)</option>
                 <option value="15:00 - 16:50 (Tiết 8-9)" ${item.shift.includes('16:50') || item.shift.includes('Tiết 8-9') ? 'selected' : ''}>Chiều: 15:00 - 16:50 (Tiết 8-9)</option>
-                <option value="13:00 - 17:50 (Tiết 6-10)" ${item.shift.includes('17:50') || item.shift.includes('Tiết 6-10') ? 'selected' : ''}>Chiều: 13:00 - 17:50 (Tiết 6-10 Suốt Chiều)</option>
                 <option value="17:00 - 19:50 (Tiết 10-12)" ${item.shift.includes('19:50') || item.shift.includes('Tiết 10-12') ? 'selected' : ''}>Tối: 17:00 - 19:50 (Tiết 10-12 Ca Tối)</option>
               </select>
             </div>
@@ -2992,7 +2984,7 @@ class ScheduleManager {
         'STT': 1,
         'Phòng máy': 'PM1 (A1-503)',
         'Ngày học': '2026-11-23',
-        'Ca thực hành': '07:00 - 11:50 (Tiết 1-5)',
+        'Ca thực hành': '07:00 - 08:50 (Tiết 1-2)',
         'Mã học phần': 'TIN101',
         'Tên môn học': 'Lập trình Python cơ bản',
         'Lớp học phần': 'K21 CNTT - Nhóm 1',
@@ -3004,7 +2996,7 @@ class ScheduleManager {
         'STT': 2,
         'Phòng máy': 'PM2 (A1-504)',
         'Ngày học': '2026-11-23',
-        'Ca thực hành': '07:00 - 08:50 (Tiết 1-2)',
+        'Ca thực hành': '09:00 - 10:50 (Tiết 3-4)',
         'Mã học phần': 'MAT204',
         'Tên môn học': 'Toán ứng dụng & Thống kê máy tính',
         'Lớp học phần': 'K20 Toán ứng dụng',
@@ -3016,7 +3008,7 @@ class ScheduleManager {
         'STT': 3,
         'Phòng máy': 'PM3 (A1-505)',
         'Ngày học': '2026-11-23',
-        'Ca thực hành': '13:00 - 15:50 (Tiết 6-8)',
+        'Ca thực hành': '13:00 - 14:50 (Tiết 6-7)',
         'Mã học phần': 'CS301',
         'Tên môn học': 'Cơ sở dữ liệu & SQL Server',
         'Lớp học phần': 'K21 Tin học',
@@ -3028,7 +3020,7 @@ class ScheduleManager {
         'STT': 4,
         'Phòng máy': 'PM4 (A1-506)',
         'Ngày học': '2026-11-23',
-        'Ca thực hành': '13:00 - 17:50 (Tiết 6-10)',
+        'Ca thực hành': '15:00 - 16:50 (Tiết 8-9)',
         'Mã học phần': 'NET205',
         'Tên môn học': 'Mạng máy tính & An toàn thông tin',
         'Lớp học phần': 'K20 CNTT',
