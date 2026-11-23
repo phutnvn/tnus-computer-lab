@@ -11037,6 +11037,123 @@ _scheduleScope.autoShiftConfig = {
   notifiedIds: new Set()    // Tránh thông báo lặp lại cho cùng một ca học
 };
 
+// =============================================================================
+// BỘ TIỆN ÍCH CHUẨN HÓA DỮ LIỆU EXCEL THỜI KHÓA BIỂU TNUS
+// =============================================================================
+function removeVietnameseDiacritics(str) {
+  if (!str) return '';
+  return String(str)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
+function normalizeScheduleLabId(raw) {
+  if (!raw) return 'PM1';
+  const clean = removeVietnameseDiacritics(String(raw)).toUpperCase();
+  if (clean.includes('503')) return 'PM1';
+  if (clean.includes('504')) return 'PM2';
+  if (clean.includes('505')) return 'PM3';
+  if (clean.includes('506')) return 'PM4';
+  if (/PM\s*1\b/i.test(clean)) return 'PM1';
+  if (/PM\s*2\b/i.test(clean)) return 'PM2';
+  if (/PM\s*3\b/i.test(clean)) return 'PM3';
+  if (/PM\s*4\b/i.test(clean)) return 'PM4';
+  if (/(PHONG\s*MAY|PHONG|LAB)\s*1\b/i.test(clean)) return 'PM1';
+  if (/(PHONG\s*MAY|PHONG|LAB)\s*2\b/i.test(clean)) return 'PM2';
+  if (/(PHONG\s*MAY|PHONG|LAB)\s*3\b/i.test(clean)) return 'PM3';
+  if (/(PHONG\s*MAY|PHONG|LAB)\s*4\b/i.test(clean)) return 'PM4';
+  const numOnly = clean.replace(/[^0-9]/g, '');
+  if (numOnly === '1') return 'PM1';
+  if (numOnly === '2') return 'PM2';
+  if (numOnly === '3') return 'PM3';
+  if (numOnly === '4') return 'PM4';
+  return 'PM1';
+}
+
+function parseExcelScheduleDate(val, currentMonday) {
+  if (val === undefined || val === null || val === '') return null;
+  if (typeof val === 'number') {
+    const excelEpoch = new Date(1899, 11, 30);
+    const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+    const y = jsDate.getFullYear();
+    const m = String(jsDate.getMonth() + 1).padStart(2, '0');
+    const d = String(jsDate.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const str = String(val).trim();
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (dmyMatch) {
+    const d = String(dmyMatch[1]).padStart(2, '0');
+    const m = String(dmyMatch[2]).padStart(2, '0');
+    const y = dmyMatch[3];
+    return `${y}-${m}-${d}`;
+  }
+  const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (ymdMatch) {
+    const y = ymdMatch[1];
+    const m = String(ymdMatch[2]).padStart(2, '0');
+    const d = String(ymdMatch[3]).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  // Xử lý Thứ 2..7 kết hợp ngày Thứ Hai của tuần hiện hành
+  const clean = removeVietnameseDiacritics(str).toLowerCase();
+  const dayMatch = clean.match(/thu\s*([2-7]|hai|ba|tu|nam|sau|bay)/);
+  if (dayMatch && currentMonday) {
+    const dayMap = { '2': 0, 'hai': 0, '3': 1, 'ba': 1, '4': 2, 'tu': 2, '5': 3, 'nam': 3, '6': 4, 'sau': 4, '7': 5, 'bay': 5 };
+    const offset = dayMap[dayMatch[1]];
+    if (offset !== undefined) {
+      const [mY, mM, mD] = currentMonday.split('-').map(Number);
+      const dt = new Date(mY, mM - 1, mD + offset);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+  }
+  return null;
+}
+
+function matchScheduleColumn(headerName) {
+  if (!headerName) return null;
+  const noSpace = removeVietnameseDiacritics(String(headerName)).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const withSpace = removeVietnameseDiacritics(String(headerName)).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+  // 1. Phòng máy (kiểm tra trước 'mã' để tránh dính từ 'máy')
+  if (/phong|lab|diadiem|room/.test(noSpace)) return 'labId';
+
+  // 2. Lớp học phần
+  if (/lop|class/.test(noSpace)) return 'className';
+
+  // 3. Mã học phần
+  if (/(^|\s)(ma|code)(\s|$)|mahocphan|mamon|mahp|malhp|coursecode/.test(withSpace) || /mahocphan|mamon|mahp|malhp/.test(noSpace)) return 'courseCode';
+
+  // 4. Giảng viên / CBGD
+  if (/giangvien|cbgd|canbo|gv|lecturer|teacher/.test(noSpace)) return 'lecturer';
+
+  // 5. Ca / Tiết (tránh từ 'thực hành')
+  if (/(^|\s)(ca|tiet|khunggio|shift)(\s|$)|cahoc|cathuchanh|tiethoc/.test(withSpace) || /tiet/.test(noSpace)) return 'shift';
+
+  // 6. Tên môn học / Học phần
+  if (/tenmon|tenhocphan|monhoc|hocphan|subject|\bmon\b/.test(withSpace) || /monhoc|tenmon|hocphan/.test(noSpace)) return 'subject';
+
+  // 7. Ngày / Thứ
+  if (/ngay|date|thoigian|thang|nam|\bthu\s*([2-7]|hai|ba|tu|nam|sau|bay)?\b/i.test(withSpace) || /thu/.test(noSpace)) return 'date';
+
+  // 8. Sĩ số
+  if (/siso|sosv|soluong|studentcount|count/.test(noSpace)) return 'studentCount';
+
+  // 9. Ghi chú
+  if (/ghichu|yeucau|note/.test(noSpace)) return 'note';
+
+  return null;
+}
+
+if (typeof window !== 'undefined') {
+  window.removeVietnameseDiacritics = removeVietnameseDiacritics;
+  window.normalizeScheduleLabId = normalizeScheduleLabId;
+  window.parseExcelScheduleDate = parseExcelScheduleDate;
+  window.matchScheduleColumn = matchScheduleColumn;
+}
+
 class ScheduleManager {
   constructor() {
     this.container = document.getElementById('schedule-module-container');
@@ -11871,20 +11988,23 @@ class ScheduleManager {
               </button>
 
               ${canImportSchedule ? `
-              <!-- Tự động cập nhật lịch theo dữ liệu đào tạo đưa lên -->
+              <!-- Cập nhật tự động từ file Excel -->
+              <button id="btn-import-schedule-excel" onclick="window.scheduleManager.openAutoExcelImportModal()" 
+                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow-xs" 
+                title="Cập nhật lịch thực hành tự động khi Admin cung cấp file Excel">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Cập Nhật TKB từ Excel</span>
+              </button>
+
+              <!-- Tự động đồng bộ lịch học kỳ -->
               <button id="btn-sync-auto-schedule" onclick="window.scheduleManager.syncSemesterSchedulesAuto(true)" 
                 class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs" 
                 title="Tự động đồng bộ lịch thực hành học kỳ và tuần hiện tại theo dữ liệu đã đưa lên">
                 <i class="fa-solid fa-arrows-rotate text-blue-600"></i>
-                <span>Cập Nhật Lịch Tự Động</span>
+                <span>Đồng Bộ Học Kỳ</span>
               </button>
 
-              <!-- Nhập Excel -->
-              <label id="wrapper-import-schedule" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
-                <i class="fa-solid fa-file-import text-blue-600"></i>
-                <span>Nhập TKB Excel</span>
-                <input type="file" id="input-import-schedule" accept=".xlsx, .xls, .csv" class="hidden">
-              </label>` : ''}
+              <input type="file" id="input-import-schedule" accept=".xlsx, .xls, .csv" class="hidden">` : ''}
 
               <!-- Xuất Excel -->
               <button id="btn-export-schedule" onclick="window.scheduleManager.exportScheduleToExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs">
@@ -12053,9 +12173,14 @@ class ScheduleManager {
 
     if (importInput) {
       importInput.addEventListener('change', (e) => {
-        this.handleExcelImport(e);
+        if (e.target.files && e.target.files[0]) {
+          this.processExcelScheduleFile(e.target.files[0]);
+          e.target.value = '';
+        }
       });
     }
+
+    this.setupDragAndDrop();
   }
 
   // Lọc danh sách ca học theo các tiêu chí kết hợp
@@ -13225,73 +13350,298 @@ class ScheduleManager {
   }
 
   // =========================================================================
-  // NHẬP THỜI KHÓA BIỂU TỪ FILE EXCEL
+  // TRUNG TÂM CẬP NHẬT THỜI KHÓA BIỂU TỰ ĐỘNG TỪ FILE EXCEL (TNUS SMART ENGINE)
   // =========================================================================
-  handleExcelImport(event) {
-    const file = event.target.files[0];
-    if (!file) return;
 
-    if (typeof XLSX === 'undefined') {
-      Swal.fire('Lỗi', 'Thư viện SheetJS XLSX chưa được tải.', 'error');
+  // 1. Mở Modal Cập nhật TKB Tự động từ Excel
+  openAutoExcelImportModal() {
+    if (typeof window.checkPermission === 'function' && !window.checkPermission('manage_schedule', 'Cập nhật Thời khóa biểu từ Excel')) return;
+
+    const backupRaw = localStorage.getItem('tnus_schedule_backup_last');
+    let backupInfo = null;
+    if (backupRaw) {
+      try {
+        backupInfo = JSON.parse(backupRaw);
+      } catch (e) {}
+    }
+
+    Swal.fire({
+      title: `
+        <div class="text-center pt-1">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200 mb-2">
+            <i class="fa-solid fa-graduation-cap"></i> KHOA TOÁN - TIN • TRƯỜNG ĐH KHOA HỌC (TNUS)
+          </div>
+          <div class="text-lg font-extrabold text-slate-800">Cập Nhật Thời Khóa Biểu Tự Động Từ Excel</div>
+          <p class="text-xs text-slate-500 font-normal mt-1">Cán bộ phụ trách: <strong>ThS. Trịnh Minh Phú (0975.090.666)</strong></p>
+        </div>
+      `,
+      html: `
+        <div class="text-left space-y-4 pt-2 text-xs">
+          <!-- 1. Thanh công cụ hỗ trợ tải mẫu & khôi phục -->
+          <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+            <button onclick="window.scheduleManager.downloadScheduleExcelTemplate()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span>Tải file Excel mẫu chuẩn TNUS</span>
+            </button>
+            ${backupInfo ? `
+            <button onclick="window.scheduleManager.rollbackScheduleBackup()" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5" title="Bản sao lưu lúc ${backupInfo.timeStr} (${backupInfo.count} ca)">
+              <i class="fa-solid fa-rotate-left text-amber-600"></i>
+              <span>Hoàn tác TKB (${backupInfo.timeStr.split(' ')[0]})</span>
+            </button>` : ''}
+          </div>
+
+          <!-- 2. Khu vực Kéo & Thả / Chọn tệp từ máy tính -->
+          <div id="sch-drop-zone" class="border-2 border-dashed border-blue-300 hover:border-blue-600 rounded-xl p-6 text-center transition bg-blue-50/30 hover:bg-blue-50/70 cursor-pointer" onclick="document.getElementById('modal-input-schedule-excel').click()">
+            <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-600 mb-2 block animate-pulse"></i>
+            <div class="font-bold text-slate-800 text-sm">Bấm để chọn tệp Excel hoặc Kéo & Thả tệp vào đây</div>
+            <div class="text-slate-500 text-[11px] mt-1">Hỗ trợ tệp <strong>.xlsx, .xls, .csv</strong> từ Phòng Đào tạo / Khoa Toán - Tin</div>
+            <input type="file" id="modal-input-schedule-excel" class="hidden" accept=".xlsx, .xls, .csv" onchange="window.scheduleManager.handleExcelFileSelection(event)">
+          </div>
+
+          <!-- 3. Tùy chọn nạp từ liên kết trực tuyến -->
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+            <div class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-link text-blue-600"></i>
+              <span>Hoặc cập nhật qua Đường dẫn trực tuyến (Google Sheets / Link Excel):</span>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="sch-online-link-input" placeholder="Dán link Google Sheets hoặc link tệp Excel vào đây..." class="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <button onclick="window.scheduleManager.fetchScheduleFromOnlineUrl(document.getElementById('sch-online-link-input').value)" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition flex items-center gap-1 shadow-xs whitespace-nowrap">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+                <span>Tải & Nạp</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Lựa chọn Chế độ cập nhật -->
+          <div class="space-y-1.5">
+            <div class="font-bold text-slate-700">Lựa chọn chế độ cập nhật dữ liệu:</div>
+            <div class="grid grid-cols-1 gap-2 text-[11px]">
+              <label class="flex items-start gap-2 p-2 rounded-lg border border-slate-200 bg-white hover:bg-blue-50/30 cursor-pointer">
+                <input type="radio" name="sch-import-mode" value="merge_overwrite" checked class="mt-0.5 text-blue-600">
+                <div>
+                  <div class="font-bold text-slate-800">Cập nhật & Ghi đè thông minh (Khuyên dùng)</div>
+                  <div class="text-slate-500 text-[10px]">Nếu ca học bị trùng phòng & khung giờ: ghi đè thông tin mới nhất từ Excel; nếu là ca mới: tự động bổ sung.</div>
+                </div>
+              </label>
+              <label class="flex items-start gap-2 p-2 rounded-lg border border-slate-200 bg-white hover:bg-blue-50/30 cursor-pointer">
+                <input type="radio" name="sch-import-mode" value="replace_all" class="mt-0.5 text-blue-600">
+                <div>
+                  <div class="font-bold text-rose-700">Thay thế toàn bộ Thời khóa biểu</div>
+                  <div class="text-slate-500 text-[10px]">Xóa toàn bộ lịch cũ hiện tại và thay thế 100% bằng dữ liệu từ file Excel (phù hợp khi xếp mới cho học kỳ).</div>
+                </div>
+              </label>
+              <label class="flex items-start gap-2 p-2 rounded-lg border border-slate-200 bg-white hover:bg-blue-50/30 cursor-pointer">
+                <input type="radio" name="sch-import-mode" value="append_only" class="mt-0.5 text-blue-600">
+                <div>
+                  <div class="font-bold text-slate-800">Chỉ bổ sung ca mới (Bỏ qua ca trùng)</div>
+                  <div class="text-slate-500 text-[10px]">Giữ nguyên toàn bộ ca học hiện tại trên hệ thống, chỉ thêm các ca chưa từng tồn tại.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 5. Quy tắc nhận diện tự động thông minh -->
+          <div class="bg-blue-50/70 p-2.5 rounded-lg border border-blue-200 text-[11px] text-blue-900 space-y-1">
+            <div class="font-bold flex items-center gap-1">
+              <i class="fa-solid fa-wand-magic-sparkles text-blue-600"></i>
+              <span>Cơ chế tự động thông minh của hệ thống:</span>
+            </div>
+            <div>• Tự động bỏ qua các dòng biểu ngữ tiêu đề trường/khoa ở đầu file.</div>
+            <div>• Tự động ánh xạ 4 phòng máy: <strong>PM1</strong> (A1-503), <strong>PM2</strong> (A1-504), <strong>PM3</strong> (A1-505), <strong>PM4</strong> (A1-506).</div>
+            <div>• Tự động chuẩn hóa khung 10 tiết học chuẩn TNUS (Sáng 07:00-11:50, Chiều 13:00-17:50) và kích hoạt ngay ca LIVE hôm nay.</div>
+          </div>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      width: '620px',
+      didOpen: () => {
+        const dropZone = document.getElementById('sch-drop-zone');
+        if (dropZone) {
+          dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('border-blue-600', 'bg-blue-100/50');
+          });
+          dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('border-blue-600', 'bg-blue-100/50');
+          });
+          dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('border-blue-600', 'bg-blue-100/50');
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+              window.scheduleManager.processExcelScheduleFile(e.dataTransfer.files[0]);
+            }
+          });
+        }
+      }
+    });
+  }
+
+  // 2. Xử lý khi Admin chọn tệp từ thẻ file input
+  handleExcelFileSelection(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    this.processExcelScheduleFile(file);
+    event.target.value = '';
+  }
+
+  // 3. Tải và nạp tệp Excel từ URL trực tuyến / Google Sheets
+  async fetchScheduleFromOnlineUrl(url) {
+    if (!url || !url.trim()) {
+      Swal.fire('Lỗi', 'Vui lòng nhập đường dẫn URL tệp Excel hoặc Google Sheets.', 'warning');
       return;
     }
+
+    let fetchUrl = url.trim();
+    // Tự động chuyển đổi link Google Sheets sang xuất Excel
+    if (fetchUrl.includes('docs.google.com/spreadsheets/d/')) {
+      const match = fetchUrl.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      if (match && match[1]) {
+        fetchUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=xlsx`;
+      }
+    }
+
+    Swal.fire({
+      title: 'Đang tải tệp Excel từ liên kết...',
+      text: 'Vui lòng chờ trong giây lát...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const fileName = url.split('/').pop().split('?')[0] || 'LichThucHanh_Online.xlsx';
+      const file = new File([blob], fileName.endsWith('.xlsx') || fileName.endsWith('.xls') ? fileName : `${fileName}.xlsx`, { type: blob.type });
+      this.processExcelScheduleFile(file);
+    } catch (err) {
+      console.error('Lỗi tải tệp online:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Không thể tải tệp từ liên kết này',
+        html: `
+          <div class="text-left text-xs space-y-1">
+            <p>Lỗi: <strong>${err.message}</strong></p>
+            <p class="text-slate-500">Gợi ý: Nếu là Google Sheets, hãy đảm bảo bảng tính đã được bật chế độ <strong>"Bất kỳ ai có đường liên kết đều có thể xem"</strong> (Public View).</p>
+          </div>
+        `
+      });
+    }
+  }
+
+  // 4. Thuật toán cốt lõi: Đọc, Phân tích tự động & Chuẩn hóa dữ liệu file Excel
+  processExcelScheduleFile(file) {
+    if (!file) return;
+    if (typeof XLSX === 'undefined') {
+      Swal.fire('Lỗi', 'Thư viện SheetJS XLSX chưa sẵn sàng.', 'error');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Đang phân tích tệp Excel...',
+      html: `Đang đọc dữ liệu từ tệp <strong>${file.name}</strong>...`,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(firstSheet);
+        
+        let sheetName = workbook.SheetNames[0];
+        const preferred = workbook.SheetNames.find(n => /lich|tkb|schedule|thuchanh/i.test(n));
+        if (preferred) sheetName = preferred;
 
-        if (!rows || rows.length === 0) {
-          Swal.fire('Thông báo', 'Tệp Excel không có dữ liệu thời khóa biểu.', 'warning');
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+          Swal.fire('Lỗi', 'Không tìm thấy bảng tính hợp lệ trong tệp Excel.', 'error');
           return;
         }
 
-        let addedCount = 0;
-        let conflictCount = 0;
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        if (!rawRows || rawRows.length === 0) {
+          Swal.fire('Thông báo', 'Tệp Excel không có dòng dữ liệu nào.', 'warning');
+          return;
+        }
 
-        rows.forEach((row, idx) => {
-          const labRaw = (row['Phòng máy'] || row['Phòng'] || row['labId'] || 'PM1').toString().trim().toUpperCase();
-          let labId = 'PM1';
-          if (labRaw.includes('PM2') || labRaw.includes('504')) labId = 'PM2';
-          else if (labRaw.includes('PM3') || labRaw.includes('505')) labId = 'PM3';
-          else if (labRaw.includes('PM4') || labRaw.includes('506')) labId = 'PM4';
-
-          const date = (row['Ngày học'] || row['Ngày'] || row['date'] || this.getTodayDateStr()).toString().trim();
-          const shift = (row['Ca thực hành'] || row['Ca học'] || row['shift'] || '07:00 - 08:50 (Tiết 1-2)').toString().trim();
-          const subject = (row['Tên môn học'] || row['Môn học'] || row['subject'] || 'Tin học ứng dụng').toString().trim();
-          const courseCode = (row['Mã học phần'] || row['Mã môn'] || row['courseCode'] || 'TIN-TNUS').toString().trim().toUpperCase();
-          const className = (row['Lớp học phần'] || row['Lớp'] || row['className'] || 'K20 CNTT').toString().trim();
-          const lecturer = (row['Giảng viên giảng dạy'] || row['Giảng viên'] || row['lecturer'] || 'ThS. Trịnh Minh Phú').toString().trim();
-          const studentCount = parseInt(row['Sĩ số SV'] || row['Sĩ số'] || row['studentCount'] || 24, 10);
-          const note = (row['Ghi chú'] || row['Yêu cầu'] || row['note'] || '').toString().trim();
-          const timing = this.parseShiftTiming(shift);
-
-          // Tự động suy luận trạng thái ca học dựa trên ngày và giờ thực tế
-          const now = new Date();
-          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-          const curTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-          let initialStatus = 'Chưa diễn ra';
-          if (date < todayStr) {
-            initialStatus = 'Đã hoàn thành';
-          } else if (date === todayStr) {
-            if (curTimeStr >= timing.endTime) {
-              initialStatus = 'Đã hoàn thành';
-            } else if (curTimeStr >= timing.startTime && curTimeStr < timing.endTime) {
-              initialStatus = 'Đang diễn ra';
-            } else {
-              initialStatus = 'Sắp diễn ra';
+        // Tự động tìm hàng tiêu đề & ánh xạ cột
+        let headerRowIdx = -1;
+        let colMap = {};
+        for (let r = 0; r < Math.min(rawRows.length, 15); r++) {
+          const row = rawRows[r];
+          if (!Array.isArray(row)) continue;
+          const tempMap = {};
+          let matchCount = 0;
+          for (let c = 0; c < row.length; c++) {
+            const field = matchScheduleColumn(row[c]);
+            if (field && tempMap[field] === undefined) {
+              tempMap[field] = c;
+              matchCount++;
             }
           }
+          if (matchCount >= 3 && (tempMap.labId !== undefined || tempMap.subject !== undefined)) {
+            headerRowIdx = r;
+            colMap = tempMap;
+            break;
+          }
+        }
 
-          const conflict = window.appState.schedules.find(s => s.labId === labId && s.date === date && s.shift === timing.shift);
-          if (conflict) {
-            conflictCount++;
-          } else {
-            window.appState.schedules.push({
-              id: `LICH-IMP-${Date.now().toString().slice(-4)}-${idx}`,
+        const parsedShifts = [];
+        const currentMonday = typeof window.getMondayOfDateStr === 'function' ? window.getMondayOfDateStr(this.getTodayDateStr()) : '2026-11-23';
+
+        if (headerRowIdx >= 0) {
+          for (let r = headerRowIdx + 1; r < rawRows.length; r++) {
+            const row = rawRows[r];
+            if (!row || row.length === 0) continue;
+            
+            const rawLab = colMap.labId !== undefined ? row[colMap.labId] : '';
+            const rawDate = colMap.date !== undefined ? row[colMap.date] : '';
+            const rawShift = colMap.shift !== undefined ? row[colMap.shift] : '';
+            const rawSubject = colMap.subject !== undefined ? row[colMap.subject] : '';
+            
+            if (!rawSubject && !rawLab) continue;
+
+            const labId = normalizeScheduleLabId(rawLab);
+            const date = parseExcelScheduleDate(rawDate, currentMonday) || this.getTodayDateStr();
+            const timing = this.parseShiftTiming(rawShift || '07:00 - 11:50 (Tiết 1-5)');
+            const subject = String(rawSubject || 'Tin học ứng dụng').trim();
+            const courseCode = colMap.courseCode !== undefined ? String(row[colMap.courseCode] || '').trim().toUpperCase() : 'TIN-TNUS';
+            const className = colMap.className !== undefined ? String(row[colMap.className] || '').trim() : 'Lớp thực hành';
+            const lecturer = colMap.lecturer !== undefined ? String(row[colMap.lecturer] || '').trim() : 'ThS. Trịnh Minh Phú';
+            const studentCount = colMap.studentCount !== undefined ? parseInt(row[colMap.studentCount], 10) || 24 : 24;
+            const note = colMap.note !== undefined ? String(row[colMap.note] || '').trim() : '';
+
+            // Tự động suy luận trạng thái ca học
+            const todayStr = this.getTodayDateStr();
+            const now = new Date();
+            const curTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            let initialStatus = 'Chưa diễn ra';
+            if (date < todayStr) {
+              initialStatus = 'Đã hoàn thành';
+            } else if (date === todayStr) {
+              if (curTimeStr >= timing.endTime) {
+                initialStatus = 'Đã hoàn thành';
+              } else if (curTimeStr >= timing.startTime && curTimeStr < timing.endTime) {
+                initialStatus = 'Đang diễn ra';
+              } else {
+                initialStatus = 'Sắp diễn ra';
+              }
+            }
+
+            parsedShifts.push({
+              id: `LICH-IMP-${Date.now().toString().slice(-4)}-${parsedShifts.length + 1}`,
               labId,
               date,
               shift: timing.shift,
@@ -13299,49 +13649,541 @@ class ScheduleManager {
               endTime: timing.endTime,
               startPeriod: timing.startPeriod,
               endPeriod: timing.endPeriod,
-              courseCode,
+              courseCode: courseCode || 'TIN-TNUS',
               subject,
-              className,
-              lecturer,
+              className: className || 'K21 CNTT',
+              lecturer: lecturer || 'ThS. Trịnh Minh Phú',
               studentCount,
               note,
               status: initialStatus,
-              type: 'Thực hành chính khóa'
+              type: 'Thực hành chính khóa',
+              creator: 'admin@dhkhoahoc.edu.vn'
             });
-            addedCount++;
+          }
+        } else {
+          // Fallback sheet_to_json
+          const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+          jsonRows.forEach((row, idx) => {
+            const labRaw = (row['Phòng máy'] || row['Phòng'] || row['labId'] || 'PM1').toString();
+            const labId = normalizeScheduleLabId(labRaw);
+            const date = parseExcelScheduleDate(row['Ngày học'] || row['Ngày'] || row['date'], currentMonday) || this.getTodayDateStr();
+            const shift = (row['Ca thực hành'] || row['Ca học'] || row['shift'] || '07:00 - 11:50 (Tiết 1-5)').toString();
+            const timing = this.parseShiftTiming(shift);
+            const subject = (row['Tên môn học'] || row['Môn học'] || row['subject'] || 'Tin học ứng dụng').toString().trim();
+            const courseCode = (row['Mã học phần'] || row['Mã môn'] || row['courseCode'] || 'TIN-TNUS').toString().trim().toUpperCase();
+            const className = (row['Lớp học phần'] || row['Lớp'] || row['className'] || 'K21 CNTT').toString().trim();
+            const lecturer = (row['Giảng viên giảng dạy'] || row['Giảng viên'] || row['lecturer'] || 'ThS. Trịnh Minh Phú').toString().trim();
+            const studentCount = parseInt(row['Sĩ số SV'] || row['Sĩ số'] || row['studentCount'] || 24, 10);
+            const note = (row['Ghi chú'] || row['Yêu cầu'] || row['note'] || '').toString().trim();
+
+            const todayStr = this.getTodayDateStr();
+            const now = new Date();
+            const curTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            let initialStatus = 'Chưa diễn ra';
+            if (date < todayStr) {
+              initialStatus = 'Đã hoàn thành';
+            } else if (date === todayStr) {
+              if (curTimeStr >= timing.endTime) {
+                initialStatus = 'Đã hoàn thành';
+              } else if (curTimeStr >= timing.startTime && curTimeStr < timing.endTime) {
+                initialStatus = 'Đang diễn ra';
+              } else {
+                initialStatus = 'Sắp diễn ra';
+              }
+            }
+
+            parsedShifts.push({
+              id: `LICH-IMP-${Date.now().toString().slice(-4)}-${idx + 1}`,
+              labId,
+              date,
+              shift: timing.shift,
+              startTime: timing.startTime,
+              endTime: timing.endTime,
+              startPeriod: timing.startPeriod,
+              endPeriod: timing.endPeriod,
+              courseCode: courseCode || 'TIN-TNUS',
+              subject,
+              className: className || 'K21 CNTT',
+              lecturer: lecturer || 'ThS. Trịnh Minh Phú',
+              studentCount,
+              note,
+              status: initialStatus,
+              type: 'Thực hành chính khóa',
+              creator: 'admin@dhkhoahoc.edu.vn'
+            });
+          });
+        }
+
+        if (parsedShifts.length === 0) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Không thể phân tích dữ liệu',
+            text: 'Tệp Excel không chứa dữ liệu ca thực hành nào hợp lệ. Vui lòng kiểm tra lại tệp hoặc sử dụng tệp mẫu chuẩn của trường.'
+          });
+          return;
+        }
+
+        // Phân tích thống kê & xung đột
+        const labCapacityMap = { 'PM1': 30, 'PM2': 26, 'PM3': 24, 'PM4': 24 };
+        const existingSchedules = window.appState.schedules || [];
+        const conflicts = [];
+        const overCapacities = [];
+        const dates = [];
+        const labsSet = new Set();
+
+        parsedShifts.forEach(s => {
+          labsSet.add(s.labId);
+          if (s.date) dates.push(s.date);
+
+          const maxCap = labCapacityMap[s.labId] || 30;
+          if (s.studentCount > maxCap) {
+            overCapacities.push(s);
+          }
+
+          const hasConflict = existingSchedules.some(ex => ex.labId === s.labId && ex.date === s.date && ex.shift === s.shift);
+          if (hasConflict) {
+            conflicts.push(s);
           }
         });
 
-        window.saveStateToLocalStorage();
-        this.renderMainContent();
-        this.updateKPIs();
-        this.checkAndAutoActivateShifts();
-        if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs();
-        if (typeof renderDashboardTodaySchedules === 'function') renderDashboardTodaySchedules();
-        if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
-          window.labSimulation.loadLab(window.labSimulation.currentLabId);
-        }
+        dates.sort();
+        const minDate = dates[0] || this.getTodayDateStr();
+        const maxDate = dates[dates.length - 1] || this.getTodayDateStr();
 
-        Swal.fire({
-          icon: 'success',
-          title: 'Nhập thời khóa biểu thành công!',
-          html: `
-            <div class="text-left text-xs space-y-1.5 pt-1">
-              <p>Đã xử lý xong tệp <strong>${file.name}</strong>:</p>
-              <p class="text-emerald-600 font-bold">• Thêm mới: ${addedCount} ca học</p>
-              ${conflictCount > 0 ? `<p class="text-amber-600">• Bỏ qua do trùng phòng: ${conflictCount} ca</p>` : ''}
-              <p class="text-slate-500 pt-2 border-t mt-2">Tổng số ca học hiện tại: <strong>${window.appState.schedules.length} ca</strong></p>
-            </div>
-          `
-        });
+        const analysis = {
+          shifts: parsedShifts,
+          totalRows: rawRows.length,
+          conflicts,
+          overCapacities,
+          minDate,
+          maxDate,
+          labsCount: labsSet.size
+        };
+
+        this.previewExcelScheduleData(analysis, file);
+
       } catch (err) {
-        console.error('Lỗi khi đọc file Excel:', err);
-        Swal.fire('Lỗi', 'Không thể đọc tệp Excel này.', 'error');
-      } finally {
-        event.target.value = '';
+        console.error('Lỗi khi phân tích Excel:', err);
+        Swal.fire('Lỗi', `Không thể đọc tệp Excel: ${err.message}`, 'error');
       }
     };
     reader.readAsArrayBuffer(file);
+  }
+
+  // 5. Hiển thị bảng Xem trước dữ liệu & Lựa chọn xác nhận cập nhật
+  previewExcelScheduleData(analysis, file) {
+    const { shifts, totalRows, conflicts, overCapacities, minDate, maxDate, labsCount } = analysis;
+
+    const sampleRowsHtml = shifts.slice(0, 6).map((s, idx) => `
+      <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+        <td class="p-2 text-center text-slate-400 font-mono">${idx + 1}</td>
+        <td class="p-2 font-bold text-blue-700 font-mono">${s.labId}</td>
+        <td class="p-2 text-slate-700 whitespace-nowrap font-mono">${s.date}</td>
+        <td class="p-2 text-slate-800 font-medium whitespace-nowrap">${s.shift}</td>
+        <td class="p-2 font-semibold text-slate-800">${s.subject}<div class="text-[10px] text-slate-400 font-normal">Lớp: ${s.className || 'Chung'}</div></td>
+        <td class="p-2 text-slate-700 whitespace-nowrap">${s.lecturer}</td>
+        <td class="p-2 text-center font-bold text-slate-700">${s.studentCount}</td>
+      </tr>
+    `).join('');
+
+    Swal.fire({
+      title: `
+        <div class="text-center pt-1">
+          <div class="text-base font-extrabold text-slate-800 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-list-check text-blue-600"></i>
+            <span>Xem Trước Dữ Liệu TKB Phân Tích Từ File</span>
+          </div>
+          <div class="text-xs text-slate-500 font-normal mt-0.5">Tệp: <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)</div>
+        </div>
+      `,
+      html: `
+        <div class="text-left space-y-3.5 text-xs pt-2">
+          <!-- Chỉ số thống kê phân tích -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-center">
+              <div class="text-[10px] uppercase font-bold text-blue-600">Tổng ca phát hiện</div>
+              <div class="text-xl font-extrabold text-blue-800 mt-0.5">${shifts.length}</div>
+              <div class="text-[10px] text-blue-600">từ ${totalRows} dòng</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+              <div class="text-[10px] uppercase font-bold text-emerald-600">Số phòng học</div>
+              <div class="text-xl font-extrabold text-emerald-800 mt-0.5">${labsCount}</div>
+              <div class="text-[10px] text-emerald-600">PM1 đến PM4</div>
+            </div>
+            <div class="p-2.5 rounded-xl ${conflicts.length > 0 ? 'bg-amber-50 border border-amber-200 text-amber-800' : 'bg-slate-50 border border-slate-200 text-slate-700'} text-center">
+              <div class="text-[10px] uppercase font-bold ${conflicts.length > 0 ? 'text-amber-600' : 'text-slate-500'}">Ca trùng lịch</div>
+              <div class="text-xl font-extrabold mt-0.5">${conflicts.length}</div>
+              <div class="text-[10px] ${conflicts.length > 0 ? 'text-amber-600' : 'text-slate-400'}">${conflicts.length > 0 ? 'Ghi đè hoặc bỏ qua' : 'Không trùng'}</div>
+            </div>
+            <div class="p-2.5 rounded-xl ${overCapacities.length > 0 ? 'bg-rose-50 border border-rose-200 text-rose-800' : 'bg-slate-50 border border-slate-200 text-slate-700'} text-center">
+              <div class="text-[10px] uppercase font-bold ${overCapacities.length > 0 ? 'text-rose-600' : 'text-slate-500'}">Cảnh báo sĩ số</div>
+              <div class="text-xl font-extrabold mt-0.5">${overCapacities.length}</div>
+              <div class="text-[10px] ${overCapacities.length > 0 ? 'text-rose-600' : 'text-slate-400'}">${overCapacities.length > 0 ? 'Vượt máy phòng' : 'Đảm bảo máy'}</div>
+            </div>
+          </div>
+
+          <!-- Khoảng thời gian -->
+          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+            <span><i class="fa-regular fa-calendar text-blue-600 mr-1"></i>Khoảng thời gian: <strong>${minDate}</strong> đến <strong>${maxDate}</strong></span>
+            <span><i class="fa-solid fa-clock text-amber-500 mr-1"></i>Khung 10 tiết chuẩn TNUS</span>
+          </div>
+
+          <!-- Bảng xem trước 6 ca tiêu biểu -->
+          <div>
+            <div class="font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span>Mẫu 6 ca học đầu tiên được chuẩn hóa:</span>
+              <span class="text-[10px] text-slate-400 font-normal">Hiển thị 6 / ${shifts.length} ca</span>
+            </div>
+            <div class="overflow-x-auto max-h-48 border border-slate-200 rounded-lg">
+              <table class="w-full text-[11px]">
+                <thead class="bg-slate-100 text-slate-700 sticky top-0 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="p-2 text-center">#</th>
+                    <th class="p-2 text-left">Phòng</th>
+                    <th class="p-2 text-left">Ngày</th>
+                    <th class="p-2 text-left">Ca / Tiết</th>
+                    <th class="p-2 text-left">Môn học</th>
+                    <th class="p-2 text-left">Giảng viên</th>
+                    <th class="p-2 text-center">Sĩ số</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${sampleRowsHtml}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Chế độ cập nhật -->
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+            <div class="font-bold text-slate-700">Xác nhận chế độ áp dụng:</div>
+            <div class="flex flex-wrap gap-3 text-[11px]">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="sch-preview-mode" value="merge_overwrite" checked class="text-blue-600">
+                <span class="font-semibold text-slate-800">Ghi đè thông minh</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="sch-preview-mode" value="replace_all" class="text-blue-600">
+                <span class="font-semibold text-rose-700">Thay thế toàn bộ</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="sch-preview-mode" value="append_only" class="text-blue-600">
+                <span class="font-semibold text-slate-800">Chỉ thêm mới</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> Cập Nhật Lên Hệ Thống Ngay',
+      cancelButtonText: 'Chọn tệp khác',
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b',
+      width: '680px'
+    }).then(result => {
+      if (result.isConfirmed) {
+        const mode = document.querySelector('input[name="sch-preview-mode"]:checked')?.value || 'merge_overwrite';
+        this.executeScheduleUpdate(analysis, mode, file.name);
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        this.openAutoExcelImportModal();
+      }
+    });
+  }
+
+  // 6. Thực thi cập nhật dữ liệu tự động lên toàn hệ thống
+  executeScheduleUpdate(analysis, mode, fileName) {
+    const { shifts } = analysis;
+    if (!shifts || shifts.length === 0) return;
+
+    // 1. Lưu bản sao lưu an toàn trước khi cập nhật
+    const backup = {
+      timestamp: Date.now(),
+      timeStr: new Date().toLocaleString('vi-VN'),
+      count: (window.appState.schedules || []).length,
+      schedules: JSON.parse(JSON.stringify(window.appState.schedules || []))
+    };
+    localStorage.setItem('tnus_schedule_backup_last', JSON.stringify(backup));
+
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    if (mode === 'replace_all') {
+      window.appState.schedules = [...shifts];
+      addedCount = shifts.length;
+    } else if (mode === 'append_only') {
+      shifts.forEach(newShift => {
+        const conflict = window.appState.schedules.find(s => s.labId === newShift.labId && s.date === newShift.date && s.shift === newShift.shift);
+        if (!conflict) {
+          window.appState.schedules.push(newShift);
+          addedCount++;
+        }
+      });
+    } else {
+      // merge_overwrite (mặc định)
+      shifts.forEach(newShift => {
+        const conflictIndex = window.appState.schedules.findIndex(s => s.labId === newShift.labId && s.date === newShift.date && s.shift === newShift.shift);
+        if (conflictIndex >= 0) {
+          Object.assign(window.appState.schedules[conflictIndex], newShift);
+          updatedCount++;
+        } else {
+          window.appState.schedules.push(newShift);
+          addedCount++;
+        }
+      });
+    }
+
+    // 2. Chuẩn hóa 100% ca học
+    window.appState.schedules.forEach(s => {
+      const timing = this.parseShiftTiming(s.shift || `${s.startTime || '07:00'} - ${s.endTime || '11:50'}`);
+      s.shift = timing.shift;
+      s.startTime = s.startTime || timing.startTime;
+      s.endTime = s.endTime || timing.endTime;
+      s.startPeriod = s.startPeriod || timing.startPeriod;
+      s.endPeriod = s.endPeriod || timing.endPeriod;
+    });
+
+    // 3. Lưu vào LocalStorage
+    window.saveStateToLocalStorage();
+
+    // 4. Kích hoạt tự động vào ca & cập nhật đa phân hệ ngay tức thì
+    this.renderMainContent();
+    this.updateKPIs();
+    this.checkAndAutoActivateShifts();
+
+    if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs();
+    if (typeof renderDashboardTodaySchedules === 'function') renderDashboardTodaySchedules();
+    if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
+      window.labSimulation.loadLab(window.labSimulation.currentLabId);
+    }
+
+    // 5. Ghi nhật ký kiểm toán an ninh
+    if (typeof window.logUserActivity === 'function') {
+      window.logUserActivity('Cập nhật TKB từ Excel', `Admin tự động cập nhật TKB từ tệp [${fileName}] (Chế độ: ${mode}): thêm mới ${addedCount} ca, ghi đè ${updatedCount} ca. Tổng cộng: ${window.appState.schedules.length} ca.`);
+    }
+
+    // 6. Thông báo thành công
+    const todayStr = this.getTodayDateStr();
+    const todayShifts = window.appState.schedules.filter(s => s.date === todayStr);
+    const liveShift = todayShifts.find(s => s.status === 'Đang diễn ra');
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Cập nhật Thời khóa biểu thành công!',
+      html: `
+        <div class="text-left text-xs space-y-2 pt-1">
+          <p class="text-slate-600">Đã hoàn tất phân tích & nạp tự động tệp <strong>${fileName}</strong>:</p>
+          <div class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-1">
+            <p><strong>• Thêm mới thành công:</strong> ${addedCount} ca học</p>
+            ${updatedCount > 0 ? `<p><strong>• Ghi đè / Cập nhật:</strong> ${updatedCount} ca học</p>` : ''}
+            <p><strong>• Tổng số ca toàn hệ thống:</strong> ${window.appState.schedules.length} ca</p>
+          </div>
+          <div class="p-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-[11px]">
+            <span>Hôm nay (<strong>${todayStr}</strong>): Có <strong>${todayShifts.length}</strong> ca học.</span>
+            ${liveShift ? `<div class="font-bold text-emerald-700 mt-0.5">🔵 ĐANG CÓ CA HỌC LIVE: Phòng ${liveShift.labId} - Môn ${liveShift.subject} (Máy trạm đã được kích hoạt tự động).</div>` : ''}
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="fa-solid fa-calendar-days mr-1"></i> Xem Thời Khóa Biểu',
+      cancelButtonText: '<i class="fa-solid fa-gauge-high mr-1"></i> Xem Dashboard',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#0f172a'
+    }).then(res => {
+      if (res.isConfirmed) {
+        this.renderView();
+      } else if (res.dismiss === Swal.DismissReason.cancel) {
+        if (typeof window.switchTab === 'function') {
+          window.switchTab('dashboard');
+        }
+      }
+    });
+  }
+
+  // 7. Tải xuống tệp Excel mẫu chuẩn đào tạo TNUS
+  downloadScheduleExcelTemplate() {
+    if (typeof XLSX === 'undefined') {
+      Swal.fire('Lỗi', 'Thư viện SheetJS XLSX chưa sẵn sàng.', 'error');
+      return;
+    }
+
+    const sampleRows = [
+      {
+        'STT': 1,
+        'Phòng máy': 'PM1 (A1-503)',
+        'Ngày học': '2026-11-23',
+        'Ca thực hành': '07:00 - 11:50 (Tiết 1-5)',
+        'Mã học phần': 'TIN101',
+        'Tên môn học': 'Lập trình Python cơ bản',
+        'Lớp học phần': 'K21 CNTT - Nhóm 1',
+        'Giảng viên giảng dạy': 'ThS. Trịnh Minh Phú',
+        'Sĩ số SV': 28,
+        'Ghi chú / Yêu cầu': 'Cài đặt Python 3.11, VS Code, Git'
+      },
+      {
+        'STT': 2,
+        'Phòng máy': 'PM2 (A1-504)',
+        'Ngày học': '2026-11-23',
+        'Ca thực hành': '07:00 - 08:50 (Tiết 1-2)',
+        'Mã học phần': 'MAT204',
+        'Tên môn học': 'Toán ứng dụng & Thống kê máy tính',
+        'Lớp học phần': 'K20 Toán ứng dụng',
+        'Giảng viên giảng dạy': 'TS. Nguyễn Văn A',
+        'Sĩ số SV': 24,
+        'Ghi chú / Yêu cầu': 'Sử dụng phần mềm R / RStudio'
+      },
+      {
+        'STT': 3,
+        'Phòng máy': 'PM3 (A1-505)',
+        'Ngày học': '2026-11-23',
+        'Ca thực hành': '13:00 - 15:50 (Tiết 6-8)',
+        'Mã học phần': 'CS301',
+        'Tên môn học': 'Cơ sở dữ liệu & SQL Server',
+        'Lớp học phần': 'K21 Tin học',
+        'Giảng viên giảng dạy': 'ThS. Trần Thị B',
+        'Sĩ số SV': 22,
+        'Ghi chú / Yêu cầu': 'SQL Server 2022'
+      },
+      {
+        'STT': 4,
+        'Phòng máy': 'PM4 (A1-506)',
+        'Ngày học': '2026-11-23',
+        'Ca thực hành': '13:00 - 17:50 (Tiết 6-10)',
+        'Mã học phần': 'NET205',
+        'Tên môn học': 'Mạng máy tính & An toàn thông tin',
+        'Lớp học phần': 'K20 CNTT',
+        'Giảng viên giảng dạy': 'ThS. Trịnh Minh Phú',
+        'Sĩ số SV': 24,
+        'Ghi chú / Yêu cầu': 'Cisco Packet Tracer, Wireshark'
+      }
+    ];
+
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Mẫu nhập TKB
+    const ws1 = XLSX.utils.json_to_sheet(sampleRows);
+    ws1['!cols'] = [
+      { wch: 6 },  // STT
+      { wch: 16 }, // Phòng máy
+      { wch: 14 }, // Ngày học
+      { wch: 28 }, // Ca thực hành
+      { wch: 14 }, // Mã học phần
+      { wch: 34 }, // Tên môn học
+      { wch: 22 }, // Lớp học phần
+      { wch: 24 }, // Giảng viên giảng dạy
+      { wch: 12 }, // Sĩ số SV
+      { wch: 35 }  // Ghi chú
+    ];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Mau_ThoiKhoaBieu');
+
+    // Sheet 2: Hướng dẫn khung tiết & phòng máy chuẩn TNUS
+    const guideRows = [
+      { 'Mục': 'Đơn vị quản lý', 'Quy định / Hướng dẫn': 'KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)' },
+      { 'Mục': 'Cán bộ phụ trách', 'Quy định / Hướng dẫn': 'ThS. Trịnh Minh Phú (SĐT: 0975.090.666)' },
+      { 'Mục': 'Khung giờ Buổi Sáng', 'Quy định / Hướng dẫn': '5 Tiết: 07:00 – 11:50 (Tiết 1: 07:00-07:50, Tiết 2: 08:00-08:50, Tiết 3: 09:00-09:50, Tiết 4: 10:00-10:50, Tiết 5: 11:00-11:50)' },
+      { 'Mục': 'Khung giờ Buổi Chiều', 'Quy định / Hướng dẫn': '5 Tiết: 13:00 – 17:50 (Tiết 6: 13:00-13:50, Tiết 7: 14:00-14:50, Tiết 8: 15:00-15:50, Tiết 9: 16:00-16:50, Tiết 10: 17:00-17:50)' },
+      { 'Mục': 'Phòng máy PM1', 'Quy định / Hướng dẫn': 'Phòng A1-503 (Tầng 5, Nhà A1) - Sức chứa: 30 Máy FPT Elead Core i5-14400, RAM 16GB' },
+      { 'Mục': 'Phòng máy PM2', 'Quy định / Hướng dẫn': 'Phòng A1-504 (Tầng 5, Nhà A1) - Sức chứa: 26 Máy (20 Asus Pro + 6 FPT Elead)' },
+      { 'Mục': 'Phòng máy PM3', 'Quy định / Hướng dẫn': 'Phòng A1-505 (Tầng 5, Nhà A1) - Sức chứa: 24 Máy đồng bộ Dell OptiPlex' },
+      { 'Mục': 'Phòng máy PM4', 'Quy định / Hướng dẫn': 'Phòng A1-506 (Tầng 5, Nhà A1) - Sức chứa: 24 Máy đồng bộ Dell OptiPlex' },
+      { 'Mục': 'Quy tắc Ngày học', 'Quy định / Hướng dẫn': 'Hỗ trợ định dạng: YYYY-MM-DD (2026-11-23), DD/MM/YYYY (23/11/2026), hoặc Thứ (Thứ Hai, Thứ 2...)' },
+      { 'Mục': 'Quy tắc Ca/Tiết', 'Quy định / Hướng dẫn': 'Hỗ trợ định dạng: 07:00 - 11:50, Tiết 1-5, Tiết 6-10, Tiết 1-3, Tiết 6-8...' }
+    ];
+    const ws2 = XLSX.utils.json_to_sheet(guideRows);
+    ws2['!cols'] = [{ wch: 24 }, { wch: 90 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'HuongDan_QuyDinh_TNUS');
+
+    XLSX.writeFile(wb, 'TNUS_Mau_ThoiKhoaBieu_ThucHanh_PhongMay.xlsx');
+  }
+
+  // 8. Khôi phục lại bản sao lưu gần nhất (Rollback)
+  rollbackScheduleBackup() {
+    const backupRaw = localStorage.getItem('tnus_schedule_backup_last');
+    if (!backupRaw) {
+      Swal.fire('Thông báo', 'Chưa có bản sao lưu nào để hoàn tác.', 'info');
+      return;
+    }
+
+    try {
+      const backup = JSON.parse(backupRaw);
+      Swal.fire({
+        title: 'Khôi phục bản sao lưu TKB?',
+        html: `
+          <div class="text-left text-xs space-y-1.5">
+            <p>Hệ thống sẽ hoàn tác lại Thời khóa biểu tại thời điểm:</p>
+            <p class="font-bold text-blue-700">• Thời gian: ${backup.timeStr}</p>
+            <p class="font-bold text-slate-700">• Số lượng: ${backup.count} ca học</p>
+            <p class="text-amber-600 pt-1">Lưu ý: Dữ liệu hiện tại sẽ được thay thế bằng bản sao lưu này.</p>
+          </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý khôi phục',
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#d97706'
+      }).then(res => {
+        if (res.isConfirmed) {
+          window.appState.schedules = [...backup.schedules];
+          window.saveStateToLocalStorage();
+          this.renderView();
+          this.checkAndAutoActivateShifts();
+          if (typeof window.updateDashboardKPIs === 'function') window.updateDashboardKPIs();
+          if (typeof renderDashboardTodaySchedules === 'function') renderDashboardTodaySchedules();
+          if (window.labSimulation && typeof window.labSimulation.loadLab === 'function') {
+            window.labSimulation.loadLab(window.labSimulation.currentLabId);
+          }
+          if (typeof window.logUserActivity === 'function') {
+            window.logUserActivity('Hoàn tác TKB', `Đã khôi phục TKB từ bản sao lưu ${backup.timeStr} (${backup.count} ca).`);
+          }
+          Swal.fire('Thành công', 'Đã khôi phục lại Thời khóa biểu từ bản sao lưu.', 'success');
+        }
+      });
+    } catch (e) {
+      Swal.fire('Lỗi', 'Bản sao lưu không hợp lệ.', 'error');
+    }
+  }
+
+  // 9. Giữ hàm tương thích ngược với các lệnh gọi cũ
+  handleExcelImport(event) {
+    const file = event.target.files && event.target.files[0];
+    if (file) {
+      this.processExcelScheduleFile(file);
+      event.target.value = '';
+    }
+  }
+
+  // 10. Thiết lập sự kiện Kéo & Thả (Drag & Drop) toàn trang Thời khóa biểu
+  setupDragAndDrop() {
+    const target = this.container || document.getElementById('schedule-module-container');
+    if (!target || target._hasDnDSetup) return;
+    target._hasDnDSetup = true;
+
+    ['dragenter', 'dragover'].forEach(name => {
+      target.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      target.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+
+    target.addEventListener('drop', (e) => {
+      const curUser = window.appState?.currentUser;
+      const role = curUser ? (window.normalizeRole ? window.normalizeRole(curUser.role) : curUser.role) : 'student';
+      if (role !== 'admin' && role !== 'lab_manager') return;
+
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length > 0) {
+        const file = dt.files[0];
+        if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
+          this.processExcelScheduleFile(file);
+        }
+      }
+    });
   }
 
   // =========================================================================
@@ -20311,9 +21153,13 @@ window.applyRoleRestrictionsToUI = function() {
   applyBtnState(document.getElementById('btn-add-schedule'), canCreateSchedule, 'Đăng ký ca thực hành mới', 'Chỉ Giảng viên và Quản lý phòng máy mới có quyền xếp lịch dạy');
 
   // Ẩn các nút không thuộc thẩm quyền của Giảng viên trong Phân hệ Lịch Thực hành (Tab 4):
-  const importSchBtn = document.getElementById('wrapper-import-schedule') || document.getElementById('input-import-schedule')?.closest('label');
+  const importSchBtn = document.getElementById('btn-import-schedule-excel') || document.getElementById('wrapper-import-schedule') || document.getElementById('input-import-schedule')?.closest('label');
   if (importSchBtn) {
     importSchBtn.style.display = (role === 'admin' || role === 'lab_manager') ? '' : 'none';
+  }
+  const syncSchBtn = document.getElementById('btn-sync-auto-schedule');
+  if (syncSchBtn) {
+    syncSchBtn.style.display = (role === 'admin' || role === 'lab_manager') ? '' : 'none';
   }
 
   const schSimControls = document.getElementById('sch-simulation-controls');

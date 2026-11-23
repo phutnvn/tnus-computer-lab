@@ -5671,9 +5671,13 @@ window.applyRoleRestrictionsToUI = function() {
   applyBtnState(document.getElementById('btn-add-schedule'), canCreateSchedule, 'Đăng ký ca thực hành mới', 'Chỉ Giảng viên và Quản lý phòng máy mới có quyền xếp lịch dạy');
 
   // Ẩn các nút không thuộc thẩm quyền của Giảng viên trong Phân hệ Lịch Thực hành (Tab 4):
-  const importSchBtn = document.getElementById('wrapper-import-schedule') || document.getElementById('input-import-schedule')?.closest('label');
+  const importSchBtn = document.getElementById('btn-import-schedule-excel') || document.getElementById('wrapper-import-schedule') || document.getElementById('input-import-schedule')?.closest('label');
   if (importSchBtn) {
     importSchBtn.style.display = (role === 'admin' || role === 'lab_manager') ? '' : 'none';
+  }
+  const syncSchBtn = document.getElementById('btn-sync-auto-schedule');
+  if (syncSchBtn) {
+    syncSchBtn.style.display = (role === 'admin' || role === 'lab_manager') ? '' : 'none';
   }
 
   const schSimControls = document.getElementById('sch-simulation-controls');
