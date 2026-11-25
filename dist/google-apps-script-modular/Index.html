@@ -178,18 +178,18 @@
 
           <div id="header-backup-divider" class="h-4.5 w-px bg-slate-200 hidden md:block shrink-0"></div>
 
-          <!-- Chuyển đổi vai trò người dùng (Chỉ Quản trị viên mới được phép chuyển đổi) -->
-          <div id="header-role-switcher-container" class="h-8 flex items-center gap-1.5 bg-slate-50/90 hover:bg-slate-100 border border-slate-200 hover:border-blue-300 px-2.5 rounded-lg transition shadow-2xs">
+          <!-- Chuyển đổi vai trò người dùng (Đã ẩn theo yêu cầu người dùng) -->
+          <div id="header-role-switcher-container" class="hidden">
             <i class="fa-solid fa-shield-halved text-blue-600 text-xs shrink-0"></i>
             <span id="header-role-label" class="text-[11px] text-slate-500 font-semibold hidden lg:inline shrink-0">Vai trò:</span>
-            <select id="user-role-select" class="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer pr-1" title="Chuyển đổi vai trò để kiểm tra chức năng (Dành riêng cho Admin)">
+            <select id="user-role-select" class="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer pr-1" title="Chuyển đổi vai trò">
               <option value="admin">Admin (Quản trị)</option>
               <option value="lab_manager">Quản lý PM</option>
               <option value="teacher">Giảng viên</option>
               <option value="student">Sinh viên / Khách</option>
             </select>
             <!-- Thẻ hiển thị tĩnh cho tài khoản không phải Admin (Quản lý phòng máy, Giảng viên, Sinh viên) -->
-            <div id="header-role-static-badge" class="hidden text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-default" title="Tài khoản cố định, không được phép chuyển vai trò">
+            <div id="header-role-static-badge" class="hidden text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-default">
               <i class="fa-solid fa-user-shield text-blue-600 text-xs"></i>
               <span id="header-role-static-name" class="text-blue-700 font-extrabold text-xs">--</span>
             </div>

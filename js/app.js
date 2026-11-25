@@ -666,17 +666,11 @@ window.switchTab = function(targetTab) {
       if (typeof window.renderActivityLogs === 'function') window.renderActivityLogs();
     }
 
-    // 4. Tự động điều khiển hiển thị nút lệnh vai trò và chức năng 4 vai trò trên Header theo phân hệ
+    // 4. Tự động điều khiển hiển thị nút lệnh vai trò và chức năng 4 vai trò trên Header theo phân hệ (Đã ẩn hoàn toàn theo yêu cầu)
     const headerRoleBox = document.getElementById('header-role-switcher-container');
     const headerRolesCompBtn = document.getElementById('btn-header-roles-comparison');
     if (headerRolesCompBtn) headerRolesCompBtn.style.display = 'none';
-    if (headerRoleBox) {
-      if (role === 'admin' && targetTab !== 'users') {
-        headerRoleBox.style.display = '';
-      } else {
-        headerRoleBox.style.display = 'none';
-      }
-    }
+    if (headerRoleBox) headerRoleBox.style.display = 'none';
   } catch (err) {
     console.warn(`[Navigation] Cảnh báo kích hoạt dữ liệu tab ${targetTab}:`, err);
   }
@@ -1115,22 +1109,15 @@ window.updateUserUI = function() {
   // - Ẩn roleContainer cho mọi vai trò không phải Admin, VÀ ẩn luôn tại giao diện phân quyền của Admin theo yêu cầu
   const isUsersTab = (window.appState && window.appState.currentTab === 'users');
   if (roleContainer && roleContainer.style) {
-    roleContainer.style.display = (isAdmin && !isUsersTab) ? '' : 'none';
+    roleContainer.style.display = 'none';
   }
 
   if (select && select.style) {
     select.value = role;
-    if (isAdmin && !isUsersTab) {
-      select.style.display = '';
-      select.removeAttribute('disabled');
-      if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
-      if (roleLabel && roleLabel.style) roleLabel.style.display = '';
-    } else {
-      select.style.display = 'none';
-      select.setAttribute('disabled', 'true');
-      if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
-      if (roleLabel && roleLabel.style) roleLabel.style.display = 'none';
-    }
+    select.style.display = 'none';
+    select.setAttribute('disabled', 'true');
+    if (staticBadge && staticBadge.style) staticBadge.style.display = 'none';
+    if (roleLabel && roleLabel.style) roleLabel.style.display = 'none';
   }
 
   // Cập nhật thẻ profile trên Tab 6
@@ -5341,26 +5328,14 @@ window.applyRoleRestrictionsToUI = function() {
   const roleLabel = document.getElementById('header-role-label');
 
   if (roleContainer) {
-    if (!isAdmin || isUsersTab) {
-      // BỎ HOÀN TOÀN hộp chọn / nhãn vai trò ở giao diện Giảng viên, Quản lý phòng máy, Sinh viên
-      // VÀ tại giao diện phân quyền của tài khoản Admin theo yêu cầu
-      roleContainer.style.display = 'none';
-      if (headerSelect) {
-        headerSelect.style.display = 'none';
-        headerSelect.setAttribute('disabled', 'true');
-      }
-      if (staticBadge) staticBadge.style.display = 'none';
-      if (roleLabel) roleLabel.style.display = 'none';
-    } else {
-      roleContainer.style.display = '';
-      if (headerSelect) {
-        headerSelect.style.display = '';
-        headerSelect.removeAttribute('disabled');
-        headerSelect.value = role;
-      }
-      if (staticBadge) staticBadge.style.display = 'none';
-      if (roleLabel) roleLabel.style.display = '';
+    // BỎ HOÀN TOÀN hộp chọn / nhãn vai trò trên Header theo yêu cầu người dùng
+    roleContainer.style.display = 'none';
+    if (headerSelect) {
+      headerSelect.style.display = 'none';
+      headerSelect.setAttribute('disabled', 'true');
     }
+    if (staticBadge) staticBadge.style.display = 'none';
+    if (roleLabel) roleLabel.style.display = 'none';
   }
 
   // 0.1. ĐIỀU KHIỂN CÁC NÚT LỆNH TRÊN HEADER:
