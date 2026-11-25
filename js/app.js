@@ -5407,8 +5407,8 @@ window.applyRoleRestrictionsToUI = function() {
     } else {
       headerLogoutBtn.style.display = '';
       headerLogoutBtn.title = 'Đăng xuất khỏi phiên làm việc';
-      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-power-off mr-1.5"></i><span>Đăng xuất</span>';
-      headerLogoutBtn.className = 'px-3 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer';
+      headerLogoutBtn.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket text-xs"></i><span class="inline text-[11.5px]">Đăng xuất</span>';
+      headerLogoutBtn.className = 'h-[34px] px-2.5 sm:px-3 bg-rose-50/80 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 hover:border-rose-300 rounded-lg text-xs font-semibold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer';
     }
   }
 

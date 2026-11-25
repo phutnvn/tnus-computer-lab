@@ -144,41 +144,43 @@
       <!-- HEADER PHÍA TRÊN -->
       <header class="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-20">
         <!-- Tiêu đề Header & Nút mở menu di động -->
-        <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
-          <button onclick="window.toggleSidebar()" class="lg:hidden p-2 -ml-1 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition" title="Mở danh mục menu">
-            <i class="fa-solid fa-bars text-lg"></i>
+        <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0 shrink">
+          <button onclick="window.toggleSidebar()" class="lg:hidden p-1.5 -ml-1 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition" title="Mở danh mục menu">
+            <i class="fa-solid fa-bars text-base"></i>
           </button>
-          <div class="flex items-center space-x-2 truncate">
+          <div class="flex items-center space-x-2 min-w-0">
             <span class="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 shadow-xs"></span>
-            <h1 class="text-xs sm:text-sm lg:text-base font-extrabold tracking-tight text-slate-800 uppercase truncate">
-              KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)
+            <h1 class="text-xs sm:text-sm lg:text-[15px] font-extrabold tracking-tight text-slate-800 uppercase whitespace-nowrap" title="KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)">
+              <span class="hidden 2xl:inline">KHOA TOÁN - TIN • TRƯỜNG ĐẠI HỌC KHOA HỌC (TNUS)</span>
+              <span class="inline 2xl:hidden">KHOA TOÁN - TIN • TNUS</span>
             </h1>
           </div>
-          <span class="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>Online
           </span>
         </div>
 
         <!-- Phân quyền nhanh & Thông tin tài khoản -->
-        <div class="flex items-center space-x-2 sm:space-x-2.5">
+        <div class="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
           <!-- Các nút sao lưu & khôi phục dữ liệu -->
           <div id="header-backup-controls" class="hidden md:flex items-center space-x-1.5">
-            <button id="btn-export-json" title="Xuất file JSON sao lưu dữ liệu toàn hệ thống" class="px-2.5 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-2xs">
-              <i class="fa-solid fa-download text-blue-600"></i>
-              <span class="hidden lg:inline">Sao lưu</span>
+            <button id="btn-export-json" title="Xuất file JSON sao lưu dữ liệu toàn hệ thống" class="h-[34px] px-2.5 bg-white hover:bg-blue-50/70 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+              <i class="fa-solid fa-cloud-arrow-down text-blue-600 text-xs"></i>
+              <span class="hidden xl:inline text-[11.5px]">Sao lưu</span>
             </button>
-            <button id="btn-reset-data" title="Khôi phục dữ liệu 104 máy mặc định" class="px-2.5 py-1.5 text-slate-600 hover:text-rose-600 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-2xs">
-              <i class="fa-solid fa-rotate-left text-slate-500 hover:text-rose-600"></i>
-              <span class="hidden lg:inline">Reset mẫu</span>
+            <button id="btn-reset-data" title="Khôi phục dữ liệu 104 máy mặc định" class="h-[34px] px-2.5 bg-white hover:bg-rose-50/70 text-slate-700 hover:text-rose-700 border border-slate-200 hover:border-rose-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+              <i class="fa-solid fa-rotate-left text-slate-500 hover:text-rose-600 text-xs"></i>
+              <span class="hidden xl:inline text-[11.5px]">Reset mẫu</span>
             </button>
           </div>
 
-          <div id="header-backup-divider" class="h-6 w-px bg-slate-200 hidden md:block"></div>
+          <div id="header-backup-divider" class="h-5 w-px bg-slate-200 hidden md:block shrink-0"></div>
 
           <!-- Chuyển đổi vai trò người dùng (Chỉ Quản trị viên mới được phép chuyển đổi) -->
-          <div id="header-role-switcher-container" class="flex items-center space-x-2 bg-slate-100/90 px-3 py-1.5 rounded-xl border border-slate-200">
-            <span id="header-role-label" class="text-xs text-slate-500 font-medium hidden sm:inline">Vai trò:</span>
-            <select id="user-role-select" class="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer" title="Chuyển đổi vai trò để kiểm tra chức năng (Dành riêng cho Admin)">
+          <div id="header-role-switcher-container" class="h-[34px] flex items-center gap-1.5 bg-slate-50/90 hover:bg-slate-100 border border-slate-200 hover:border-blue-300 px-2.5 rounded-lg transition shadow-2xs">
+            <i class="fa-solid fa-shield-halved text-blue-600 text-xs shrink-0"></i>
+            <span id="header-role-label" class="text-[11px] text-slate-500 font-semibold hidden md:inline shrink-0">Vai trò:</span>
+            <select id="user-role-select" class="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer pr-1" title="Chuyển đổi vai trò để kiểm tra chức năng (Dành riêng cho Admin)">
               <option value="admin">Admin (Quản trị viên)</option>
               <option value="lab_manager">Quản lý phòng máy</option>
               <option value="teacher">Giảng viên (Teacher)</option>
@@ -186,43 +188,45 @@
             </select>
             <!-- Thẻ hiển thị tĩnh cho tài khoản không phải Admin (Quản lý phòng máy, Giảng viên, Sinh viên) -->
             <div id="header-role-static-badge" class="hidden text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-default" title="Tài khoản cố định, không được phép chuyển vai trò">
-              <i class="fa-solid fa-user-shield text-blue-600"></i>
-              <span id="header-role-static-name" class="text-blue-700 font-extrabold">--</span>
+              <i class="fa-solid fa-user-shield text-blue-600 text-xs"></i>
+              <span id="header-role-static-name" class="text-blue-700 font-extrabold text-xs">--</span>
             </div>
           </div>
 
           <!-- Nút Mở bảng so sánh chức năng 4 vai trò (Ẩn theo yêu cầu tối giản) -->
-          <button id="btn-header-roles-comparison" onclick="window.showAllRolesCapabilityModal()" class="hidden px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group whitespace-nowrap shrink-0" title="Xem bảng so sánh chức năng và phân quyền của 4 loại tài khoản">
+          <button id="btn-header-roles-comparison" onclick="window.showAllRolesCapabilityModal()" class="hidden px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group whitespace-nowrap shrink-0" title="Xem bảng so sánh chức năng và phân quyền của 4 loại tài khoản">
             <i class="fa-solid fa-circle-question text-indigo-600 group-hover:text-white"></i>
             <span class="hidden md:inline">Chức năng 4 vai trò</span>
           </button>
 
           <!-- Nút Đổi mật khẩu nhanh trên Header -->
-          <button id="btn-header-change-password" onclick="window.openChangePasswordModal()" class="px-2.5 py-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs whitespace-nowrap shrink-0" title="Đổi mật khẩu tài khoản hiện tại">
-            <i class="fa-solid fa-key text-blue-600"></i>
-            <span class="hidden xl:inline">Đổi MK</span>
+          <button id="btn-header-change-password" onclick="window.openChangePasswordModal()" class="h-[34px] px-2.5 bg-white hover:bg-indigo-50/70 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs whitespace-nowrap shrink-0 cursor-pointer" title="Đổi mật khẩu tài khoản hiện tại">
+            <i class="fa-solid fa-key text-indigo-600 text-xs"></i>
+            <span class="hidden xl:inline text-[11.5px]">Đổi MK</span>
           </button>
 
           <!-- Nút Đăng nhập tài khoản (Được ẩn khi đã vào phiên làm việc hoặc giao diện Sinh viên) -->
-          <button id="btn-header-login" onclick="window.openLoginModal()" class="hidden px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 whitespace-nowrap shrink-0" title="Đăng nhập tài khoản & phân quyền">
-            <i class="fa-solid fa-right-to-bracket"></i>
+          <button id="btn-header-login" onclick="window.openLoginModal()" class="hidden h-[34px] px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5 whitespace-nowrap shrink-0" title="Đăng nhập tài khoản & phân quyền">
+            <i class="fa-solid fa-right-to-bracket text-xs"></i>
             <span class="hidden sm:inline">Đăng nhập</span>
           </button>
 
           <!-- Nút Đăng xuất -->
-          <button id="btn-header-logout" onclick="window.logoutUser()" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0" title="Đăng xuất khỏi phiên làm việc">
-            <i class="fa-solid fa-power-off"></i>
-            <span class="inline">Đăng xuất</span>
+          <button id="btn-header-logout" onclick="window.logoutUser()" class="h-[34px] px-2.5 sm:px-3 bg-rose-50/80 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 hover:border-rose-300 rounded-lg text-xs font-semibold transition shadow-2xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer" title="Đăng xuất khỏi phiên làm việc">
+            <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+            <span class="inline text-[11.5px]">Đăng xuất</span>
           </button>
 
+          <div class="h-5 w-px bg-slate-200 hidden sm:block shrink-0"></div>
+
           <!-- User Badge -->
-          <button id="btn-user-profile-header" onclick="window.showUserProfileModal && window.showUserProfileModal()" class="flex items-center space-x-2 pl-1 hover:bg-slate-100 p-1.5 rounded-xl transition text-left focus:outline-none cursor-pointer border border-transparent hover:border-slate-200" title="Xem hồ sơ cán bộ, Đổi mật khẩu & Đăng xuất">
-            <div id="user-header-badge-avatar" class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+          <button id="btn-user-profile-header" onclick="window.showUserProfileModal && window.showUserProfileModal()" class="h-[34px] flex items-center space-x-2 px-2 hover:bg-slate-100/90 rounded-lg transition text-left focus:outline-none cursor-pointer border border-transparent hover:border-slate-200 shrink-0" title="Xem hồ sơ cán bộ, Đổi mật khẩu & Đăng xuất">
+            <div id="user-header-badge-avatar" class="w-6.5 h-6.5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
               👨‍💼
             </div>
             <div class="text-left hidden lg:block leading-tight">
               <div id="current-user-display" class="font-bold text-xs text-slate-800 truncate max-w-[140px]">ThS. Trịnh Minh Phú</div>
-              <div id="current-role-display" class="text-[10px] text-blue-600 font-medium">Admin • TNUS</div>
+              <div id="current-role-display" class="text-[10px] text-blue-600 font-semibold">Admin • TNUS</div>
             </div>
           </button>
         </div>
